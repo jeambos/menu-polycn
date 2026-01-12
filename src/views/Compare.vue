@@ -1,124 +1,159 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { decode } from '../logic/codec';
 import questionsData from '../data/questions.json';
-import type { Attitude } from '../types';
+import type { Attitude, Module } from '../types';
 
 const route = useRoute();
 const router = useRouter();
 
-// --- 数据容器 ---
+// --- 类型定义 ---
 interface CompareItem {
   id: string;
   title: string;
+  choice: string;       // 选项文字
+  moduleId: string;
   moduleName: string;
-  myChoice: string;
   myAttitude: Attitude;
-  partnerChoice: string;
   partnerAttitude: Attitude;
 }
 
-interface ConflictGroup {
+interface ModuleGroup {
+  id: string;
   name: string;
-  level: 'nuclear' | 'hard' | 'soft' | 'resonance';
   items: CompareItem[];
 }
 
-const nuclearConflicts = ref<CompareItem[]>([]); // 💣 核爆 (1 vs 4)
-const hardConflicts = ref<CompareItem[]>([]);    // ⚠️ 困难 (1 vs 3, 2 vs 4)
-const resonanceItems = ref<CompareItem[]>([]);   // ✨ 共振 (3/4 vs 3/4)
-const negotiationItems = ref<CompareItem[]>([]); // 🤝 协商 (其他不一致)
+// --- 状态 ---
+const allModules = questionsData.modules as Module[];
+const selectedModuleIds = ref<string[]>(allModules.map(m => m.id)); // 默认全选
 
-const score = ref(0); // 默契度打分
+// 四个区域的原始数据
+const listResonance = ref<CompareItem[]>([]); // ✨
+const listCritical = ref<CompareItem[]>([]);  // ⚡
+const listDiscuss = ref<CompareItem[]>([]);   // 💬
+const listNegotiate = ref<CompareItem[]>([]); // 🤝
 
-// 辅助：获取态度对应的 Emoji 和 颜色类
-function getAttitudeMeta(att: Attitude) {
+// --- 辅助：图标映射 ---
+function getIcon(att: Attitude) {
   switch (att) {
-    case 4: return { icon: '⭐', color: 'text-accent', bg: 'bg-accent/10', label: '核心' };
-    case 3: return { icon: '👌', color: 'text-success', bg: 'bg-success/10', label: '同意' };
-    case 2: return { icon: '❔', color: 'text-warning', bg: 'bg-warning/10', label: '犹豫' };
-    case 1: return { icon: '⛔', color: 'text-error', bg: 'bg-error/10', label: '拒绝' };
-    default: return { icon: '⚪', color: 'opacity-30', bg: 'bg-base-200', label: '跳过' };
+    case 4: return '⭐';
+    case 3: return '👌';
+    case 2: return '❔';
+    case 1: return '⛔';
+    default: return '⚪';
   }
 }
 
-// 核心分析逻辑
-function analyze(myMap: Record<string, number[]>, partnerMap: Record<string, number[]>) {
-  const nList: CompareItem[] = [];
-  const hList: CompareItem[] = [];
-  const rList: CompareItem[] = [];
-  const negList: CompareItem[] = [];
+// --- 核心逻辑：按模块分组 + 过滤 ---
+function groupAndFilter(items: CompareItem[]): ModuleGroup[] {
+  // 1. 过滤：只保留用户选中的模块
+  const filtered = items.filter(i => selectedModuleIds.value.includes(i.moduleId));
   
-  let totalPoints = 0;
-  let maxPoints = 0;
+  // 2. 分组
+  const map = new Map<string, ModuleGroup>();
+  filtered.forEach(item => {
+    if (!map.has(item.moduleId)) {
+      map.set(item.moduleId, {
+        id: item.moduleId,
+        name: item.moduleName,
+        items: []
+      });
+    }
+    map.get(item.moduleId)!.items.push(item);
+  });
+  
+  return Array.from(map.values());
+}
+
+// 计算属性：给模板渲染用
+const groupsResonance = computed(() => groupAndFilter(listResonance.value));
+const groupsCritical = computed(() => groupAndFilter(listCritical.value));
+const groupsDiscuss = computed(() => groupAndFilter(listDiscuss.value));
+const groupsNegotiate = computed(() => groupAndFilter(listNegotiate.value));
+
+// --- 分析算法 ---
+function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, Attitude[]>) {
+  const rList: CompareItem[] = [];
+  const cList: CompareItem[] = [];
+  const dList: CompareItem[] = [];
+  const nList: CompareItem[] = [];
 
   questionsData.modules.forEach(m => {
     m.questions.forEach(q => {
       const myStates = myMap[q.id];
       const partnerStates = partnerMap[q.id];
-
-      // 如果任意一方没做这题，跳过对比
       if (!myStates || !partnerStates) return;
 
-      // 遍历选项
       q.options.forEach((optText, index) => {
-        const myAtt = (myStates[index] || 0) as Attitude;
-        const ptAtt = (partnerStates[index] || 0) as Attitude;
+        const a = (myStates[index] || 0) as Attitude;
+        const b = (partnerStates[index] || 0) as Attitude;
 
-        // 双方都跳过，或者态度完全一致且不是核心，暂不重点展示
-        if (myAtt === 0 && ptAtt === 0) return;
+        // 双方都未做(0)，或者一方未做，暂时跳过对比 (交集逻辑)
+        if (a === 0 || b === 0) return;
 
-        // 构造对比项
         const item: CompareItem = {
           id: q.id + '_' + index,
           title: q.title,
+          choice: optText,
+          moduleId: m.id,
           moduleName: m.name.replace(/📦 |⚛️ /g, ''),
-          myChoice: optText,
-          myAttitude: myAtt,
-          partnerChoice: optText,
-          partnerAttitude: ptAtt
+          myAttitude: a,
+          partnerAttitude: b
         };
 
-        // --- 判定逻辑 ---
-        
-        // 1. 💣 核爆冲突: (1 vs 4) 或 (4 vs 1)
-        if ((myAtt === 1 && ptAtt === 4) || (myAtt === 4 && ptAtt === 1)) {
-          nList.push(item);
-          maxPoints += 10; // 扣分权重大
+        // --- 重新定义的四区逻辑 ---
+
+        // 3. 💬 深度探索区 (To Be Discussed)
+        // 任何一方是 2 (犹豫)
+        if (a === 2 || b === 2) {
+          dList.push(item);
         }
-        // 2. ⚠️ 困难分歧: (1 vs 3) 或 (2 vs 4)
-        else if (
-          (myAtt === 1 && ptAtt === 3) || (myAtt === 3 && ptAtt === 1) ||
-          (myAtt === 2 && ptAtt === 4) || (myAtt === 4 && ptAtt === 2)
-        ) {
-          hList.push(item);
-          maxPoints += 5;
+        // 2. ⚡ 核心关注区 (Critical Focus)
+        // (4 vs 1) 或 (1 vs 4)
+        else if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
+          cList.push(item);
         }
-        // 3. ✨ 灵魂共振: (4 vs 4) 或 (4 vs 3) 或 (3 vs 3)
-        // 且必须是在同一个选项上！
-        else if (myAtt >= 3 && ptAtt >= 3) {
+        // 1. ✨ 默契共振区 (Resonance)
+        // (4+4), (4+3), (3+4), (3+3), (1+1)
+        else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) {
           rList.push(item);
-          totalPoints += (myAtt + ptAtt); // 加分
-          maxPoints += 8;
         }
-        // 4. 🤝 需要协商: 剩下的不一致情况 (比如 2 vs 3, 1 vs 2)
-        else if (myAtt !== ptAtt) {
-          negList.push(item);
-          maxPoints += 2;
+        // 4. 🤝 协商让步区 (Negotiation)
+        // 剩下的情况：(3 vs 1) 或 (1 vs 3)
+        else {
+          nList.push(item);
         }
       });
     });
   });
 
-  nuclearConflicts.value = nList;
-  hardConflicts.value = hList;
-  resonanceItems.value = rList;
-  negotiationItems.value = negList;
+  listResonance.value = rList;
+  listCritical.value = cList;
+  listDiscuss.value = dList;
+  listNegotiate.value = nList;
+}
 
-  // 简单的默契度计算 (仅供娱乐)
-  if (maxPoints === 0) score.value = 0;
-  else score.value = Math.max(0, Math.min(100, Math.round((totalPoints / maxPoints) * 100)));
+// 切换筛选
+function toggleFilter(modId: string) {
+  if (selectedModuleIds.value.includes(modId)) {
+    // 如果只剩一个，就不让取消了(防止空屏)
+    if (selectedModuleIds.value.length > 1) {
+      selectedModuleIds.value = selectedModuleIds.value.filter(id => id !== modId);
+    }
+  } else {
+    selectedModuleIds.value.push(modId);
+  }
+}
+
+// 全选/反选
+function toggleAllFilters() {
+  if (selectedModuleIds.value.length === allModules.length) {
+    selectedModuleIds.value = ['core']; // 留一个核心
+  } else {
+    selectedModuleIds.value = allModules.map(m => m.id);
+  }
 }
 
 onMounted(() => {
@@ -127,8 +162,10 @@ onMounted(() => {
 
   if (myCode && partnerCode) {
     try {
-      const myAnswers = decode(myCode);
-      const partnerAnswers = decode(partnerCode);
+      // 这里的 decode 已经适配了新算法，返回 Record<string, number[]>
+      // 我们断言为 Attitude[]
+      const myAnswers = decode(myCode) as Record<string, Attitude[]>;
+      const partnerAnswers = decode(partnerCode) as Record<string, Attitude[]>;
       analyze(myAnswers, partnerAnswers);
     } catch (e) {
       console.error('对比解码失败', e);
@@ -138,44 +175,62 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="pb-24 pt-6 px-4 max-w-md mx-auto min-h-screen">
+  <div class="pb-24 pt-4 px-2 max-w-md mx-auto min-h-screen flex flex-col">
     
+    <div class="sticky top-0 z-30 bg-base-100/95 backdrop-blur border-b border-base-content/5 pb-2 pt-2 -mx-2 px-2 mb-6">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <h2 class="font-bold text-sm opacity-60">筛选题包</h2>
+        <button @click="toggleAllFilters" class="btn btn-xs btn-ghost text-[10px]">
+          {{ selectedModuleIds.length === allModules.length ? '取消全选' : '全选' }}
+        </button>
+      </div>
+      <div class="flex overflow-x-auto gap-2 pb-1 no-scrollbar">
+        <button 
+          v-for="mod in allModules" 
+          :key="mod.id"
+          @click="toggleFilter(mod.id)"
+          class="btn btn-xs whitespace-nowrap transition-all"
+          :class="selectedModuleIds.includes(mod.id) ? 'btn-neutral' : 'btn-ghost opacity-50'"
+        >
+          {{ mod.name.replace(/📦 |⚛️ /g, '') }}
+        </button>
+      </div>
+    </div>
+
     <div class="text-center mb-8">
-      <div class="text-4xl mb-2">⚔️</div>
-      <h2 class="text-2xl font-bold">双人关系分析</h2>
-      <div class="mt-4 inline-flex flex-col items-center">
-        <div class="text-[10px] opacity-50 uppercase tracking-widest">Resonance Score</div>
-        <div class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-tr from-primary to-accent font-mono">
-          {{ score }}%
-        </div>
-      </div>
+      <div class="text-4xl mb-2 animate-bounce">⚖️</div>
+      <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+        关系对照表
+      </h2>
+      <p class="text-xs opacity-50 mt-1">
+        不打分，只呈现。看见差异是理解的开始。
+      </p>
     </div>
 
-    <div v-if="nuclearConflicts.length > 0" class="mb-8 animate-slide-in">
-      <div class="flex items-center gap-2 mb-4 text-error font-bold text-lg uppercase tracking-wider border-b-2 border-error/20 pb-1">
-        <span>💣</span> 核爆冲突 ({{ nuclearConflicts.length }})
+    <div v-if="groupsResonance.length > 0" class="mb-8 animate-fade-in-up">
+      <div class="flex items-center gap-2 mb-4 text-success font-bold text-lg uppercase tracking-wider border-b-2 border-success/20 pb-1">
+        <span>✨</span> 默契共振
       </div>
-      <div class="flex flex-col gap-3">
-        <div v-for="item in nuclearConflicts" :key="item.id" class="card bg-error text-error-content shadow-xl border-2 border-white/10">
+      
+      <div class="flex flex-col gap-4">
+        <div v-for="group in groupsResonance" :key="group.id" class="card bg-success/5 border border-success/20 shadow-sm">
           <div class="card-body p-3">
-            <div class="text-xs opacity-80 mb-1 flex justify-between">
-              <span>{{ item.moduleName }}</span>
-              <span>{{ item.title }}</span>
-            </div>
-            
-            <div class="font-bold text-lg text-center border-b border-white/20 pb-2 mb-2">
-              {{ item.myChoice }}
-            </div>
-
-            <div class="flex items-center justify-between text-sm font-bold">
-              <div class="flex items-center gap-1">
-                <span class="text-xl">{{ getAttitudeMeta(item.myAttitude).icon }}</span>
-                <span>我</span>
-              </div>
-              <div class="text-xs opacity-50">VS</div>
-              <div class="flex items-center gap-1">
-                <span>Ta</span>
-                <span class="text-xl">{{ getAttitudeMeta(item.partnerAttitude).icon }}</span>
+            <h3 class="text-xs font-bold opacity-60 text-success mb-2 uppercase">{{ group.name }}</h3>
+            <div class="flex flex-wrap gap-2">
+              <div 
+                v-for="item in group.items" 
+                :key="item.id"
+                class="badge badge-outline badge-success h-auto py-1.5 px-3 gap-2 bg-base-100/50"
+              >
+                <div class="flex flex-col text-left border-r border-success/20 pr-2 mr-1">
+                  <span class="text-[10px] opacity-60 leading-tight">{{ item.title }}</span>
+                  <span class="font-bold text-xs">{{ item.choice }}</span>
+                </div>
+                <div class="flex items-center gap-1 text-sm">
+                  <span>{{ getIcon(item.myAttitude) }}</span>
+                  <span class="opacity-30 text-[10px]">=</span>
+                  <span>{{ getIcon(item.partnerAttitude) }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -183,42 +238,100 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-if="hardConflicts.length > 0" class="mb-8 animate-slide-in" style="animation-delay: 0.1s">
+    <div v-if="groupsCritical.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.1s">
       <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1">
-        <span>⚠️</span> 重点磨合 ({{ hardConflicts.length }})
+        <span>⚡</span> 核心关注
       </div>
-      <div class="flex flex-col gap-2">
-        <div v-for="item in hardConflicts" :key="item.id" class="bg-base-200 p-3 rounded-lg border-l-4 border-warning">
-          <div class="text-[10px] opacity-40 mb-1">{{ item.title }} - {{ item.myChoice }}</div>
-          <div class="flex justify-between items-center">
-            <div class="flex items-center gap-2">
-              <span class="text-xs opacity-50">我</span>
-              <span class="badge badge-sm" :class="getAttitudeMeta(item.myAttitude).color">{{ getAttitudeMeta(item.myAttitude).label }}</span>
-            </div>
-            <div class="text-xs opacity-30">vs</div>
-            <div class="flex items-center gap-2">
-              <span class="badge badge-sm" :class="getAttitudeMeta(item.partnerAttitude).color">{{ getAttitudeMeta(item.partnerAttitude).label }}</span>
-              <span class="text-xs opacity-50">Ta</span>
+      
+      <div class="flex flex-col gap-4">
+        <div v-for="group in groupsCritical" :key="group.id" class="card bg-warning text-warning-content shadow-lg">
+          <div class="card-body p-4">
+            <h3 class="text-xs font-bold opacity-80 mb-2 border-b border-black/10 pb-1">{{ group.name }}</h3>
+            <div class="flex flex-col gap-2">
+              <div 
+                v-for="item in group.items" 
+                :key="item.id"
+                class="bg-white/20 p-2 rounded-lg flex items-center justify-between"
+              >
+                <div class="flex-1 mr-2">
+                   <div class="text-[10px] opacity-60">{{ item.title }}</div>
+                   <div class="font-bold text-sm">{{ item.choice }}</div>
+                </div>
+                <div class="flex items-center gap-2 bg-black/10 px-2 py-1 rounded">
+                  <span class="text-lg">{{ getIcon(item.myAttitude) }}</span>
+                  <span class="text-xs font-bold opacity-50">vs</span>
+                  <span class="text-lg">{{ getIcon(item.partnerAttitude) }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="resonanceItems.length > 0" class="mb-8 animate-slide-in" style="animation-delay: 0.2s">
-      <div class="flex items-center gap-2 mb-4 text-accent font-bold text-lg uppercase tracking-wider border-b-2 border-accent/20 pb-1">
-        <span>✨</span> 灵魂共振 ({{ resonanceItems.length }})
+    <div v-if="groupsDiscuss.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.2s">
+      <div class="flex items-center gap-2 mb-4 text-info font-bold text-lg uppercase tracking-wider border-b-2 border-info/20 pb-1">
+        <span>💬</span> 待厘清 / 需要沟通
       </div>
-      <div class="flex flex-wrap gap-2">
-        <div v-for="item in resonanceItems" :key="item.id" class="badge badge-accent badge-outline h-auto py-2 gap-2">
-          <span class="text-xs opacity-60">{{ item.myChoice }}</span>
-          <span v-if="item.myAttitude === 4 && item.partnerAttitude === 4">⭐⭐</span>
-          <span v-else>👌</span>
+      
+      <div class="flex flex-col gap-4">
+        <div v-for="group in groupsDiscuss" :key="group.id" class="card bg-base-200 border border-base-300">
+          <div class="card-body p-3">
+            <h3 class="text-xs font-bold opacity-50 mb-2">{{ group.name }}</h3>
+            <div class="flex flex-wrap gap-2">
+              <div 
+                v-for="item in group.items" 
+                :key="item.id"
+                class="badge badge-ghost h-auto py-1.5 px-3 gap-2 border border-base-content/10"
+              >
+                <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
+                  <span class="text-[10px] opacity-50 leading-tight">{{ item.title }}</span>
+                  <span class="font-bold text-xs">{{ item.choice }}</span>
+                </div>
+                <div class="flex items-center gap-1 text-sm grayscale opacity-80">
+                  <span>{{ getIcon(item.myAttitude) }}</span>
+                  <span class="opacity-30 text-[10px]">?</span>
+                  <span>{{ getIcon(item.partnerAttitude) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="mt-8 text-center">
+    <div v-if="groupsNegotiate.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.3s">
+      <div class="flex items-center gap-2 mb-4 text-base-content/60 font-bold text-lg uppercase tracking-wider border-b-2 border-base-content/10 pb-1">
+        <span>🤝</span> 协商让步
+      </div>
+      
+      <div class="flex flex-col gap-4">
+        <div v-for="group in groupsNegotiate" :key="group.id" class="card bg-base-100 border-2 border-base-200">
+          <div class="card-body p-3">
+            <h3 class="text-xs font-bold opacity-40 mb-2">{{ group.name }}</h3>
+            <div class="flex flex-wrap gap-2">
+              <div 
+                v-for="item in group.items" 
+                :key="item.id"
+                class="badge badge-outline opacity-70 h-auto py-1.5 px-3 gap-2"
+              >
+                <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
+                  <span class="text-[10px] opacity-50 leading-tight">{{ item.title }}</span>
+                  <span class="font-bold text-xs">{{ item.choice }}</span>
+                </div>
+                <div class="flex items-center gap-1 text-sm">
+                  <span>{{ getIcon(item.myAttitude) }}</span>
+                  <span class="opacity-30 text-[10px]">/</span>
+                  <span>{{ getIcon(item.partnerAttitude) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 text-center pb-8">
       <button @click="router.push('/')" class="btn btn-ghost">返回首页</button>
     </div>
 
@@ -226,11 +339,18 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.animate-slide-in {
-  animation: slideIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) backwards;
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out backwards;
 }
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
 }
 </style>
