@@ -120,43 +120,44 @@ function toBits(num: number): string {
 }
 
 /**
- * 编码：将所有选项的态度压缩成 Emoji 串
+ * 编码：将所有选项的态度压缩成 Emoji 串 (支持尾部截断压缩)
  */
 export function encode(answers: Record<string, number[]>): string {
   let bitStream = "";
 
-  // 1. 严格按照 JSON 顺序遍历所有题目和选项
-  // 必须保证编码和解码时的题目顺序完全一致，否则数据会错位
+  // 1. 生成全量二进制流
   questionsData.modules.forEach(m => {
     m.questions.forEach(q => {
       const userStates = answers[q.id] || [];
-      
       q.options.forEach((_, optIndex) => {
-        // 获取该选项的态度 (默认为0)
-        // 安全检查：确保是 0-4 的整数
         let state = userStates[optIndex] || 0;
-        if (state > 4) state = 0; 
-        
-        // 转为 3位 二进制
+        if (state > 4) state = 0;
         bitStream += toBits(state);
       });
     });
   });
 
-  // 2. 补齐 10 的倍数 (为了 Base1024)
-  // 如果 bitStream 长度不是 10 的倍数，后面补 0
+  // 2. ✂️ 核心优化：移除尾部所有的 '0'
+  // 这样未做的题目就不会占用空间了
+  bitStream = bitStream.replace(/0+$/, '');
+
+  // 3. 如果截断后为空（比如一道题都没做），返回空串或特定符号
+  if (bitStream.length === 0) return "";
+
+  // 4. 补齐 10 的倍数 (为了 Base1024)
+  // 虽然我们砍掉了后面的0，但为了凑齐一个完整的 Emoji (10bit)，
+  // 最后一段可能需要补几个 0 回来
   const remainder = bitStream.length % 10;
   if (remainder !== 0) {
     const padding = 10 - remainder;
     bitStream += "0".repeat(padding);
   }
 
-  // 3. 切分并转 Emoji
+  // 5. 切分并转 Emoji
   let result = "";
   for (let i = 0; i < bitStream.length; i += 10) {
     const chunk = bitStream.substring(i, i + 10);
     const val = parseInt(chunk, 2);
-    // 查表，如果越界(理论不会)则用第一个字符兜底
     result += (EMOJI_MAP[val] !== undefined) ? EMOJI_MAP[val] : EMOJI_MAP[0];
   }
 

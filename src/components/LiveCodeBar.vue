@@ -40,7 +40,7 @@ const progress = computed(() => {
       <div class="flex-1 font-mono text-sm tracking-widest overflow-hidden whitespace-nowrap opacity-90 flex flex-col justify-center">
         <div class="text-[8px] opacity-40 leading-none mb-0.5">RELATIONSHIP CODE</div>
         <div class="leading-none">
-          <span class="opacity-30">...</span>{{ currentCode.slice(-8) }}
+          <span class="opacity-30">...</span>{{ (currentCode || '').slice(-8) }}
         </div>
       </div>
 
