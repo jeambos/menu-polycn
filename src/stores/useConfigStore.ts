@@ -4,7 +4,7 @@ import { ref } from 'vue'
 import type { Certainty } from '../types' // 引入我们定义的类型
 
 // 定义单题答案的结构
-interface AnswerRecord {
+export interface AnswerRecord {
   optionIndex: number; // 选了第几个选项 (0-5)
   certainty: Certainty; // 坚定度 (1-3)
 }
