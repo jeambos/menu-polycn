@@ -18,18 +18,25 @@ const displayCode = ref('');
 const isPreviewMode = ref(false);
 
 // 定义三个分区的容器
-const greenZone = ref<any[]>([]);  // 喜欢/核心
-const yellowZone = ref<any[]>([]); // 一般/协商
-const redZone = ref<any[]>([]);    // 拒绝/雷区
+const greenZone = ref<any[]>([]);  // 🟩 舒适区
+const yellowZone = ref<any[]>([]); // 🟨 协商区
+const redZone = ref<any[]>([]);    // 🟥 雷区
 
-// 将扁平的答案映射回带标题的对象，并分类
+// 辅助排序函数：核心 > 迷茫 > 普通
+function sortByCertainty(a: any, b: any) {
+  // 权重：核心(3) > 迷茫(1) > 普通(2)
+  // 我们希望把带有特殊标记的排前面
+  const weightA = a.certainty === 3 ? 10 : (a.certainty === 1 ? 5 : 0);
+  const weightB = b.certainty === 3 ? 10 : (b.certainty === 1 ? 5 : 0);
+  return weightB - weightA;
+}
+
 function processZoneData(answers: Record<string, any>) {
   const g: any[] = [], y: any[] = [], r: any[] = [];
 
   questionsData.modules.forEach(m => {
     m.questions.forEach(q => {
       const record = answers[q.id];
-      // 如果没答，直接跳过
       if (!record || record.certainty === 0) return;
 
       const item = {
@@ -37,20 +44,11 @@ function processZoneData(answers: Record<string, any>) {
         title: q.title,
         choice: q.options[record.optionIndex],
         optionIndex: record.optionIndex,
-        certainty: record.certainty, // 1=迷茫, 2=普通, 3=坚定
+        certainty: record.certainty, // 1=❔, 2=普通, 3=⭐
         moduleName: m.name.replace(/📦 |⚛️ /g, '')
       };
 
-      // --- 分区逻辑 (根据 V5.0 的 0-4 选项倾向) ---
-      // 逻辑：
-      // 1. 如果是 "核心需求(3)"，无论选啥，都算重要信息。但为了视觉区分：
-      //    - 核心+喜欢 -> 放在绿色置顶
-      //    - 核心+讨厌 -> 放在红色置顶 (硬雷点)
-      // 2. 普通情况：
-      //    - 选项 3,4 (接受/融合) -> 绿区
-      //    - 选项 2 (中立) -> 黄区
-      //    - 选项 0,1 (拒绝/独立) -> 红区
-      
+      // 分区逻辑 (5变3)
       if (item.optionIndex >= 3) {
         g.push(item);
       } else if (item.optionIndex === 2) {
@@ -61,126 +59,142 @@ function processZoneData(answers: Record<string, any>) {
     });
   });
 
-  // 排序优化：每个区内，把“核心(⭐)”的排在最前面
-  const sorter = (a: any, b: any) => b.certainty - a.certainty;
-  greenZone.value = g.sort(sorter);
-  yellowZone.value = y.sort(sorter);
-  redZone.value = r.sort(sorter);
+  // 排序：把 星星 和 问号 排在前面
+  greenZone.value = g.sort(sortByCertainty);
+  yellowZone.value = y.sort(sortByCertainty);
+  redZone.value = r.sort(sortByCertainty);
 }
 
 onMounted(() => {
   const codeParam = route.query.code as string;
   
   if (codeParam) {
-    // 模式 A: 预览模式
+    // A: 预览模式
     isPreviewMode.value = true;
     displayCode.value = codeParam;
-    const decodedArr = decode(codeParam);
-    const answerMap: any = {};
     
-    let globalIndex = 0;
-    questionsData.modules.forEach(m => {
-      m.questions.forEach(q => {
-        const item = decodedArr[globalIndex];
-        // 增加非空检查，修复 TS 报错
-        if (item) {
-          answerMap[q.id] = {
-            optionIndex: item.option,
-            certainty: item.certainty
-          };
-        }
-        globalIndex++;
+    // 安全解码
+    try {
+      const decodedArr = decode(codeParam);
+      const answerMap: any = {};
+      
+      let globalIndex = 0;
+      questionsData.modules.forEach(m => {
+        m.questions.forEach(q => {
+          // ✅ 修复：增加非空判断，防止数组越界报错
+          const item = decodedArr[globalIndex];
+          if (item) {
+            answerMap[q.id] = {
+              optionIndex: item.option,
+              certainty: item.certainty
+            };
+          }
+          globalIndex++;
+        });
       });
-    });
-    displayAnswers.value = answerMap;
+      displayAnswers.value = answerMap;
+    } catch (e) {
+      console.error("解码失败", e);
+    }
   } else {
-    // 模式 B: 本机结果
+    // B: 本机结果
     displayAnswers.value = store.answers;
-    // 重新编码一遍用于展示
-    // (此处省略了重复的 encode 逻辑调用，直接复用 LiveCodeBar 里的逻辑或 store 逻辑)
-    // 简单起见，我们假设用户已经生成过代码，或者 LiveCodeBar 会处理
-    displayCode.value = '请在底部查看实时代码'; 
+    // 这里我们只是为了让 LiveCodeBar 工作，不需要手动 set displayCode
+    // LiveCodeBar 会自己从 store 读取
   }
 
-  // 处理分区数据
   processZoneData(displayAnswers.value);
 });
 </script>
 
 <template>
-  <div class="pb-32 pt-6 px-4 max-w-md mx-auto">
+  <div class="pb-32 pt-6 px-4 max-w-md mx-auto min-h-screen">
     <div class="text-center mb-8">
       <h2 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
         {{ isPreviewMode ? '配置解读' : '我的配置单' }}
       </h2>
-      <p class="text-xs opacity-50 mt-2 font-mono break-all px-4">
-        {{ isPreviewMode ? 'Code: ' + displayCode.slice(0, 20) + '...' : '已生成属于你的关系指纹' }}
+      <p class="text-xs opacity-50 mt-2 font-mono break-all px-8">
+        {{ isPreviewMode ? 'Code: ' + displayCode.slice(0, 12) + '...' : '关系指纹已生成' }}
       </p>
     </div>
 
     <div v-if="greenZone.length > 0" class="mb-6 animate-fade-in-up">
-      <div class="flex items-center gap-2 mb-3 text-success font-bold text-lg uppercase tracking-wider">
-        <span class="text-xl">🟩</span> 舒适圈 / 渴望
+      <div class="flex items-center gap-2 mb-3 text-success font-bold text-lg uppercase tracking-wider border-b border-success/20 pb-1">
+        <span>🟩</span> 舒适圈 ({{ greenZone.length }})
       </div>
       <div class="flex flex-col gap-2">
         <div 
           v-for="item in greenZone" 
           :key="item.id"
-          class="bg-base-200/50 border-l-4 border-success p-3 rounded-r-lg flex justify-between items-center"
+          class="bg-base-200/40 hover:bg-base-200 p-3 rounded-lg flex justify-between items-center transition-colors"
+          :class="{'border border-success/30': item.certainty === 3}"
         >
           <div>
-            <div class="text-[10px] opacity-40 mb-0.5">{{ item.moduleName }}</div>
+            <div class="text-[10px] opacity-40 mb-0.5 flex items-center gap-1">
+              {{ item.moduleName }}
+              <span v-if="item.certainty === 3" class="text-warning">★ 核心</span>
+            </div>
             <div class="font-bold text-sm">{{ item.title }}</div>
-            <div class="text-xs opacity-80 mt-1 text-success">{{ item.choice }}</div>
+            <div class="text-xs opacity-80 mt-1 text-success font-medium">{{ item.choice }}</div>
           </div>
-          <div v-if="item.certainty === 3" class="text-xl animate-pulse">⭐</div>
+          <div class="text-xl">
+            <span v-if="item.certainty === 3" class="animate-pulse" title="核心需求">⭐</span>
+            <span v-else-if="item.certainty === 1" class="opacity-50 grayscale" title="迷茫/不确定">❔</span>
+          </div>
         </div>
       </div>
     </div>
 
     <div v-if="yellowZone.length > 0" class="mb-6 animate-fade-in-up" style="animation-delay: 0.1s">
-      <div class="flex items-center gap-2 mb-3 text-warning font-bold text-lg uppercase tracking-wider">
-        <span class="text-xl">🟨</span> 待商议 / 弹性
+      <div class="flex items-center gap-2 mb-3 text-warning font-bold text-lg uppercase tracking-wider border-b border-warning/20 pb-1">
+        <span>🟨</span> 待商议 ({{ yellowZone.length }})
       </div>
       <div class="flex flex-col gap-2">
         <div 
           v-for="item in yellowZone" 
           :key="item.id"
-          class="bg-base-200/50 border-l-4 border-warning p-3 rounded-r-lg flex justify-between items-center"
+          class="bg-base-200/40 p-3 rounded-lg flex justify-between items-center"
         >
           <div>
             <div class="text-[10px] opacity-40 mb-0.5">{{ item.moduleName }}</div>
             <div class="font-bold text-sm">{{ item.title }}</div>
-            <div class="text-xs opacity-80 mt-1">{{ item.choice }}</div>
+            <div class="text-xs opacity-80 mt-1 text-warning-content">{{ item.choice }}</div>
           </div>
-          <div v-if="item.certainty === 3" class="text-xl text-warning">⭐</div>
+          <div class="text-xl">
+            <span v-if="item.certainty === 3" class="text-warning">⭐</span>
+            <span v-else-if="item.certainty === 1" class="opacity-50">❔</span>
+          </div>
         </div>
       </div>
     </div>
 
     <div v-if="redZone.length > 0" class="mb-6 animate-fade-in-up" style="animation-delay: 0.2s">
-      <div class="flex items-center gap-2 mb-3 text-error font-bold text-lg uppercase tracking-wider">
-        <span class="text-xl">🟥</span> 硬边界 / 拒绝
+      <div class="flex items-center gap-2 mb-3 text-error font-bold text-lg uppercase tracking-wider border-b border-error/20 pb-1">
+        <span>🟥</span> 硬边界 ({{ redZone.length }})
       </div>
       <div class="flex flex-col gap-2">
         <div 
           v-for="item in redZone" 
           :key="item.id"
-          class="bg-base-200/50 border-l-4 border-error p-3 rounded-r-lg flex justify-between items-center opacity-80"
+          class="bg-base-200/40 p-3 rounded-lg flex justify-between items-center opacity-90"
+          :class="{'bg-error/10': item.certainty === 3}"
         >
           <div>
             <div class="text-[10px] opacity-40 mb-0.5">{{ item.moduleName }}</div>
-            <div class="font-bold text-sm line-through decoration-error/50">{{ item.title }}</div>
-            <div class="text-xs opacity-80 mt-1 text-error font-bold">{{ item.choice }}</div>
+            <div class="font-bold text-sm text-base-content/70 line-through decoration-error/50">{{ item.title }}</div>
+            <div class="text-xs opacity-100 mt-1 text-error font-bold">{{ item.choice }}</div>
           </div>
-          <div v-if="item.certainty === 3" class="text-xl">⛔</div>
+          <div class="text-xl">
+            <span v-if="item.certainty === 3" title="绝对底线">⛔</span>
+            <span v-else-if="item.certainty === 1" class="opacity-50">❔</span>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="flex flex-col gap-3 mt-8">
-      <button v-if="!isPreviewMode" @click="copy(store.answers ? displayCode : '')" class="btn btn-primary w-full">
-        {{ copied ? '已复制！' : '复制我的配置代码' }}
+      <button v-if="!isPreviewMode" @click="copy(store.answers ? displayCode : '')" class="btn btn-primary w-full shadow-lg">
+        {{ copied ? '✅ 已复制 Emoji 代码' : '📋 复制我的配置代码' }}
       </button>
       <button @click="router.push('/')" class="btn btn-ghost w-full">
         返回首页
