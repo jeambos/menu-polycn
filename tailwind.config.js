@@ -10,4 +10,8 @@ export default {
   plugins: [
     require('daisyui'),
   ],
+  // --- 新增以下配置 ---
+  daisyui: {
+    themes: ["black", "synthwave"], // 第一个是默认主题
+  },
 }
