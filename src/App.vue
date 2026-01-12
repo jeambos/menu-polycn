@@ -1,5 +1,5 @@
 <template>
-  <div class="p-10 text-center text-3xl font-bold text-primary">
-    项目启动成功！🚀
+  <div class="min-h-screen bg-base-200 flex items-center justify-center">
+    <h1 class="text-4xl font-bold text-primary">Relationship Config</h1>
   </div>
 </template>
