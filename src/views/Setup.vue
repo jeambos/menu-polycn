@@ -25,11 +25,14 @@ const currentPreset = ref('custom');
 // 应用套餐逻辑
 function applyPreset(key: string) {
   currentPreset.value = key;
-  if (key === 'custom') return; // 自定义模式不自动改数据
+  if (key === 'custom') return;
 
   const targetIds = PRESETS[key];
   
-  // 1. 先清空所有 (除了 core，core 是 Pinia 里写死不能删的，但为了保险我们重置一下)
+  // ✅ 新增这一行：如果取不到套餐数据，直接返回，不再往下执行
+  if (!targetIds) return; 
+  
+  // 1. 先清空所有
   store.enabledModules = ['core']; 
   
   // 2. 逐个添加

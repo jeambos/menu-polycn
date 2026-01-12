@@ -5,7 +5,7 @@ import { useClipboard } from '@vueuse/core';
 import { decode } from '../logic/codec'; // 引入解码器用于验证
 
 const router = useRouter();
-const { text, copy, read, isSupported } = useClipboard(); // VueUse 的剪贴板工具
+const { text, copy, isSupported } = useClipboard(); // VueUse 的剪贴板工具
 
 // --- 状态管理 ---
 const activeTab = ref<'import' | 'compare'>('import'); // 当前标签页
@@ -40,17 +40,22 @@ function triggerError(msg: string) {
   }, 500);
 }
 
-// 读取剪贴板 (锦上添花功能)
+// 读取剪贴板 (使用原生 API)
 async function pasteFromClipboard(targetRef: any) {
-  if (isSupported.value) {
+  // 优先使用原生 API 读取
+  if (navigator.clipboard && navigator.clipboard.readText) {
     try {
-      await read(); // 读取剪贴板
-      if (text.value) {
-        targetRef.value = text.value;
+      const clipText = await navigator.clipboard.readText();
+      if (clipText) {
+        targetRef.value = clipText;
       }
     } catch (e) {
-      console.error('无法读取剪贴板');
+      console.error('无法读取剪贴板:', e);
+      triggerError('无法访问剪贴板，请手动粘贴');
     }
+  } else if (isSupported.value && text.value) {
+    // 降级方案：尝试读取 VueUse 监听到的内容
+    targetRef.value = text.value;
   }
 }
 
