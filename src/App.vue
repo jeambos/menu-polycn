@@ -3,3 +3,4 @@
     <h1 class="text-4xl font-bold text-primary">Relationship Config</h1>
   </div>
 </template>
+
