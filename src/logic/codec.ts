@@ -1,3 +1,7 @@
+// src/logic/codec.ts
+import type { Certainty } from '../types';
+
+// 1. 你的完整 Emoji 字典 (请把文件里的完整数组贴在这里)
 const EMOJI_MAP: string[] = [
         '🆘', '🆙', '🆚', '🈁', '🈂', '🈚', '🈯', '🈲', '🈳', '🈴', '🈵',
         '🈶', '🈷', '🈸', '🈹', '🈺', '🉐', '🉑', '🌀', '🌁', '🌂',
@@ -102,4 +106,90 @@ const EMOJI_MAP: string[] = [
         '🧩', '🧪', '🧫', '🧬', '🧭', '🧮', '🧯', '🧰', '🧱', '🧲',
         '🧳', '🧴', '🧵', '🧶', '🧷', '🧸', '🧹', '🧺', '🧻', '🧼',
         '🧽', '🧾', '🧿', '🆗'
-        ];
+];
+
+// 建立反向索引 (Emoji -> 数字)，为了解码加速
+const EMOJI_TO_INDEX = new Map<string, number>();
+EMOJI_MAP.forEach((emoji, index) => {
+  EMOJI_TO_INDEX.set(emoji, index);
+});
+
+// 单题答案接口
+interface Answer {
+  option: number; // 0-5
+  certainty: Certainty; // 0-3
+}
+
+/**
+ * 核心编码函数：将答案数组压缩为 Emoji 字符串
+ * @param answers 答案数组 (按题目顺序排列)
+ */
+export function encode(answers: Answer[]): string {
+  let result = "";
+  
+  // 每次处理 2 道题
+  for (let i = 0; i < answers.length; i += 2) {
+    const q1 = answers[i] || { option: 0, certainty: 0 }; // 缺省补0
+    const q2 = answers[i + 1] || { option: 0, certainty: 0 };
+
+    // 【位运算魔法】
+    // 结构: [Q1选项 3bit][Q1坚定 2bit] + [Q2选项 3bit][Q2坚定 2bit]
+    // 总共 10 bits
+    
+    // 1. 构建 Q1 的 5 bits数值
+    // 例如: 选项3(011) + 坚定2(10) -> 01110 (十进制 14)
+    const val1 = (q1.option << 2) | q1.certainty;
+    
+    // 2. 构建 Q2 的 5 bits数值
+    const val2 = (q2.option << 2) | q2.certainty;
+
+    // 3. 合并为 10 bits
+    // val1 放高位，val2 放低位
+    const combined = (val1 << 5) | val2;
+
+    // 4. 查表转 Emoji
+    result += EMOJI_MAP[combined] || '🆘'; // 如果越界(理论不会)用求救符
+  }
+
+  return result;
+}
+
+/**
+ * 核心解码函数：将 Emoji 字符串还原为答案数组
+ */
+export function decode(code: string): Answer[] {
+  // 这是一个 Array.from 的技巧，能正确处理 Emoji 这种宽字符
+  const emojis = Array.from(code); 
+  const answers: Answer[] = [];
+
+  for (const emoji of emojis) {
+    const value = EMOJI_TO_INDEX.get(emoji);
+    
+    if (value === undefined) {
+      // 遇到不认识的字符，跳过或补空
+      answers.push({ option: 0, certainty: 0 });
+      answers.push({ option: 0, certainty: 0 });
+      continue;
+    }
+
+    // 【位运算逆向魔法】
+    
+    // 1. 拆解出 Q1 (高5位) 和 Q2 (低5位)
+    const val1 = (value >> 5) & 0b11111; // 0b11111 就是 31
+    const val2 = value & 0b11111;
+
+    // 2. 解析 Q1
+    answers.push({
+      option: (val1 >> 2),      //以此类推，取出前3位
+      certainty: (val1 & 0b11) as Certainty // 取出后2位
+    });
+
+    // 3. 解析 Q2
+    answers.push({
+      option: (val2 >> 2),
+      certainty: (val2 & 0b11) as Certainty
+    });
+  }
+
+  return answers;
+}
