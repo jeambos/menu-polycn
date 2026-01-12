@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useClipboard } from '@vueuse/core';
 import { useConfigStore } from '../stores/useConfigStore';
@@ -13,28 +13,57 @@ const router = useRouter();
 const store = useConfigStore();
 const { copy, copied } = useClipboard();
 
-const displayAnswers = ref<Record<string, Attitude[]>>({});
-const displayCode = ref('');
+// 类型定义：单个结果项
+interface ResultItem {
+  id: string;
+  title: string;
+  choice: string;
+  attitude: Attitude;
+  moduleId: string;
+  moduleName: string;
+}
+
+// 类型定义：按模块分组后的结构
+interface ModuleGroup {
+  id: string;
+  name: string;
+  items: ResultItem[];
+}
+
 const isPreviewMode = ref(false);
+const displayCode = ref('');
 
-// --- 分区容器 ---
-// 绿区被拆分为两部分：核心(重点展示) 和 普通同意(标签展示)
-const greenCore = ref<any[]>([]);   // ⭐ 核心
-const greenNormal = ref<any[]>([]); // 👌 同意
-const yellowZone = ref<any[]>([]);  // ❔ 犹豫
-const redZone = ref<any[]>([]);     // ⛔ 拒绝
+// --- 分区数据容器 (按模块分组) ---
+const redGroups = ref<ModuleGroup[]>([]);    // ⛔ 硬边界
+const goldGroups = ref<ModuleGroup[]>([]);   // ⭐ 核心需求
+const yellowGroups = ref<ModuleGroup[]>([]); // ❔ 待商议
 
-// 控制折叠状态
-const showAllGreen = ref(false);
+// --- 绿区比较特殊，不按模块分组，直接一大堆 ---
+const greenItems = ref<ResultItem[]>([]);    // 👌 可接受
 
-// 辅助排序
-function sortItems(a: any, b: any) {
-  // 按照 模块顺序 或者 题目ID 排序可能更符合阅读习惯
-  return a.id.localeCompare(b.id);
+// 辅助：把平铺的 Items 按模块归类
+function groupItemsByModule(items: ResultItem[]): ModuleGroup[] {
+  const map = new Map<string, ModuleGroup>();
+  
+  items.forEach(item => {
+    if (!map.has(item.moduleId)) {
+      map.set(item.moduleId, {
+        id: item.moduleId,
+        name: item.moduleName,
+        items: []
+      });
+    }
+    map.get(item.moduleId)!.items.push(item);
+  });
+
+  return Array.from(map.values());
 }
 
 function processZoneData(answers: Record<string, Attitude[]>) {
-  const gCore: any[] = [], gNorm: any[] = [], y: any[] = [], r: any[] = [];
+  const rList: ResultItem[] = [];
+  const gCoreList: ResultItem[] = []; // 临时的核心列表
+  const yList: ResultItem[] = [];
+  const greenList: ResultItem[] = [];
 
   questionsData.modules.forEach(m => {
     m.questions.forEach(q => {
@@ -44,152 +73,169 @@ function processZoneData(answers: Record<string, Attitude[]>) {
       states.forEach((att, optIndex) => {
         if (att === 0) return;
 
-        const item = {
+        const item: ResultItem = {
           id: q.id + '_' + optIndex,
           title: q.title,
           choice: q.options[optIndex],
           attitude: att,
+          moduleId: m.id,
           moduleName: m.name.replace(/📦 |⚛️ /g, '')
         };
 
-        if (att === 4) {
-          gCore.push(item);     // ⭐ 进核心区
-        } else if (att === 3) {
-          gNorm.push(item);     // 👌 进普通区
-        } else if (att === 2) {
-          y.push(item);         // ❔ 进黄区
-        } else if (att === 1) {
-          r.push(item);         // ⛔ 进红区
-        }
+        if (att === 1) rList.push(item);      // ⛔ 1 -> 红
+        else if (att === 4) gCoreList.push(item); // ⭐ 4 -> 金
+        else if (att === 2) yList.push(item); // ❔ 2 -> 黄
+        else if (att === 3) greenList.push(item); // 👌 3 -> 绿
       });
     });
   });
 
-  greenCore.value = gCore.sort(sortItems);
-  greenNormal.value = gNorm.sort(sortItems);
-  yellowZone.value = y.sort(sortItems);
-  redZone.value = r.sort(sortItems);
+  // 1. 前三个区：按模块分组
+  redGroups.value = groupItemsByModule(rList);
+  goldGroups.value = groupItemsByModule(gCoreList);
+  yellowGroups.value = groupItemsByModule(yList);
+
+  // 2. 绿区：保持平铺，但可能需要排序
+  greenItems.value = greenList;
 }
 
 onMounted(() => {
   const codeParam = route.query.code as string;
+  let rawAnswers: Record<string, Attitude[]> = {};
+
   if (codeParam) {
     isPreviewMode.value = true;
     displayCode.value = codeParam;
     try {
-      displayAnswers.value = decode(codeParam) as Record<string, Attitude[]>;
-    } catch (e) {
-      console.error("解码失败", e);
-    }
+      rawAnswers = decode(codeParam) as Record<string, Attitude[]>;
+    } catch (e) { console.error(e); }
   } else {
-    displayAnswers.value = store.answers;
+    rawAnswers = store.answers;
   }
-  processZoneData(displayAnswers.value);
+  processZoneData(rawAnswers);
 });
 </script>
 
 <template>
   <div class="pb-40 pt-6 px-4 max-w-md mx-auto min-h-screen">
     
-    <div class="text-center mb-8">
+    <div class="text-center mb-10">
       <h2 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
         {{ isPreviewMode ? '配置解读' : '我的配置单' }}
       </h2>
-      <p class="text-xs opacity-50 mt-2 font-mono px-8">
-        {{ isPreviewMode ? 'Code Preview Mode' : 'Fingerprint Generated' }}
+      <p class="text-xs opacity-50 mt-2 font-mono break-all px-8">
+        {{ isPreviewMode ? 'Code Preview' : 'Relationship Fingerprint' }}
       </p>
     </div>
 
-    <div v-if="redZone.length > 0" class="mb-8 animate-fade-in-up">
-      <div class="flex items-center justify-between mb-3 border-b border-error/20 pb-1">
-        <div class="flex items-center gap-2 text-error font-bold text-lg uppercase tracking-wider">
-          <span>⛔</span> 硬边界
-        </div>
-        <div class="badge badge-error badge-sm">{{ redZone.length }}</div>
+    <div v-if="redGroups.length > 0" class="mb-8 animate-fade-in-up">
+      <div class="flex items-center gap-2 mb-4 text-error font-bold text-lg uppercase tracking-wider border-b-2 border-error/20 pb-1">
+        <span>⛔</span> 硬边界 / Deal Breakers
       </div>
       
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-4">
         <div 
-          v-for="item in redZone" 
-          :key="item.id"
-          class="bg-error/10 border border-error/20 p-3 rounded-lg flex justify-between items-center"
+          v-for="group in redGroups" 
+          :key="group.id"
+          class="card bg-error text-error-content shadow-lg"
         >
-          <div class="flex-1 min-w-0">
-            <div class="text-[10px] opacity-60 mb-0.5">{{ item.moduleName }}</div>
-            <div class="font-bold text-sm text-error break-words">{{ item.choice }}</div>
-            <div class="text-[10px] opacity-50 line-through truncate">{{ item.title }}</div>
+          <div class="card-body p-4">
+            <h3 class="card-title text-sm opacity-90 border-b border-white/20 pb-2 mb-2">
+              {{ group.name }}
+            </h3>
+            <div class="flex flex-wrap gap-2">
+              <div 
+                v-for="item in group.items" 
+                :key="item.id"
+                class="badge badge-white/20 border-0 text-white font-bold h-auto py-2 px-3 gap-2"
+              >
+                <span class="opacity-70 text-xs font-normal border-r border-white/30 pr-2 mr-0.5">{{ item.title }}</span>
+                <span>{{ item.choice }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="greenCore.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.1s">
-      <div class="flex items-center justify-between mb-3 border-b border-accent/20 pb-1">
-        <div class="flex items-center gap-2 text-accent font-bold text-lg uppercase tracking-wider">
-          <span>⭐</span> 核心需求
-        </div>
-        <div class="badge badge-accent badge-sm">{{ greenCore.length }}</div>
+    <div v-if="goldGroups.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.1s">
+      <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1">
+        <span>⭐</span> 核心需求 / Must Haves
       </div>
-
-      <div class="flex flex-col gap-2">
+      
+      <div class="flex flex-col gap-4">
         <div 
-          v-for="item in greenCore" 
-          :key="item.id"
-          class="bg-accent/10 border border-accent/30 p-3 rounded-lg flex justify-between items-center relative overflow-hidden"
+          v-for="group in goldGroups" 
+          :key="group.id"
+          class="card bg-warning text-warning-content shadow-lg"
         >
-          <div class="flex-1 min-w-0 z-10">
-            <div class="text-[10px] opacity-60 mb-0.5 text-accent">{{ item.moduleName }}</div>
-            <div class="font-bold text-sm text-white break-words">{{ item.choice }}</div>
-            <div class="text-[10px] opacity-50 truncate">{{ item.title }}</div>
-          </div>
-          <div class="absolute -right-4 -bottom-4 text-6xl opacity-10 rotate-12">⭐</div>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="yellowZone.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.2s">
-      <div class="flex items-center justify-between mb-3 border-b border-warning/20 pb-1">
-        <div class="flex items-center gap-2 text-warning font-bold text-lg uppercase tracking-wider">
-          <span>❔</span> 待商议
-        </div>
-        <div class="badge badge-warning badge-sm">{{ yellowZone.length }}</div>
-      </div>
-
-      <div class="flex flex-col gap-2">
-        <div v-for="item in yellowZone" :key="item.id" class="bg-warning/5 border border-warning/10 p-2 rounded-lg flex items-center gap-3">
-          <span class="text-xl">🤔</span>
-          <div class="flex-1 min-w-0">
-             <div class="font-bold text-sm text-warning-content/80">{{ item.choice }}</div>
-             <div class="text-[10px] opacity-40">{{ item.title }}</div>
+          <div class="card-body p-4">
+            <h3 class="card-title text-sm opacity-80 border-b border-black/10 pb-2 mb-2 text-black">
+              {{ group.name }}
+            </h3>
+            <div class="flex flex-wrap gap-2">
+              <div 
+                v-for="item in group.items" 
+                :key="item.id"
+                class="badge badge-neutral bg-black/10 border-0 text-black font-bold h-auto py-2 px-3 gap-2"
+              >
+                <span class="opacity-60 text-xs font-normal border-r border-black/20 pr-2 mr-0.5">{{ item.title }}</span>
+                <span>{{ item.choice }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="greenNormal.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.3s">
-      <div class="flex items-center justify-between mb-3 border-b border-success/20 pb-1">
-        <div class="flex items-center gap-2 text-success font-bold text-lg uppercase tracking-wider">
-          <span>👌</span> 可以接受
+    <div v-if="yellowGroups.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.2s">
+      <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1">
+        <span>❔</span> 待商议 / Soft Limits
+      </div>
+      
+      <div class="flex flex-col gap-4">
+        <div 
+          v-for="group in yellowGroups" 
+          :key="group.id"
+          class="card bg-base-100 border-2 border-base-300 shadow-sm"
+        >
+          <div class="card-body p-4">
+            <h3 class="card-title text-sm opacity-60 border-b border-base-content/10 pb-2 mb-2">
+              {{ group.name }}
+            </h3>
+            <div class="flex flex-wrap gap-2">
+              <div 
+                v-for="item in group.items" 
+                :key="item.id"
+                class="badge badge-outline border-warning text-warning h-auto py-2 px-3 gap-2 bg-warning/5"
+              >
+                <span class="opacity-60 text-xs font-normal border-r border-warning/30 pr-2 mr-0.5 text-base-content">{{ item.title }}</span>
+                <span class="font-bold">{{ item.choice }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="badge badge-success badge-sm">{{ greenNormal.length }}</div>
+      </div>
+    </div>
+
+    <div v-if="greenItems.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.3s">
+      <div class="flex items-center gap-2 mb-4 text-success font-bold text-lg uppercase tracking-wider border-b-2 border-success/20 pb-1">
+        <span>👌</span> 可接受 / Nice to have
       </div>
 
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap gap-2 bg-base-200/30 p-4 rounded-xl border border-base-content/5">
         <div 
-          v-for="(item, index) in (showAllGreen ? greenNormal : greenNormal.slice(0, 10))" 
+          v-for="item in greenItems" 
           :key="item.id"
-          class="badge badge-success badge-outline gap-1 py-3 h-auto"
+          class="badge badge-success badge-outline bg-success/5 h-auto py-2 px-3 gap-2"
         >
-          <span class="font-bold opacity-80">{{ item.choice }}</span>
+          <span class="opacity-50 text-xs font-normal border-r border-success/30 pr-2 mr-0.5 text-base-content">{{ item.title }}</span>
+          <span class="font-bold">{{ item.choice }}</span>
         </div>
-        
-        <button 
-          v-if="greenNormal.length > 10 && !showAllGreen" 
-          @click="showAllGreen = true"
-          class="badge badge-ghost gap-1 py-3 cursor-pointer hover:bg-base-content/10"
-        >
-          +{{ greenNormal.length - 10 }} 更多...
-        </button>
+      </div>
+      
+      <div v-if="greenItems.length > 20" class="text-center mt-2 opacity-30 text-xs">
+        ... 以及其他 {{ greenItems.length - 20 }} 项 (已显示全部)
       </div>
     </div>
 
