@@ -1,5 +1,5 @@
 // src/logic/codec.ts
-import type { Certainty } from '../types';
+import questionsData from '../data/questions.json';
 
 // 1. 你的完整 Emoji 字典 (请把文件里的完整数组贴在这里)
 const EMOJI_MAP: string[] = [
@@ -114,82 +114,104 @@ EMOJI_MAP.forEach((emoji, index) => {
   EMOJI_TO_INDEX.set(emoji, index);
 });
 
-// 单题答案接口
-interface Answer {
-  option: number; // 0-5
-  certainty: Certainty; // 0-3
+// 辅助：把数字转二进制字符串，补足3位 (最大值4 -> 100)
+function toBits(num: number): string {
+  return num.toString(2).padStart(3, '0');
 }
 
 /**
- * 核心编码函数：将答案数组压缩为 Emoji 字符串
- * @param answers 答案数组 (按题目顺序排列)
+ * 编码：将所有选项的态度压缩成 Emoji 串
  */
-export function encode(answers: Answer[]): string {
+export function encode(answers: Record<string, number[]>): string {
+  let bitStream = "";
+
+  // 1. 严格按照 JSON 顺序遍历所有题目和选项
+  // 必须保证编码和解码时的题目顺序完全一致，否则数据会错位
+  questionsData.modules.forEach(m => {
+    m.questions.forEach(q => {
+      const userStates = answers[q.id] || [];
+      
+      q.options.forEach((_, optIndex) => {
+        // 获取该选项的态度 (默认为0)
+        // 安全检查：确保是 0-4 的整数
+        let state = userStates[optIndex] || 0;
+        if (state > 4) state = 0; 
+        
+        // 转为 3位 二进制
+        bitStream += toBits(state);
+      });
+    });
+  });
+
+  // 2. 补齐 10 的倍数 (为了 Base1024)
+  // 如果 bitStream 长度不是 10 的倍数，后面补 0
+  const remainder = bitStream.length % 10;
+  if (remainder !== 0) {
+    const padding = 10 - remainder;
+    bitStream += "0".repeat(padding);
+  }
+
+  // 3. 切分并转 Emoji
   let result = "";
-  
-  // 每次处理 2 道题
-  for (let i = 0; i < answers.length; i += 2) {
-    const q1 = answers[i] || { option: 0, certainty: 0 }; // 缺省补0
-    const q2 = answers[i + 1] || { option: 0, certainty: 0 };
-
-    // 【位运算魔法】
-    // 结构: [Q1选项 3bit][Q1坚定 2bit] + [Q2选项 3bit][Q2坚定 2bit]
-    // 总共 10 bits
-    
-    // 1. 构建 Q1 的 5 bits数值
-    // 例如: 选项3(011) + 坚定2(10) -> 01110 (十进制 14)
-    const val1 = (q1.option << 2) | q1.certainty;
-    
-    // 2. 构建 Q2 的 5 bits数值
-    const val2 = (q2.option << 2) | q2.certainty;
-
-    // 3. 合并为 10 bits
-    // val1 放高位，val2 放低位
-    const combined = (val1 << 5) | val2;
-
-    // 4. 查表转 Emoji
-    result += EMOJI_MAP[combined] || '🆘'; // 如果越界(理论不会)用求救符
+  for (let i = 0; i < bitStream.length; i += 10) {
+    const chunk = bitStream.substring(i, i + 10);
+    const val = parseInt(chunk, 2);
+    // 查表，如果越界(理论不会)则用第一个字符兜底
+    result += (EMOJI_MAP[val] !== undefined) ? EMOJI_MAP[val] : EMOJI_MAP[0];
   }
 
   return result;
 }
 
 /**
- * 核心解码函数：将 Emoji 字符串还原为答案数组
+ * 解码：将 Emoji 串还原为答案字典
  */
-export function decode(code: string): Answer[] {
-  // 这是一个 Array.from 的技巧，能正确处理 Emoji 这种宽字符
-  const emojis = Array.from(code); 
-  const answers: Answer[] = [];
-
-  for (const emoji of emojis) {
-    const value = EMOJI_TO_INDEX.get(emoji);
-    
-    if (value === undefined) {
-      // 遇到不认识的字符，跳过或补空
-      answers.push({ option: 0, certainty: 0 });
-      answers.push({ option: 0, certainty: 0 });
-      continue;
+export function decode(code: string): Record<string, number[]> {
+  // 1. Emoji -> BitStream
+  let bitStream = "";
+  // 使用 Array.from 处理 Emoji 字符长度问题
+  for (const char of Array.from(code)) {
+    const val = EMOJI_TO_INDEX.get(char);
+    if (val !== undefined) {
+      // 还原为 10位 二进制
+      bitStream += val.toString(2).padStart(10, '0');
     }
-
-    // 【位运算逆向魔法】
-    
-    // 1. 拆解出 Q1 (高5位) 和 Q2 (低5位)
-    const val1 = (value >> 5) & 0b11111; // 0b11111 就是 31
-    const val2 = value & 0b11111;
-
-    // 2. 解析 Q1
-    answers.push({
-      option: (val1 >> 2),      //以此类推，取出前3位
-      certainty: (val1 & 0b11) as Certainty // 取出后2位
-    });
-
-    // 3. 解析 Q2
-    answers.push({
-      option: (val2 >> 2),
-      certainty: (val2 & 0b11) as Certainty
-    });
   }
 
-  return answers;
+  // 2. BitStream -> Answers
+  const result: Record<string, number[]> = {};
+  let pointer = 0;
+
+  questionsData.modules.forEach(m => {
+    m.questions.forEach(q => {
+      const qStates: number[] = [];
+      let hasData = false;
+
+      q.options.forEach(() => {
+        // 每次读 3 位
+        if (pointer + 3 <= bitStream.length) {
+          const chunk = bitStream.substring(pointer, pointer + 3);
+          const state = parseInt(chunk, 2);
+          
+          // 只有合法的 0-4 才记录，防止脏数据
+          const validState = state <= 4 ? state : 0;
+          qStates.push(validState);
+          
+          if (validState > 0) hasData = true;
+          
+          pointer += 3;
+        } else {
+          // 数据流不够了，补0
+          qStates.push(0);
+        }
+      });
+
+      // 只有当这道题有用户操作过(非全0)时才存入，节省 Result 页面的遍历开销
+      if (hasData) {
+        result[q.id] = qStates;
+      }
+    });
+  });
+
+  return result;
 }

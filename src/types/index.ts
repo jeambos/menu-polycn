@@ -1,14 +1,12 @@
 // src/types/index.ts
 
-// 坚定程度：0=未选/跳过, 1=迷茫(问号), 2=意向(普通), 3=坚定(星星)
-export type Certainty = 0 | 1 | 2 | 3;
+// 0=未选(N/A), 1=拒绝(Hard No), 2=迷茫(Soft), 3=同意(Yes), 4=核心(Core)
+export type Attitude = 0 | 1 | 2 | 3 | 4;
 
-// 单个题目
 export interface Question {
-  id: string;          // 题目ID，如 "q_01"
-  title: string;       // 题目内容
-  options: string[];   // 5-6个选项文字的数组
-  // 我们不需要在这里存用户的答案，答案存 Pinia 里
+  id: string;
+  title: string;
+  options: string[]; // 选项列表
 }
 
 // 题目模块 (如 "核心内核", "性与欲望")
