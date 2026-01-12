@@ -3,6 +3,8 @@ import Welcome from '../views/Welcome.vue'
 import Setup from '../views/Setup.vue'
 import Quiz from '../views/Quiz.vue'
 import Result from '../views/Result.vue'
+import Compare from '../views/Compare.vue' // 新增
+import Import from '../views/Import.vue'   // 新增
 
 const router = createRouter({
   // 使用 WebHistory 模式 (URL 不带 # 号，更美观)
@@ -27,6 +29,16 @@ const router = createRouter({
       path: '/result',
       name: 'result',
       component: Result
+    },
+    {
+      path: '/compare',
+      name: 'compare',
+      component: Compare
+    },
+    {
+      path: '/import',
+      name: 'import',
+      component: Import
     }
   ]
 })
