@@ -85,7 +85,7 @@ onMounted(() => {
     isPreviewMode.value = true;
     displayCode.value = codeParam;
     try {
-      displayAnswers.value = decode(codeParam); // 新版 decode 直接返回正确结构
+      displayAnswers.value = decode(codeParam) as Record<string, Attitude[]>;
     } catch (e) {
       console.error("解码失败", e);
     }
