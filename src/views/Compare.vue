@@ -9,16 +9,9 @@ import CompareDashboard from '../components/CompareDashboard.vue';
 const route = useRoute();
 const router = useRouter();
 
-// --- 类型定义 ---
-interface CompareItem {
-  id: string; title: string; choice: string; moduleId: string; moduleName: string;
-  myAttitude: Attitude; partnerAttitude: Attitude;
-}
-interface ModuleGroup {
-  id: string; name: string; items: CompareItem[];
-}
+interface CompareItem { id: string; title: string; choice: string; moduleId: string; moduleName: string; myAttitude: Attitude; partnerAttitude: Attitude; }
+interface ModuleGroup { id: string; name: string; items: CompareItem[]; }
 
-// --- 状态管理 ---
 const allModules = questionsData.modules as Module[];
 const selectedModuleIds = ref<string[]>(allModules.map(m => m.id));
 
@@ -27,19 +20,20 @@ const listCritical = ref<CompareItem[]>([]);
 const listDiscuss = ref<CompareItem[]>([]);   
 const listNegotiate = ref<CompareItem[]>([]); 
 
-// 计算总数，用于判断是否显示图表
+// ✅ 新增：双方的头像
+const myAvatar = ref('😎');
+const partnerAvatar = ref('😎');
+
 const hasData = computed(() => {
   return listResonance.value.length + listCritical.value.length + listDiscuss.value.length + listNegotiate.value.length > 0;
 });
 
-// --- 辅助逻辑 (图标 & 颜色) ---
 function getIcon(att: Attitude) {
   switch (att) {
     case 4: return '⭐'; case 3: return '👌'; case 2: return '❔'; case 1: return '⛔'; default: return '⚪';
   }
 }
 
-// --- 分组与过滤 ---
 function groupAndFilter(items: CompareItem[]): ModuleGroup[] {
   const filtered = items.filter(i => selectedModuleIds.value.includes(i.moduleId));
   const map = new Map<string, ModuleGroup>();
@@ -55,45 +49,33 @@ const groupsCritical = computed(() => groupAndFilter(listCritical.value));
 const groupsDiscuss = computed(() => groupAndFilter(listDiscuss.value));
 const groupsNegotiate = computed(() => groupAndFilter(listNegotiate.value));
 
-// --- 滚动跳转 ---
 function scrollToZone(elementId: string) {
   const el = document.getElementById(elementId);
   if (el) {
-    // 减去头部高度 (Nav 64px + Filter 40px + Padding)
     const offset = 120; 
     const elementPosition = el.getBoundingClientRect().top;
     const offsetPosition = elementPosition + window.pageYOffset - offset;
-    
-    window.scrollTo({
-      top: offsetPosition,
-      behavior: "smooth"
-    });
-    
+    window.scrollTo({ top: offsetPosition, behavior: "smooth" });
     el.classList.add('animate-flash');
     setTimeout(() => el.classList.remove('animate-flash'), 1000);
   }
 }
 
-// --- 分析算法 ---
 function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, Attitude[]>) {
   const nList: CompareItem[] = [], hList: CompareItem[] = [], rList: CompareItem[] = [], dList: CompareItem[] = [];
-  
   questionsData.modules.forEach(m => {
     m.questions.forEach(q => {
       const myStates = myMap[q.id]; const partnerStates = partnerMap[q.id];
       if (!myStates || !partnerStates) return;
-      
       q.options.forEach((optText, index) => {
         const a = (myStates[index] || 0) as Attitude;
         const b = (partnerStates[index] || 0) as Attitude;
         if (a === 0 || b === 0) return;
-
         const item: CompareItem = {
           id: q.id + '_' + index, title: q.title, choice: optText,
           moduleId: m.id, moduleName: m.name.replace(/📦 |⚛️ /g, ''),
           myAttitude: a, partnerAttitude: b
         };
-
         if (a === 2 || b === 2) dList.push(item); 
         else if ((a === 4 && b === 1) || (a === 1 && b === 4)) nList.push(item); 
         else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) rList.push(item); 
@@ -101,7 +83,6 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
       });
     });
   });
-
   listResonance.value = rList;
   listCritical.value = nList;
   listDiscuss.value = dList;
@@ -122,8 +103,18 @@ onMounted(() => {
   const partnerCode = route.query.partner as string;
   if (myCode && partnerCode) {
     try {
-      const myAnswers = decode(myCode) as Record<string, Attitude[]>;
-      const partnerAnswers = decode(partnerCode) as Record<string, Attitude[]>;
+      // ✅ 使用 decode 解析，并提取 avatar
+      const res1 = decode(myCode);
+      const res2 = decode(partnerCode);
+      
+      // ✅ 设置双方头像
+      myAvatar.value = res1.avatar;
+      partnerAvatar.value = res2.avatar;
+
+      // 类型断言
+      const myAnswers = res1.answers as Record<string, Attitude[]>;
+      const partnerAnswers = res2.answers as Record<string, Attitude[]>;
+      
       analyze(myAnswers, partnerAnswers);
     } catch (e) { console.error(e); }
   }
@@ -164,6 +155,9 @@ onMounted(() => {
           <p class="text-sm opacity-60 max-w-md mx-auto md:mx-0 leading-relaxed">
             数据已就绪。点击右侧环形图的扇区，可快速跳转至对应板块。
           </p>
+          <div class="mt-4 flex items-center justify-center md:justify-start gap-4 text-2xl opacity-80">
+             <span>{{ myAvatar }}</span> <span class="text-xs opacity-50">VS</span> <span>{{ partnerAvatar }}</span>
+          </div>
         </div>
         
         <CompareDashboard 
@@ -196,7 +190,9 @@ onMounted(() => {
                       </div>
                       <div class="flex items-center gap-2 bg-black/10 px-2 py-1 rounded shrink-0">
                         <span class="text-lg">{{ getIcon(item.myAttitude) }}</span>
-                        <span class="text-xs font-bold opacity-50">vs</span>
+                        <span class="text-xs font-bold opacity-50">{{ myAvatar }}</span>
+                        <span class="text-xs opacity-30">/</span>
+                        <span class="text-xs font-bold opacity-50">{{ partnerAvatar }}</span>
                         <span class="text-lg">{{ getIcon(item.partnerAttitude) }}</span>
                       </div>
                     </div>
@@ -224,7 +220,7 @@ onMounted(() => {
                       </div>
                       <div class="flex items-center gap-1 text-sm">
                         <span>{{ getIcon(item.myAttitude) }}</span>
-                        <span class="opacity-30 text-[10px]">=</span>
+                        <span class="text-[10px] opacity-50">{{ myAvatar }}={{ partnerAvatar }}</span>
                         <span>{{ getIcon(item.partnerAttitude) }}</span>
                       </div>
                     </div>
@@ -252,7 +248,7 @@ onMounted(() => {
                       </div>
                       <div class="flex items-center gap-1 text-sm grayscale opacity-80">
                         <span>{{ getIcon(item.myAttitude) }}</span>
-                        <span class="opacity-30 text-[10px]">?</span>
+                        <span class="text-[10px] opacity-50">{{ myAvatar }}?{{ partnerAvatar }}</span>
                         <span>{{ getIcon(item.partnerAttitude) }}</span>
                       </div>
                     </div>
@@ -280,7 +276,7 @@ onMounted(() => {
                       </div>
                       <div class="flex items-center gap-1 text-sm">
                         <span>{{ getIcon(item.myAttitude) }}</span>
-                        <span class="opacity-30 text-[10px]">/</span>
+                        <span class="text-[10px] opacity-50">{{ myAvatar }}/{{ partnerAvatar }}</span>
                         <span>{{ getIcon(item.partnerAttitude) }}</span>
                       </div>
                     </div>
@@ -291,7 +287,8 @@ onMounted(() => {
           </div>
         </div>
 
-      </div> </div>
+      </div> 
+    </div>
 
     <div class="mt-12 text-center pb-8">
       <button @click="router.push('/')" class="btn btn-ghost">返回首页</button>

@@ -5,6 +5,8 @@ import { useConfigStore } from '../stores/useConfigStore';
 import ModuleCard from '../components/ModuleCard.vue';
 import questionsData from '../data/questions.json';
 import type { Module } from '../types';
+// ✅ 引入头像列表
+import { AVATARS } from '../logic/codec';
 
 const router = useRouter();
 const store = useConfigStore();
@@ -12,30 +14,29 @@ const modules = questionsData.modules as Module[];
 
 // --- 套餐定义 ---
 const PRESETS: Record<string, string[]> = {
-  'custom': [], // 自定义模式（占位）
-  'all': modules.map(m => m.id), // 全选 (深度伴侣)
-  'fwb': ['core', 'sex_desire', 'boundaries'], // 炮友: 核心+性+边界
-  'friend': ['core', 'boundaries', 'values', 'activity'], // 挚友: 核心+边界+三观+活动
-  'platonic': ['core', 'romance', 'values', 'living', 'assets'] // 柏拉图: 无性+生活+资产
+  'custom': [], 
+  'all': modules.map(m => m.id), 
+  'fwb': ['core', 'sex_desire', 'boundaries'], 
+  'friend': ['core', 'boundaries', 'values', 'activity'], 
+  'platonic': ['core', 'romance', 'values', 'living', 'assets'] 
 };
 
-// 当前选中的套餐 (默认自定义，或者根据当前选中项反推? 简单起见默认自定义)
 const currentPreset = ref('custom');
 
-// 应用套餐逻辑
+// ✅ 代理 Store 里的头像，方便页面操作
+const currentAvatar = computed({
+  get: () => store.targetAvatar,
+  set: (val) => store.setAvatar(val)
+});
+
 function applyPreset(key: string) {
   currentPreset.value = key;
   if (key === 'custom') return;
 
   const targetIds = PRESETS[key];
-  
-  // ✅ 新增这一行：如果取不到套餐数据，直接返回，不再往下执行
   if (!targetIds) return; 
   
-  // 1. 先清空所有
   store.enabledModules = ['core']; 
-  
-  // 2. 逐个添加
   targetIds.forEach(id => {
     if (!store.isModuleEnabled(id)) {
       store.toggleModule(id);
@@ -43,29 +44,16 @@ function applyPreset(key: string) {
   });
 }
 
-// 接收两个参数：模块ID 和 开关状态(boolean)
+// 保持你修复后的双参数逻辑
 function handleManualToggle(moduleId: string, val: boolean) {
-  // 1. 更新 Store 中的开启状态
   if (val) {
-    // 如果 val 是 true 且当前没开启，则开启
-    if (!store.isModuleEnabled(moduleId)) {
-      store.toggleModule(moduleId);
-    }
+    if (!store.isModuleEnabled(moduleId)) store.toggleModule(moduleId);
   } else {
-    // 如果 val 是 false 且当前开启了，则关闭
-    if (store.isModuleEnabled(moduleId)) {
-      store.toggleModule(moduleId);
-    }
+    if (store.isModuleEnabled(moduleId)) store.toggleModule(moduleId);
   }
-
-  // 2. 既然用户手动动了，我们就把“预设”状态重置
-  // 假设你有一个记录当前预设名称的变量，比如 selectedPresetName
-  // selectedPresetName.value = ''; // 变为自定义模式
-  
-  console.log(`模块 ${moduleId} 手动切换为: ${val}`);
+  currentPreset.value = 'custom'; // 手动操作后切回自定义
 }
 
-// 计算统计
 const totalQuestions = computed(() => {
   return modules
     .filter(m => store.isModuleEnabled(m.id))
@@ -78,33 +66,42 @@ function startQuiz() {
 </script>
 
 <template>
-  <div class="pb-24">
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold">配置关系模式</h2>
-      <p class="opacity-60 text-sm mt-1">选择一个预设套餐，或自由组装。</p>
+  <div class="pb-24 pt-2">
+    
+    <div class="mb-8 bg-base-200/50 rounded-xl p-4 border border-base-content/5">
+      <h2 class="text-sm font-bold opacity-60 mb-3 uppercase tracking-wider flex items-center gap-2">
+        <span class="badge badge-primary badge-xs">STEP 1</span>
+        设置假想对象
+      </h2>
+      <p class="text-xs opacity-50 mb-4">
+        这套配置是针对谁的？选一个头像代表 Ta (不涉及真实姓名)
+      </p>
+      
+      <div class="flex flex-wrap gap-3 justify-center">
+        <button 
+          v-for="emoji in AVATARS" 
+          :key="emoji"
+          @click="currentAvatar = emoji"
+          class="btn btn-circle btn-lg text-2xl transition-all duration-200 border-2"
+          :class="currentAvatar === emoji ? 'btn-primary scale-110 shadow-lg border-primary' : 'btn-ghost border-transparent opacity-40 grayscale hover:grayscale-0'"
+        >
+          {{ emoji }}
+        </button>
+      </div>
     </div>
 
-    <div class="tabs tabs-boxed bg-base-200 p-1 mb-6 overflow-x-auto flex-nowrap justify-start sm:justify-center">
-      <a 
-        class="tab transition-all duration-200"
-        :class="{ 'tab-active': currentPreset === 'all' }"
-        @click="applyPreset('all')"
-      >❤️ 深度伴侣</a>
-      <a 
-        class="tab transition-all duration-200"
-        :class="{ 'tab-active': currentPreset === 'fwb' }"
-        @click="applyPreset('fwb')"
-      >🔥 炮友</a>
-      <a 
-        class="tab transition-all duration-200"
-        :class="{ 'tab-active': currentPreset === 'friend' }"
-        @click="applyPreset('friend')"
-      >🤝 挚友</a>
-      <a 
-        class="tab transition-all duration-200"
-        :class="{ 'tab-active': currentPreset === 'custom' }"
-        @click="applyPreset('custom')"
-      >🔧 自定义</a>
+    <div class="mb-6">
+      <h2 class="text-sm font-bold opacity-60 mb-3 uppercase tracking-wider flex items-center gap-2">
+        <span class="badge badge-primary badge-xs">STEP 2</span>
+        选择配置模块
+      </h2>
+      
+      <div class="tabs tabs-boxed bg-base-200 p-1 mb-6 overflow-x-auto flex-nowrap justify-start sm:justify-center">
+        <a class="tab transition-all duration-200" :class="{ 'tab-active': currentPreset === 'all' }" @click="applyPreset('all')">❤️ 深度伴侣</a>
+        <a class="tab transition-all duration-200" :class="{ 'tab-active': currentPreset === 'fwb' }" @click="applyPreset('fwb')">🔥 炮友</a>
+        <a class="tab transition-all duration-200" :class="{ 'tab-active': currentPreset === 'friend' }" @click="applyPreset('friend')">🤝 挚友</a>
+        <a class="tab transition-all duration-200" :class="{ 'tab-active': currentPreset === 'custom' }" @click="applyPreset('custom')">🔧 自定义</a>
+      </div>
     </div>
 
     <div class="space-y-4">
@@ -126,7 +123,6 @@ function startQuiz() {
 </template>
 
 <style scoped>
-/* 适配一下 iPhone底部的安全距离 */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 20px);
 }

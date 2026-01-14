@@ -108,21 +108,25 @@ const EMOJI_MAP: string[] = [
         '🧽', '🧾', '🧿', '🆗'
 ];
 
-// 建立反向索引 (Emoji -> 数字)，为了解码加速
+// 建立反向索引 (Emoji -> 数字)
 const EMOJI_TO_INDEX = new Map<string, number>();
 EMOJI_MAP.forEach((emoji, index) => {
   EMOJI_TO_INDEX.set(emoji, index);
 });
 
-// 辅助：把数字转二进制字符串，补足3位 (最大值4 -> 100)
+// --- 预设的小动物头像列表 ---
+export const AVATARS = ['🦊', '🐰', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🦆', '🦉', '🦄'];
+const AVATAR_SET = new Set(AVATARS); 
+
+// 辅助：数字转二进制字符串
 function toBits(num: number): string {
   return num.toString(2).padStart(3, '0');
 }
 
 /**
- * 编码：将所有选项的态度压缩成 Emoji 串 (支持尾部截断压缩)
+ * 编码：头像 + 压缩后的 Emoji 数据流
  */
-export function encode(answers: Record<string, number[]>): string {
+export function encode(answers: Record<string, number[]>, avatar: string = '🦊'): string {
   let bitStream = "";
 
   // 1. 生成全量二进制流
@@ -137,23 +141,18 @@ export function encode(answers: Record<string, number[]>): string {
     });
   });
 
-  // 2. ✂️ 核心优化：移除尾部所有的 '0'
-  // 这样未做的题目就不会占用空间了
+  // 2. 尾部去零压缩
   bitStream = bitStream.replace(/0+$/, '');
+  
+  if (bitStream.length === 0) return avatar;
 
-  // 3. 如果截断后为空（比如一道题都没做），返回空串或特定符号
-  if (bitStream.length === 0) return "";
-
-  // 4. 补齐 10 的倍数 (为了 Base1024)
-  // 虽然我们砍掉了后面的0，但为了凑齐一个完整的 Emoji (10bit)，
-  // 最后一段可能需要补几个 0 回来
+  // 3. 补齐 10 的倍数
   const remainder = bitStream.length % 10;
   if (remainder !== 0) {
-    const padding = 10 - remainder;
-    bitStream += "0".repeat(padding);
+    bitStream += "0".repeat(10 - remainder);
   }
 
-  // 5. 切分并转 Emoji
+  // 4. 切分并转 Base1024 Emoji
   let result = "";
   for (let i = 0; i < bitStream.length; i += 10) {
     const chunk = bitStream.substring(i, i + 10);
@@ -161,25 +160,40 @@ export function encode(answers: Record<string, number[]>): string {
     result += (EMOJI_MAP[val] !== undefined) ? EMOJI_MAP[val] : EMOJI_MAP[0];
   }
 
-  return result;
+  // 将头像拼在字符串最前面
+  return avatar + result;
 }
 
 /**
- * 解码：将 Emoji 串还原为答案字典
+ * 解码：提取头像 + 还原答案字典
  */
-export function decode(code: string): Record<string, number[]> {
-  // 1. Emoji -> BitStream
+export function decode(code: string): { answers: Record<string, number[]>, avatar: string } {
+  // Array.from 正确处理 Emoji 宽字符
+  const chars = Array.from(code);
+  
+  let avatar = '👤'; // 默认头像
+  let dataChars = chars;
+
+  // ✅ 修复点：先提取变量，再进行判断，消除 TS 报错
+  const firstChar = chars[0];
+
+  // 1. 检查第一位是否为预设头像
+  // 使用 firstChar && ... 确保它不是 undefined
+  if (chars.length > 0 && firstChar && AVATAR_SET.has(firstChar)) {
+    avatar = firstChar;
+    dataChars = chars.slice(1); // 截取掉第一位头像，剩下的是数据
+  }
+
+  // 2. 还原二进制流
   let bitStream = "";
-  // 使用 Array.from 处理 Emoji 字符长度问题
-  for (const char of Array.from(code)) {
+  for (const char of dataChars) {
     const val = EMOJI_TO_INDEX.get(char);
     if (val !== undefined) {
-      // 还原为 10位 二进制
       bitStream += val.toString(2).padStart(10, '0');
     }
   }
 
-  // 2. BitStream -> Answers
+  // 3. 解析题目数据
   const result: Record<string, number[]> = {};
   let pointer = 0;
 
@@ -189,30 +203,24 @@ export function decode(code: string): Record<string, number[]> {
       let hasData = false;
 
       q.options.forEach(() => {
-        // 每次读 3 位
         if (pointer + 3 <= bitStream.length) {
           const chunk = bitStream.substring(pointer, pointer + 3);
           const state = parseInt(chunk, 2);
-          
-          // 只有合法的 0-4 才记录，防止脏数据
           const validState = state <= 4 ? state : 0;
           qStates.push(validState);
           
           if (validState > 0) hasData = true;
-          
           pointer += 3;
         } else {
-          // 数据流不够了，补0
           qStates.push(0);
         }
       });
 
-      // 只有当这道题有用户操作过(非全0)时才存入，节省 Result 页面的遍历开销
       if (hasData) {
         result[q.id] = qStates;
       }
     });
   });
 
-  return result;
+  return { answers: result, avatar };
 }
