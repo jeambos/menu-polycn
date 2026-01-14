@@ -43,10 +43,26 @@ function applyPreset(key: string) {
   });
 }
 
-// 监听手动开关：如果用户手动动了开关，就变成“自定义”模式
-function handleManualToggle(moduleId: string) {
-  store.toggleModule(moduleId);
-  currentPreset.value = 'custom';
+// 接收两个参数：模块ID 和 开关状态(boolean)
+function handleManualToggle(moduleId: string, val: boolean) {
+  // 1. 更新 Store 中的开启状态
+  if (val) {
+    // 如果 val 是 true 且当前没开启，则开启
+    if (!store.isModuleEnabled(moduleId)) {
+      store.toggleModule(moduleId);
+    }
+  } else {
+    // 如果 val 是 false 且当前开启了，则关闭
+    if (store.isModuleEnabled(moduleId)) {
+      store.toggleModule(moduleId);
+    }
+  }
+
+  // 2. 既然用户手动动了，我们就把“预设”状态重置
+  // 假设你有一个记录当前预设名称的变量，比如 selectedPresetName
+  // selectedPresetName.value = ''; // 变为自定义模式
+  
+  console.log(`模块 ${moduleId} 手动切换为: ${val}`);
 }
 
 // 计算统计
