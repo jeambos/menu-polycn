@@ -5,7 +5,7 @@ import { useClipboard } from '@vueuse/core';
 import { decode } from '../logic/codec'; // 引入解码器用于验证
 
 const router = useRouter();
-const { text, copy, isSupported } = useClipboard(); // VueUse 的剪贴板工具
+const { text, isSupported } = useClipboard(); // VueUse 的剪贴板工具
 
 // --- 状态管理 ---
 const activeTab = ref<'import' | 'compare'>('import'); // 当前标签页

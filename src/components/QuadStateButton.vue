@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import confetti from 'canvas-confetti';
+import { } from 'vue';
+import confetti from 'canvas-confetti'
 import type { Attitude } from '../types';
 
 const props = defineProps<{

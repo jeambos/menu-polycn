@@ -44,7 +44,7 @@ function applyPreset(key: string) {
 }
 
 // 监听手动开关：如果用户手动动了开关，就变成“自定义”模式
-function handleManualToggle(moduleId: string, isOpen: boolean) {
+function handleManualToggle(moduleId: string) {
   store.toggleModule(moduleId);
   currentPreset.value = 'custom';
 }
