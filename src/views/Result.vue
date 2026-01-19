@@ -6,8 +6,7 @@ import { useConfigStore } from '../stores/useConfigStore';
 import { encode, decode } from '../logic/codec';
 import LiveCodeBar from '../components/LiveCodeBar.vue';
 import questionsData from '../data/questions.json';
-import type { Attitude } from '../types';
-
+import type { Attitude, Module } from '../types'; // 确保路径对
 const route = useRoute();
 const router = useRouter();
 const store = useConfigStore();
@@ -39,25 +38,51 @@ function groupItemsByModule(items: ResultItem[]): ModuleGroup[] {
 }
 
 function processZoneData(answers: Record<string, Attitude[]>) {
-  const rList: ResultItem[] = [], gCoreList: ResultItem[] = [], yList: ResultItem[] = [], greenList: ResultItem[] = [];
-  questionsData.modules.forEach(m => {
+  const rList: ResultItem[] = [];
+  const gCoreList: ResultItem[] = [];
+  const yList: ResultItem[] = [];
+  const greenList: ResultItem[] = [];
+
+  // 🛡️ 关键修复：强制类型断言
+  // 告诉 TS 忽略旧 JSON 的推断，强制使用我们在 types/index.ts 定义的新结构
+  const modules = (questionsData.modules as unknown) as Module[];
+
+  modules.forEach(m => {
     m.questions.forEach(q => {
       const states = answers[q.id];
       if (!states) return;
+
       states.forEach((att, optIndex) => {
+        // 0 = N/A 跳过，不展示
         if (att === 0) return;
-        const choiceText = q.options[optIndex] || '';
+
+        // 获取选项数据
+        // q.options 现在可能是 String 或 OptionItem 对象
+        const opt = q.options[optIndex];
+
+        // 🛡️ 兼容逻辑：如果是字符串直接用，如果是对象取 .short
+        const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
+
         const item: ResultItem = {
-          id: q.id + '_' + optIndex, title: q.title, choice: choiceText,
-          attitude: att, moduleId: m.id, moduleName: m.name.replace(/📦 |⚛️ /g, '')
+          id: q.id + '_' + optIndex,
+          // 优先取短标题，兼容旧数据的 title
+          title: q.title_short || q.title, 
+          choice: choiceText,
+          attitude: att,
+          moduleId: m.id,
+          moduleName: m.name.replace(/📦 |⚛️ /g, '')
         };
-        if (att === 1) rList.push(item);
-        else if (att === 4) gCoreList.push(item);
-        else if (att === 2) yList.push(item);
-        else if (att === 3) greenList.push(item);
+
+        // 根据态度分流到不同数组
+        if (att === 1) rList.push(item);          // 1 -> ⛔ 硬边界
+        else if (att === 4) gCoreList.push(item); // 4 -> ⭐ 核心需求
+        else if (att === 2) yList.push(item);     // 2 -> ❔ 待商议
+        else if (att === 3) greenList.push(item); // 3 -> 👌 可接受
       });
     });
   });
+
+  // 分组并赋值给响应式变量
   redGroups.value = groupItemsByModule(rList);
   goldGroups.value = groupItemsByModule(gCoreList);
   yellowGroups.value = groupItemsByModule(yList);

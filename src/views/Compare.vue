@@ -63,19 +63,38 @@ function scrollToZone(elementId: string) {
 
 function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, Attitude[]>) {
   const nList: CompareItem[] = [], hList: CompareItem[] = [], rList: CompareItem[] = [], dList: CompareItem[] = [];
-  questionsData.modules.forEach(m => {
+  
+  // 🛡️ 强制类型断言：告诉 TS 使用新定义的 Module 结构 (包含 title_short 和 OptionItem)
+  const modules = (questionsData.modules as unknown) as Module[];
+
+  modules.forEach(m => {
     m.questions.forEach(q => {
-      const myStates = myMap[q.id]; const partnerStates = partnerMap[q.id];
+      const myStates = myMap[q.id]; 
+      const partnerStates = partnerMap[q.id];
+      
       if (!myStates || !partnerStates) return;
-      q.options.forEach((optText, index) => {
+      
+      q.options.forEach((opt, index) => {
         const a = (myStates[index] || 0) as Attitude;
         const b = (partnerStates[index] || 0) as Attitude;
+        
+        // 双方只要有一方没做(0)，就不进入对比
         if (a === 0 || b === 0) return;
+
+        // ✅ 核心修复：适配对象结构的选项，提取短文案(.short)
+        const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
+
         const item: CompareItem = {
-          id: q.id + '_' + index, title: q.title, choice: optText,
-          moduleId: m.id, moduleName: m.name.replace(/📦 |⚛️ /g, ''),
-          myAttitude: a, partnerAttitude: b
+          id: q.id + '_' + index, 
+          title: q.title_short || q.title, // 优先取短标题
+          choice: choiceText,              // 使用提取出的短标签
+          moduleId: m.id, 
+          moduleName: m.name.replace(/📦 |⚛️ /g, ''),
+          myAttitude: a, 
+          partnerAttitude: b
         };
+
+        // 对比逻辑 (保持不变)
         if (a === 2 || b === 2) dList.push(item); 
         else if ((a === 4 && b === 1) || (a === 1 && b === 4)) nList.push(item); 
         else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) rList.push(item); 
@@ -83,6 +102,7 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
       });
     });
   });
+
   listResonance.value = rList;
   listCritical.value = nList;
   listDiscuss.value = dList;

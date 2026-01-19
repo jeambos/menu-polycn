@@ -1,27 +1,31 @@
 // src/types/index.ts
 
-// 0=未选(N/A), 1=拒绝(Hard No), 2=迷茫(Soft), 3=同意(Yes), 4=核心(Core)
 export type Attitude = 0 | 1 | 2 | 3 | 4;
+
+// ✅ 新增：选项的结构（长文案 + 短标签）
+export interface OptionItem {
+  long: string;  // 做题时显示的详细描述
+  short: string; // 结果页显示的简短标签
+}
 
 export interface Question {
   id: string;
-  title: string;
-  options: string[]; // 选项列表
+  title: string;       // 兼容旧代码，对应 title_short
+  title_long: string;  // 新增：做题用
+  title_short: string; // 新增：结果用
+  // ✅ 关键修改：选项改为对象数组
+  // 为了兼容过渡期，这里允许它是 string 或 OptionItem
+  options: (string | OptionItem)[]; 
 }
 
-// 题目模块 (如 "核心内核", "性与欲望")
 export interface Module {
-  id: string;          // 模块ID，如 "core"
-  name: string;        // 模块名
-  description: string; // 模块描述
-  questions: Question[]; // 该模块下的所有题目
+  id: string;
+  name: string;
+  description: string;
+  questions: Question[];
 }
 
-// 整个问卷的数据库结构
+// ✅ 这是一个好习惯：保留根类型，描述整个 JSON 文件
 export interface QuestionDatabase {
-  meta: {
-    version: string;
-    total_questions: number;
-  };
   modules: Module[];
 }
