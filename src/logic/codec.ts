@@ -114,7 +114,7 @@ EMOJI_MAP.forEach((emoji, index) => {
   EMOJI_TO_INDEX.set(emoji, index);
 });
 
-// --- 2. 预设头像列表 (用于识别头像位) ---
+// --- 2. 预设头像列表 ---
 export const AVATARS = [
   '🌏','🦊','🐰','🐱','🐶',
   '🦁','🐯','🐼','🐻','🦄',
@@ -124,8 +124,8 @@ export const AVATARS = [
 const AVATAR_SET = new Set(AVATARS); 
 
 // --- 3. 压缩算法配置 ---
-const BLOCK_SIZE = 5;      // 分块大小：5个选项一组
-const BITS_PER_VAL = 3;    // 每个选项占用的位数 (0-4 需要 3 bits)
+const BLOCK_SIZE = 5;      
+const BITS_PER_VAL = 3;    
 
 // 辅助：数字转指定长度二进制字符串
 function toBits(num: number, length: number = BITS_PER_VAL): string {
@@ -137,37 +137,43 @@ function toBits(num: number, length: number = BITS_PER_VAL): string {
  */
 export function encode(answers: Record<string, number[]>, avatar: string = '🌏'): string {
   
-  // 第一步：数据扁平化 (Flatten)
-  // 将分散在各题目里的答案，按题目顺序展平为一个大的数字数组 [0, 1, 0, 4, ...]
+  // 第一步：数据扁平化
   const flatData: number[] = [];
-  
   questionsData.modules.forEach(m => {
     m.questions.forEach(q => {
       const userStates = answers[q.id] || [];
-      // 遍历该题目的所有选项
       q.options.forEach((_, optIndex) => {
         let state = userStates[optIndex] || 0;
-        if (state > 4) state = 0; // 容错
+        if (state > 4) state = 0; 
         flatData.push(state);
       });
     });
   });
 
-  // 第二步：分块位图压缩 (Block Bitmap Compression)
+  // ✅ 新增步骤：寻找“有效数据的边界”
+  // 从后往前找，找到第一个非0的块的位置
+  let lastActiveBlockIndex = -1;
+  for (let i = 0; i < flatData.length; i += BLOCK_SIZE) {
+    const chunk = flatData.slice(i, i + BLOCK_SIZE);
+    if (chunk.some(v => v !== 0)) {
+      lastActiveBlockIndex = i;
+    }
+  }
+
+  // 如果全是0，直接返回头像
+  if (lastActiveBlockIndex === -1) return avatar;
+
+  // 第二步：分块位图压缩 (只处理到 lastActiveBlockIndex 为止)
   let bitStream = "";
   
-  for (let i = 0; i < flatData.length; i += BLOCK_SIZE) {
-    // 取出一个块 (可能不足 BLOCK_SIZE，例如最后一个块)
+  // 注意循环条件：包含 lastActiveBlockIndex 所在的块
+  for (let i = 0; i <= lastActiveBlockIndex; i += BLOCK_SIZE) {
     const chunk = flatData.slice(i, i + BLOCK_SIZE);
-    
-    // 检查是否全为 0
     const isAllZero = chunk.every(val => val === 0);
 
     if (isAllZero) {
-      // 🟢 压缩模式：全空块，仅写入 1 bit '0'
       bitStream += "0";
     } else {
-      // 🔴 原始模式：写入 Header '1' + 数据位
       bitStream += "1";
       chunk.forEach(val => {
         bitStream += toBits(val);
@@ -176,10 +182,7 @@ export function encode(answers: Record<string, number[]>, avatar: string = '🌏
   }
 
   // 第三步：BitStream 转 Emoji
-  // 如果完全没做题(bitStream 全是 '0' 或空)，只返回头像
-  if (!bitStream.includes('1')) return avatar;
-
-  // 补齐 10 bit (因为 2^10 = 1024 个 Emoji)
+  // 补齐 10 bit
   const remainder = bitStream.length % 10;
   if (remainder !== 0) {
     bitStream += "0".repeat(10 - remainder);
@@ -189,7 +192,6 @@ export function encode(answers: Record<string, number[]>, avatar: string = '🌏
   for (let i = 0; i < bitStream.length; i += 10) {
     const chunkStr = bitStream.substring(i, i + 10);
     const val = parseInt(chunkStr, 2);
-    // 容错：防止 val 超出 Emoji 字典范围 (理论上不会，只要字典>1024)
     result += (EMOJI_MAP[val] !== undefined) ? EMOJI_MAP[val] : EMOJI_MAP[0];
   }
 
@@ -207,8 +209,6 @@ export function decode(code: string): { answers: Record<string, number[]>, avata
   let dataChars = chars;
 
   const firstChar = chars[0];
-  // ✅ 修复：先判断 firstChar 是否存在 (firstChar && ...)
-  // 这样 TypeScript 就能确认传给 has() 的参数一定不是 undefined
   if (firstChar && AVATAR_SET.has(firstChar)) {
     avatar = firstChar;
     dataChars = chars.slice(1); 
@@ -219,7 +219,7 @@ export function decode(code: string): { answers: Record<string, number[]>, avata
   for (const char of dataChars) {
     const val = EMOJI_TO_INDEX.get(char);
     if (val !== undefined) {
-      bitStream += toBits(val, 10); // 还原为 10 bit
+      bitStream += toBits(val, 10); 
     }
   }
 
@@ -227,36 +227,36 @@ export function decode(code: string): { answers: Record<string, number[]>, avata
   const flatData: number[] = [];
   let ptr = 0;
   
-  // 我们需要知道总共期望多少个选项，以免读过头或读不够
-  // 计算总选项数
   let totalOptionsCount = 0;
   questionsData.modules.forEach(m => m.questions.forEach(q => totalOptionsCount += q.options.length));
 
+  // ✅ 逻辑修改：只要流里还有数据，就继续读；读完了就停止。
   while (ptr < bitStream.length && flatData.length < totalOptionsCount) {
     const header = bitStream[ptr];
-    ptr++; // 移动指针过 Header
+    ptr++; 
 
-    // 计算当前块预期有多少个数据 (通常是 5，最后一个块可能少于 5)
     const remainingNeeded = totalOptionsCount - flatData.length;
     const currentBlockSize = Math.min(BLOCK_SIZE, remainingNeeded);
 
     if (header === '0') {
-      // 🟢 压缩块：填充 0
       for (let k = 0; k < currentBlockSize; k++) flatData.push(0);
     } else {
-      // 🔴 数据块：读取数据
       for (let k = 0; k < currentBlockSize; k++) {
-        // 每次读 3 bit
         if (ptr + 3 <= bitStream.length) {
           const valStr = bitStream.substring(ptr, ptr + 3);
           const val = parseInt(valStr, 2);
           flatData.push(val);
           ptr += 3;
         } else {
-          flatData.push(0); // 数据流中断兜底
+          flatData.push(0);
         }
       }
     }
+  }
+
+  // ✅ 新增步骤：自动补齐剩余的 0 (因为我们刚才截断了尾部)
+  while (flatData.length < totalOptionsCount) {
+    flatData.push(0);
   }
 
   // 4. 扁平数组 映射回 对象结构
@@ -269,14 +269,12 @@ export function decode(code: string): { answers: Record<string, number[]>, avata
       let hasData = false;
 
       q.options.forEach(() => {
-        // 从 flatData 取值
         const val = flatData[dataPtr] || 0;
         qStates.push(val);
         if (val > 0) hasData = true;
         dataPtr++;
       });
 
-      // 只有当题目有非0数据时才写入结果对象 (节省内存)
       if (hasData) {
         result[q.id] = qStates;
       }
