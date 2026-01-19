@@ -1,4 +1,12 @@
 {
+  "meta": {
+    "name": "Relationship Config",
+    "version": "5.5",
+    "description": "A modular relationship configuration tool based on RA/QPR principles.",
+    "author": "User & Gemini",
+    "total_questions": 96,
+    "updated_at": "2026-01-20 01:22:37"
+  },
   "modules": [
     {
       "id": "A",
@@ -967,10 +975,6 @@
             {
               "long": "模仿亲属的称谓（哥哥/妹妹等）",
               "short": "模仿亲属类"
-            },
-            {
-              "long": "低龄化称谓（宝宝/宝贝等）",
-              "short": "低龄化称谓"
             },
             {
               "long": "亲子关系称谓（爸爸/儿子等）",
