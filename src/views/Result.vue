@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useClipboard } from '@vueuse/core';
 import { useConfigStore } from '../stores/useConfigStore';
 import { encode, decode } from '../logic/codec';
-import LiveCodeBar from '../components/LiveCodeBar.vue';
 import questionsData from '../data/questions.json';
 import type { Attitude, Module } from '../types';
 
@@ -13,41 +12,99 @@ const router = useRouter();
 const store = useConfigStore();
 const { copy, copied } = useClipboard();
 
+// --- 类型定义 ---
 interface ResultItem { id: string; title: string; choice: string; attitude: Attitude; moduleId: string; moduleName: string; questionId: string; }
 interface ModuleGroup { id: string; name: string; items: ResultItem[]; }
+interface QuestionGroup { questionId: string; title: string; choices: string[]; }
 
-// 新增：用于前端聚合显示的结构
-interface QuestionGroup {
-  questionId: string;
-  title: string;
-  choices: string[];
-}
-
+// --- 状态变量 ---
 const isPreviewMode = ref(false);
-const displayCode = ref('');
 const displayAnswers = ref<Record<string, Attitude[]>>({});
 const resultAvatar = ref('🌏');
 
+// 筛选相关
+const allModules = (questionsData.modules as unknown) as Module[];
+const activeModuleIds = ref<string[]>([]); // 用户当前在页面上勾选要显示的模块
+
+// 结果分组数据
 const redGroups = ref<ModuleGroup[]>([]);    
 const goldGroups = ref<ModuleGroup[]>([]);   
 const yellowGroups = ref<ModuleGroup[]>([]); 
 const greenItems = ref<ResultItem[]>([]);    
 
-// 辅助函数：将散乱的选项按题目聚合
+// 模态框控制
+const showClearModal = ref(false);
+
+// --- 计算属性 ---
+
+// 1. 标题逻辑
+const pageTitle = computed(() => {
+  if (resultAvatar.value === '🌏') return '我的配置单';
+  return `我和 ${resultAvatar.value} 的配置单`;
+});
+
+// 2. 参与计算的模块列表 (即用户做过题的模块)
+const availableModules = computed(() => {
+  if (isPreviewMode.value) {
+    // 预览模式下，根据 displayAnswers 里是否有 key 来判断
+    return allModules.filter(m => displayAnswers.value[m.questions[0].id] !== undefined);
+  } else {
+    // 本机模式下，根据 store.enabledModules
+    return allModules.filter(m => store.isModuleEnabled(m.id));
+  }
+});
+
+// 3. 全量代码
+const fullCode = computed(() => {
+  if (isPreviewMode.value) return route.query.code as string || '';
+  return encode(store.answers, resultAvatar.value);
+});
+
+// 4. 筛选后的代码
+const filteredCode = computed(() => {
+  // 如果全选了，就不需要显示筛选代码
+  if (activeModuleIds.value.length === availableModules.value.length) return '';
+  
+  // 构建一个只包含选中模块答案的临时对象
+  const filteredAnswers: Record<string, Attitude[]> = {};
+  
+  // 遍历 displayAnswers，只保留 activeModuleIds 里的题目
+  allModules.forEach(m => {
+    if (activeModuleIds.value.includes(m.id)) {
+      m.questions.forEach(q => {
+        if (displayAnswers.value[q.id]) {
+          filteredAnswers[q.id] = displayAnswers.value[q.id];
+        }
+      });
+    }
+  });
+
+  return encode(filteredAnswers, resultAvatar.value);
+});
+
+// --- 核心逻辑 ---
+
+// 切换模块显示
+function toggleModuleFilter(moduleId: string) {
+  if (moduleId === 'A') return; // 核心模块不可取消
+  
+  const idx = activeModuleIds.value.indexOf(moduleId);
+  if (idx > -1) {
+    activeModuleIds.value.splice(idx, 1);
+  } else {
+    activeModuleIds.value.push(moduleId);
+  }
+}
+
+// 辅助：聚合
 function getQuestionGroups(items: ResultItem[]): QuestionGroup[] {
   const map = new Map<string, QuestionGroup>();
-  
   items.forEach(item => {
     if (!map.has(item.questionId)) {
-      map.set(item.questionId, {
-        questionId: item.questionId,
-        title: item.title,
-        choices: []
-      });
+      map.set(item.questionId, { questionId: item.questionId, title: item.title, choices: [] });
     }
     map.get(item.questionId)!.choices.push(item.choice);
   });
-  
   return Array.from(map.values());
 }
 
@@ -60,11 +117,14 @@ function groupItemsByModule(items: ResultItem[]): ModuleGroup[] {
   return Array.from(map.values());
 }
 
+// 处理数据展示 (核心函数，增加了筛选逻辑)
 function processZoneData(answers: Record<string, Attitude[]>) {
   const rList: ResultItem[] = [], gCoreList: ResultItem[] = [], yList: ResultItem[] = [], greenList: ResultItem[] = [];
-  const modules = (questionsData.modules as unknown) as Module[];
 
-  modules.forEach(m => {
+  // 只遍历当前勾选的模块
+  const targetModules = allModules.filter(m => activeModuleIds.value.includes(m.id));
+
+  targetModules.forEach(m => {
     const cleanModuleName = m.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '');
 
     m.questions.forEach(q => {
@@ -73,13 +133,12 @@ function processZoneData(answers: Record<string, Attitude[]>) {
 
       states.forEach((att, optIndex) => {
         if (att === 0) return;
-
         const opt = q.options[optIndex];
         const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
 
         const item: ResultItem = {
           id: q.id + '_' + optIndex,
-          questionId: q.id, // 新增：用于聚合
+          questionId: q.id,
           title: q.title_short || q.title, 
           choice: choiceText,
           attitude: att,
@@ -101,40 +160,97 @@ function processZoneData(answers: Record<string, Attitude[]>) {
   greenItems.value = greenList;
 }
 
-function handleCopy() {
-  if (displayCode.value) copy(displayCode.value);
+// 清除数据
+function handleClearData() {
+  store.resetAll();
+  localStorage.removeItem('config_store'); // 确保清理干净
+  localStorage.removeItem('quiz_index');
+  showClearModal.value = false;
+  router.push('/');
 }
+
+// 监听筛选变化，重新计算显示内容
+watch(activeModuleIds, () => {
+  processZoneData(displayAnswers.value);
+}, { deep: true });
 
 onMounted(() => {
   const codeParam = route.query.code as string;
+  
   if (codeParam) {
+    // 预览模式
     isPreviewMode.value = true;
-    displayCode.value = codeParam;
     try {
       const res = decode(codeParam);
       displayAnswers.value = res.answers as Record<string, Attitude[]>;
       resultAvatar.value = res.avatar; 
     } catch (e) { console.error(e); }
   } else {
+    // 本机模式
     displayAnswers.value = store.answers;
     if (store.targetAvatar) resultAvatar.value = store.targetAvatar;
-    displayCode.value = encode(store.answers, resultAvatar.value);
   }
+
+  // 初始化筛选：默认全选所有可用模块
+  // availableModules 计算属性依赖 isPreviewMode 和 displayAnswers，所以这里可以直接用
+  // 注意：nextTick 并不是必须的，因为 computed 是同步更新的，但为了保险
+  activeModuleIds.value = availableModules.value.map(m => m.id);
+  
   processZoneData(displayAnswers.value);
 });
 </script>
 
 <template>
-  <div class="pb-40 pt-6 px-4 max-w-md mx-auto min-h-screen">
+  <div class="pb-40 pt-10 px-4 max-w-md mx-auto min-h-screen">
     
-    <div class="text-center mb-10">
-      <div class="text-6xl mb-2 animate-bounce">{{ resultAvatar }}</div>
-      <h2 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-        {{ isPreviewMode ? '配置解读' : '我的配置单' }}
+    <div class="text-center mb-8">
+      <h2 class="text-2xl font-bold text-base-content/80">
+        {{ pageTitle }}
       </h2>
-      <p class="text-xs opacity-50 mt-2 font-mono break-all px-8">
-        Target Object: {{ resultAvatar }}
-      </p>
+    </div>
+
+    <div class="mb-8">
+      <div class="flex flex-wrap gap-2 justify-center">
+        <button 
+          v-for="mod in availableModules" 
+          :key="mod.id"
+          @click="toggleModuleFilter(mod.id)"
+          class="btn btn-sm transition-all"
+          :class="[
+            activeModuleIds.includes(mod.id) ? 'btn-neutral' : 'btn-ghost opacity-50',
+            mod.id === 'A' ? 'cursor-not-allowed opacity-100' : ''
+          ]"
+        >
+          <span v-if="activeModuleIds.includes(mod.id)">✅</span>
+          <span v-else class="opacity-0">✅</span>
+          {{ mod.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '') }}
+        </button>
+      </div>
+      <p class="text-xs text-center mt-2 opacity-40">点击上方标签可隐藏/显示对应结果</p>
+    </div>
+
+    <div class="mb-10 space-y-6">
+      
+      <div class="text-center">
+        <h3 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-2">您的全部问卷答案</h3>
+        <div class="font-mono text-[10px] break-all opacity-60 leading-tight select-all mb-2 px-4">
+          {{ fullCode }}
+        </div>
+        <button @click="copy(fullCode)" class="btn btn-xs btn-ghost gap-1 opacity-70 hover:opacity-100">
+          {{ copied ? '✅ 已复制' : '📄 复制全部代码' }}
+        </button>
+      </div>
+
+      <div v-if="filteredCode" class="border border-base-content/10 rounded-xl p-4 bg-base-200/30 text-center relative overflow-hidden">
+        <div class="absolute top-0 left-0 bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-br-lg font-bold">Filtered</div>
+        <h3 class="text-xs font-bold uppercase tracking-widest opacity-60 mb-2 text-primary">筛选后的问卷答案</h3>
+        <div class="font-mono text-[10px] break-all opacity-80 leading-tight select-all mb-3 text-primary-content/80">
+          {{ filteredCode }}
+        </div>
+        <button @click="copy(filteredCode)" class="btn btn-xs btn-primary btn-outline gap-1">
+          📋 复制筛选代码
+        </button>
+      </div>
     </div>
 
     <div v-if="redGroups.length > 0" class="mb-8 animate-fade-in-up">
@@ -210,14 +326,59 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="flex flex-col gap-3 mt-8">
-      <button v-if="!isPreviewMode" @click="handleCopy" class="btn btn-primary w-full shadow-lg">
-        {{ copied ? '✅ 已复制' : '📋 复制配置代码' }}
-      </button>
-      <button @click="router.push('/')" class="btn btn-ghost w-full">返回首页</button>
+    <div class="flex flex-col gap-4 mt-12 text-center">
+      <div class="flex justify-center gap-8 text-sm font-bold text-primary">
+        <a @click="router.push('/')" class="cursor-pointer hover:underline">返回首页</a>
+        <span class="opacity-20">|</span>
+        <a @click="router.push('/setup')" class="cursor-pointer hover:underline">继续答题</a>
+      </div>
+      
+      <a @click="showClearModal = true" class="text-xs text-error/50 hover:text-error cursor-pointer mt-4 transition-colors">
+        🗑️ 清除答题数据
+      </a>
     </div>
 
-    <LiveCodeBar v-if="!isPreviewMode" />
+    <dialog class="modal" :class="{ 'modal-open': showClearModal }">
+      <div class="modal-box border-t-4 border-error">
+        <h3 class="font-bold text-lg text-error">⚠️ 危险操作</h3>
+        
+        <div class="py-4 space-y-4">
+          <div class="alert alert-warning text-xs shadow-sm">
+            <span>一旦删除无法找回，建议先复制下方的数据代码。</span>
+          </div>
+          
+          <p class="text-xs opacity-60">
+            隐私提示：您的测试内容仅保存在浏览器缓存，不会也不可能传输到本站后台。
+            清除缓存即意味着彻底销毁这份数据。
+          </p>
+          
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text text-xs font-bold">备份全部数据：</span>
+            </label>
+            <div class="flex gap-2">
+              <input type="text" :value="fullCode" readonly class="input input-sm input-bordered w-full font-mono text-[10px]" />
+              <button @click="copy(fullCode)" class="btn btn-sm btn-neutral">
+                {{ copied ? '已复制' : '复制' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-action flex justify-between items-center mt-6">
+          <button class="btn btn-error btn-sm text-white" @click="handleClearData">
+            确认清除数据
+          </button>
+          <button class="btn btn-ghost btn-sm" @click="showClearModal = false">
+            返回
+          </button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button @click="showClearModal = false">close</button>
+      </form>
+    </dialog>
+
   </div>
 </template>
 
