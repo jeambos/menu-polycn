@@ -229,14 +229,14 @@ onMounted(() => {
           {{ mod.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '') }}
         </button>
       </div>
-      <p class="text-xs text-center mt-2 opacity-40">点击上方标签可隐藏/显示对应结果</p>
+      <p class="text-s text-center mt-2 opacity-40">点击上方标签可隐藏/显示对应结果</p>
     </div>
 
     <div class="mb-10 space-y-6">
       
       <div class="text-center">
-        <h3 class="text-xs font-bold uppercase tracking-widest opacity-40 mb-2">您的全部问卷答案</h3>
-        <div class="font-mono text-[10px] break-all opacity-60 leading-tight select-all mb-2 px-4">
+        <h3 class="text-s font-bold uppercase tracking-widest opacity-40 mb-2">您的全部问卷答案</h3>
+        <div class="font-mono text-xs break-all opacity-60 leading-tight select-all mb-2 px-4">
           {{ fullCode }}
         </div>
         <button @click="copy(fullCode)" class="btn btn-xs btn-ghost gap-1 opacity-70 hover:opacity-100">
@@ -245,9 +245,9 @@ onMounted(() => {
       </div>
 
       <div v-if="filteredCode" class="border border-base-content/10 rounded-xl p-4 bg-base-200/30 text-center relative overflow-hidden">
-        <div class="absolute top-0 left-0 bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-br-lg font-bold">Filtered</div>
-        <h3 class="text-xs font-bold uppercase tracking-widest opacity-60 mb-2 text-primary">筛选后的问卷答案</h3>
-        <div class="font-mono text-[10px] break-all opacity-80 leading-tight select-all mb-3 text-primary-content/80">
+        <div class="absolute top-0 left-0 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-br-lg font-bold">Filtered</div>
+        <h3 class="text-s font-bold uppercase tracking-widest opacity-60 mb-2 text-primary">筛选后的问卷答案</h3>
+        <div class="font-mono text-xs break-all opacity-80 leading-tight select-all mb-3 text-primary-content/80">
           {{ filteredCode }}
         </div>
         <button @click="copy(filteredCode)" class="btn btn-xs btn-primary btn-outline gap-1">
@@ -265,7 +265,7 @@ onMounted(() => {
             <div class="flex flex-wrap gap-2">
               <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" 
                    class="badge bg-white text-error font-bold h-auto py-2 px-3 gap-2 border-0 shadow-sm">
-                <span class="opacity-80 text-xs font-normal border-r border-error/20 pr-2 mr-0.5">{{ q.title }}</span>
+                <span class="opacity-80 text-s font-normal border-r border-error/20 pr-2 mr-0.5">{{ q.title }}</span>
                 <div class="flex flex-wrap gap-1">
                   <span v-for="(c, idx) in q.choices" :key="idx">{{ c }}</span>
                 </div>
@@ -285,7 +285,7 @@ onMounted(() => {
             <div class="flex flex-wrap gap-2">
               <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" 
                    class="badge badge-neutral bg-black/10 border-0 text-black font-bold h-auto py-2 px-3 gap-2">
-                <span class="opacity-60 text-xs font-normal border-r border-black/20 pr-2 mr-0.5">{{ q.title }}</span>
+                <span class="opacity-60 text-s font-normal border-r border-black/20 pr-2 mr-0.5">{{ q.title }}</span>
                 <div class="flex flex-wrap gap-1">
                   <span v-for="(c, idx) in q.choices" :key="idx">{{ c }}</span>
                 </div>
@@ -305,7 +305,7 @@ onMounted(() => {
             <div class="flex flex-wrap gap-2">
               <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" 
                    class="badge badge-outline border-warning text-warning h-auto py-2 px-3 gap-2 bg-warning/5">
-                <span class="opacity-60 text-xs font-normal border-r border-warning/30 pr-2 mr-0.5 text-base-content">{{ q.title }}</span>
+                <span class="opacity-60 text-s font-normal border-r border-warning/30 pr-2 mr-0.5 text-base-content">{{ q.title }}</span>
                 <div class="flex flex-wrap gap-1">
                    <span v-for="(c, idx) in q.choices" :key="idx" class="font-bold">{{ c }}</span>
                 </div>
@@ -321,7 +321,7 @@ onMounted(() => {
       <div class="flex flex-wrap gap-2 bg-base-200/30 p-4 rounded-xl border border-base-content/5">
         <div v-for="q in getQuestionGroups(greenItems)" :key="q.questionId" 
              class="badge badge-success badge-outline bg-success/5 h-auto py-2 px-3 gap-2">
-          <span class="opacity-50 text-xs font-normal border-r border-success/30 pr-2 mr-0.5 text-base-content">{{ q.title }}</span>
+          <span class="opacity-50 text-s font-normal border-r border-success/30 pr-2 mr-0.5 text-base-content">{{ q.title }}</span>
           <div class="flex flex-wrap gap-1">
              <span v-for="(c, idx) in q.choices" :key="idx" class="font-bold">{{ c }}</span>
           </div>
@@ -336,7 +336,7 @@ onMounted(() => {
         <a @click="router.push('/setup')" class="cursor-pointer hover:underline">继续答题</a>
       </div>
       
-      <a @click="showClearModal = true" class="text-xs text-error/50 hover:text-error cursor-pointer mt-4 transition-colors">
+      <a @click="showClearModal = true" class="text-s text-error/50 hover:text-error cursor-pointer mt-4 transition-colors">
         🗑️ 清除答题数据
       </a>
     </div>
@@ -346,21 +346,21 @@ onMounted(() => {
         <h3 class="font-bold text-lg text-error">⚠️ 危险操作</h3>
         
         <div class="py-4 space-y-4">
-          <div class="alert alert-warning text-xs shadow-sm">
+          <div class="alert alert-warning text-s shadow-sm">
             <span>一旦删除无法找回，建议先复制下方的数据代码。</span>
           </div>
           
-          <p class="text-xs opacity-60">
+          <p class="text-s opacity-60">
             隐私提示：您的测试内容仅保存在浏览器缓存，不会也不可能传输到本站后台。
             清除缓存即意味着彻底销毁这份数据。
           </p>
           
           <div class="form-control">
             <label class="label">
-              <span class="label-text text-xs font-bold">备份全部数据：</span>
+              <span class="label-text text-s font-bold">备份全部数据：</span>
             </label>
             <div class="flex gap-2">
-              <input type="text" :value="fullCode" readonly class="input input-sm input-bordered w-full font-mono text-[10px]" />
+              <input type="text" :value="fullCode" readonly class="input input-sm input-bordered w-full font-mono text-xs" />
               <button @click="copy(fullCode)" class="btn btn-sm btn-neutral">
                 {{ copied ? '已复制' : '复制' }}
               </button>

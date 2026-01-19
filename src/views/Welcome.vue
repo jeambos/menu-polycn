@@ -143,7 +143,7 @@ watch([singleCode, compareMyCode, comparePartnerCode], () => {
                 ></textarea>
                 <button v-if="isSupported" @click="pasteFromClipboard(singleCode)" class="absolute right-2 top-2 btn btn-xs btn-ghost opacity-50">📋</button>
               </div>
-              <div class="h-6 mt-1 text-error text-xs font-bold transition-opacity duration-200" :class="errorMsg ? 'opacity-100' : 'opacity-0'">{{ errorMsg }}</div>
+              <div class="h-6 mt-1 text-error text-s font-bold transition-opacity duration-200" :class="errorMsg ? 'opacity-100' : 'opacity-0'">{{ errorMsg }}</div>
               <button @click="handleImport" class="btn btn-neutral w-full mt-1" :class="{ 'animate-shake': isShaking }">确定解读</button>
             </div>
 
@@ -156,7 +156,7 @@ watch([singleCode, compareMyCode, comparePartnerCode], () => {
                 <input v-model="comparePartnerCode" type="text" class="input input-bordered w-full pr-10" placeholder="粘贴伴侣的代码" />
                 <button v-if="isSupported" @click="pasteFromClipboard(comparePartnerCode)" class="absolute right-2 top-2 btn btn-xs btn-ghost opacity-50">📋</button>
               </div>
-              <div class="h-6 text-error text-xs font-bold transition-opacity duration-200 flex items-center justify-center" :class="errorMsg ? 'opacity-100' : 'opacity-0'">{{ errorMsg }}</div>
+              <div class="h-6 text-error text-s font-bold transition-opacity duration-200 flex items-center justify-center" :class="errorMsg ? 'opacity-100' : 'opacity-0'">{{ errorMsg }}</div>
               <button @click="handleCompare" class="btn btn-secondary w-full" :class="{ 'animate-shake': isShaking }">开始对比</button>
             </div>
           </div>
@@ -167,7 +167,7 @@ watch([singleCode, compareMyCode, comparePartnerCode], () => {
     <dialog class="modal modal-bottom sm:modal-middle" :class="{ 'modal-open': showCacheModal }">
       <div class="modal-box">
         <h3 class="font-bold text-lg mb-4">📁 发现历史存档</h3>
-        <p class="text-xs opacity-60 mb-4">
+        <p class="text-s opacity-60 mb-4">
           检测到您有以下对象的配置草稿，您可以在设置页点击对应头像切换：
         </p>
         
@@ -175,7 +175,7 @@ watch([singleCode, compareMyCode, comparePartnerCode], () => {
           <div v-for="stat in cacheStats" :key="stat.avatar" class="badge badge-lg gap-2 py-4 pl-3 pr-4 shadow-sm border border-base-content/10">
             <span class="text-xl">{{ stat.avatar }}</span>
             <div class="flex flex-col items-start leading-none">
-              <span class="text-[10px] opacity-50 uppercase font-bold">已答</span>
+              <span class="text-xs opacity-50 uppercase font-bold">已答</span>
               <span class="font-mono font-bold">{{ stat.count }}</span>
             </div>
           </div>

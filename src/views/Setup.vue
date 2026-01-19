@@ -134,7 +134,7 @@ function confirmDeleteAll() {
         <span class="badge badge-primary badge-xs">STEP 1</span>
         设置假想对象
       </h2>
-      <p class="text-xs opacity-50 mb-4">
+      <p class="text-s opacity-50 mb-4">
         点击头像可直接读取该对象的存档。
       </p>
       
@@ -232,10 +232,10 @@ function confirmDeleteAll() {
         
         <div class="bg-base-200 rounded-lg p-3 mb-6">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-bold opacity-70">当前存档 ({{ currentAvatar }}) 备份</span>
+            <span class="text-s font-bold opacity-70">当前存档 ({{ currentAvatar }}) 备份</span>
           </div>
           <div class="flex gap-2">
-            <input type="text" :value="currentBackupCode" readonly class="input input-sm input-bordered w-full font-mono text-[10px]" />
+            <input type="text" :value="currentBackupCode" readonly class="input input-sm input-bordered w-full font-mono text-xs" />
             <button @click="copy(currentBackupCode)" class="btn btn-sm btn-neutral">
               {{ copied ? '已复制' : '复制' }}
             </button>

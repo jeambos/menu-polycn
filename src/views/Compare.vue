@@ -175,7 +175,7 @@ onMounted(() => {
       <div class="container mx-auto px-4">
         <div class="flex items-center justify-between mb-2">
           <h2 class="font-bold text-sm opacity-60">筛选模块</h2>
-          <button @click="toggleAllFilters" class="btn btn-xs btn-ghost text-[10px]">
+          <button @click="toggleAllFilters" class="btn btn-xs btn-ghost text-xs">
             {{ selectedModuleIds.length === allModules.length ? '取消全选' : '全选' }}
           </button>
         </div>
@@ -203,7 +203,7 @@ onMounted(() => {
             数据已就绪。点击右侧环形图的扇区，可快速跳转至对应板块。
           </p>
           <div class="mt-4 flex items-center justify-center md:justify-start gap-4 text-2xl opacity-80">
-              <span>{{ myAvatar }}</span> <span class="text-xs opacity-50">VS</span> <span>{{ partnerAvatar }}</span>
+              <span>{{ myAvatar }}</span> <span class="text-s opacity-50">VS</span> <span>{{ partnerAvatar }}</span>
           </div>
         </div>
         
@@ -228,18 +228,18 @@ onMounted(() => {
             <div class="flex flex-col gap-4">
               <div v-for="group in groupsCritical" :key="group.id" class="card bg-warning text-warning-content shadow-lg">
                 <div class="card-body p-4">
-                  <h3 class="text-xs font-bold opacity-80 mb-2 border-b border-black/10 pb-1 text-black">{{ group.name }}</h3>
+                  <h3 class="text-s font-bold opacity-80 mb-2 border-b border-black/10 pb-1 text-black">{{ group.name }}</h3>
                   <div class="flex flex-col gap-2">
                     <div v-for="item in group.items" :key="item.id" class="bg-white/20 p-2 rounded-lg flex items-center justify-between">
                       <div class="flex-1 mr-2 min-w-0">
-                        <div class="text-[10px] opacity-60 truncate">{{ item.title }}</div>
+                        <div class="text-xs opacity-60 truncate">{{ item.title }}</div>
                         <div class="font-bold text-sm truncate">{{ item.choice }}</div>
                       </div>
                       <div class="flex items-center gap-2 bg-black/10 px-2 py-1 rounded shrink-0">
                         <span class="text-lg">{{ getIcon(item.myAttitude) }}</span>
-                        <span class="text-xs font-bold opacity-50">{{ myAvatar }}</span>
-                        <span class="text-xs opacity-30">/</span>
-                        <span class="text-xs font-bold opacity-50">{{ partnerAvatar }}</span>
+                        <span class="text-s font-bold opacity-50">{{ myAvatar }}</span>
+                        <span class="text-s opacity-30">/</span>
+                        <span class="text-s font-bold opacity-50">{{ partnerAvatar }}</span>
                         <span class="text-lg">{{ getIcon(item.partnerAttitude) }}</span>
                       </div>
                     </div>
@@ -258,16 +258,16 @@ onMounted(() => {
             <div class="flex flex-col gap-4">
               <div v-for="group in groupsResonance" :key="group.id" class="card bg-success/5 border border-success/20 shadow-sm">
                 <div class="card-body p-3">
-                  <h3 class="text-xs font-bold opacity-60 text-success mb-2 uppercase">{{ group.name }}</h3>
+                  <h3 class="text-s font-bold opacity-60 text-success mb-2 uppercase">{{ group.name }}</h3>
                   <div class="flex flex-wrap gap-2">
                     <div v-for="item in group.items" :key="item.id" class="badge badge-outline badge-success h-auto py-1.5 px-3 gap-2 bg-base-100/50">
                       <div class="flex flex-col text-left border-r border-success/20 pr-2 mr-1">
-                        <span class="text-[10px] opacity-60 leading-tight">{{ item.title }}</span>
-                        <span class="font-bold text-xs">{{ item.choice }}</span>
+                        <span class="text-xs opacity-60 leading-tight">{{ item.title }}</span>
+                        <span class="font-bold text-s">{{ item.choice }}</span>
                       </div>
                       <div class="flex items-center gap-1 text-sm">
                         <span>{{ getIcon(item.myAttitude) }}</span>
-                        <span class="text-[10px] opacity-50">{{ myAvatar }}={{ partnerAvatar }}</span>
+                        <span class="text-xs opacity-50">{{ myAvatar }}={{ partnerAvatar }}</span>
                         <span>{{ getIcon(item.partnerAttitude) }}</span>
                       </div>
                     </div>
@@ -286,16 +286,16 @@ onMounted(() => {
             <div class="flex flex-col gap-4">
               <div v-for="group in groupsDiscuss" :key="group.id" class="card bg-base-200 border border-base-300">
                 <div class="card-body p-3">
-                  <h3 class="text-xs font-bold opacity-50 mb-2">{{ group.name }}</h3>
+                  <h3 class="text-s font-bold opacity-50 mb-2">{{ group.name }}</h3>
                   <div class="flex flex-wrap gap-2">
                     <div v-for="item in group.items" :key="item.id" class="badge badge-ghost h-auto py-1.5 px-3 gap-2 border border-base-content/10">
                       <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
-                        <span class="text-[10px] opacity-50 leading-tight">{{ item.title }}</span>
-                        <span class="font-bold text-xs">{{ item.choice }}</span>
+                        <span class="text-xs opacity-50 leading-tight">{{ item.title }}</span>
+                        <span class="font-bold text-s">{{ item.choice }}</span>
                       </div>
                       <div class="flex items-center gap-1 text-sm grayscale opacity-80">
                         <span>{{ getIcon(item.myAttitude) }}</span>
-                        <span class="text-[10px] opacity-50">{{ myAvatar }}?{{ partnerAvatar }}</span>
+                        <span class="text-xs opacity-50">{{ myAvatar }}?{{ partnerAvatar }}</span>
                         <span>{{ getIcon(item.partnerAttitude) }}</span>
                       </div>
                     </div>
@@ -314,16 +314,16 @@ onMounted(() => {
             <div class="flex flex-col gap-4">
               <div v-for="group in groupsNegotiate" :key="group.id" class="card bg-base-100 border-2 border-base-200">
                 <div class="card-body p-3">
-                  <h3 class="text-xs font-bold opacity-40 mb-2">{{ group.name }}</h3>
+                  <h3 class="text-s font-bold opacity-40 mb-2">{{ group.name }}</h3>
                   <div class="flex flex-wrap gap-2">
                     <div v-for="item in group.items" :key="item.id" class="badge badge-outline opacity-70 h-auto py-1.5 px-3 gap-2">
                       <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
-                        <span class="text-[10px] opacity-50 leading-tight">{{ item.title }}</span>
-                        <span class="font-bold text-xs">{{ item.choice }}</span>
+                        <span class="text-xs opacity-50 leading-tight">{{ item.title }}</span>
+                        <span class="font-bold text-s">{{ item.choice }}</span>
                       </div>
                       <div class="flex items-center gap-1 text-sm">
                         <span>{{ getIcon(item.myAttitude) }}</span>
-                        <span class="text-[10px] opacity-50">{{ myAvatar }}/{{ partnerAvatar }}</span>
+                        <span class="text-xs opacity-50">{{ myAvatar }}/{{ partnerAvatar }}</span>
                         <span>{{ getIcon(item.partnerAttitude) }}</span>
                       </div>
                     </div>
