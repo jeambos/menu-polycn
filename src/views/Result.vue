@@ -46,8 +46,11 @@ const pageTitle = computed(() => {
 // 2. 参与计算的模块列表 (即用户做过题的模块)
 const availableModules = computed(() => {
   if (isPreviewMode.value) {
-    // 预览模式下，根据 displayAnswers 里是否有 key 来判断
-    return allModules.filter(m => displayAnswers.value[m.questions[0].id] !== undefined);
+    // ✅ 修复 1：使用 .some() 检查该模块下是否至少有一道题在 displayAnswers 里有记录
+    // 这样比只检查 questions[0] 更安全，TS 也不会报错
+    return allModules.filter(m => 
+      m.questions.some(q => displayAnswers.value[q.id] !== undefined)
+    );
   } else {
     // 本机模式下，根据 store.enabledModules
     return allModules.filter(m => store.isModuleEnabled(m.id));
@@ -72,8 +75,10 @@ const filteredCode = computed(() => {
   allModules.forEach(m => {
     if (activeModuleIds.value.includes(m.id)) {
       m.questions.forEach(q => {
-        if (displayAnswers.value[q.id]) {
-          filteredAnswers[q.id] = displayAnswers.value[q.id];
+        // ✅ 修复 2：先赋值给临时变量，帮助 TS 进行类型收窄
+        const ans = displayAnswers.value[q.id];
+        if (ans) {
+          filteredAnswers[q.id] = ans;
         }
       });
     }
@@ -192,8 +197,6 @@ onMounted(() => {
   }
 
   // 初始化筛选：默认全选所有可用模块
-  // availableModules 计算属性依赖 isPreviewMode 和 displayAnswers，所以这里可以直接用
-  // 注意：nextTick 并不是必须的，因为 computed 是同步更新的，但为了保险
   activeModuleIds.value = availableModules.value.map(m => m.id);
   
   processZoneData(displayAnswers.value);
