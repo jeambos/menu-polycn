@@ -108,14 +108,19 @@ const EMOJI_MAP: string[] = [
         '🧽', '🧾', '🧿', '🆗'
 ];
 
-// 建立反向索引 (Emoji -> 数字)
+// 建立反向索引
 const EMOJI_TO_INDEX = new Map<string, number>();
 EMOJI_MAP.forEach((emoji, index) => {
   EMOJI_TO_INDEX.set(emoji, index);
 });
 
-// --- 预设的小动物头像列表 ---
-export const AVATARS = ['🦊', '🐰', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🦆', '🦉', '🦄'];
+// --- ✅ 新增：预设的 20 个头像列表 ---
+export const AVATARS = [
+  '🌏','🦊','🐰','🐱','🐶',
+  '🦁','🐯','🐼','🐻','🦄',
+  '🐳','🦈','🐣','🦋','🌹',
+  '🌻','🌼','🌱','🌳','🍁'
+];
 const AVATAR_SET = new Set(AVATARS); 
 
 // 辅助：数字转二进制字符串
@@ -126,10 +131,9 @@ function toBits(num: number): string {
 /**
  * 编码：头像 + 压缩后的 Emoji 数据流
  */
-export function encode(answers: Record<string, number[]>, avatar: string = '🦊'): string {
+export function encode(answers: Record<string, number[]>, avatar: string = '🌏'): string {
   let bitStream = "";
 
-  // 1. 生成全量二进制流
   questionsData.modules.forEach(m => {
     m.questions.forEach(q => {
       const userStates = answers[q.id] || [];
@@ -141,18 +145,16 @@ export function encode(answers: Record<string, number[]>, avatar: string = '🦊
     });
   });
 
-  // 2. 尾部去零压缩
   bitStream = bitStream.replace(/0+$/, '');
   
+  // 如果完全没做题，默认给一个头像
   if (bitStream.length === 0) return avatar;
 
-  // 3. 补齐 10 的倍数
   const remainder = bitStream.length % 10;
   if (remainder !== 0) {
     bitStream += "0".repeat(10 - remainder);
   }
 
-  // 4. 切分并转 Base1024 Emoji
   let result = "";
   for (let i = 0; i < bitStream.length; i += 10) {
     const chunk = bitStream.substring(i, i + 10);
@@ -160,7 +162,6 @@ export function encode(answers: Record<string, number[]>, avatar: string = '🦊
     result += (EMOJI_MAP[val] !== undefined) ? EMOJI_MAP[val] : EMOJI_MAP[0];
   }
 
-  // 将头像拼在字符串最前面
   return avatar + result;
 }
 
@@ -168,23 +169,19 @@ export function encode(answers: Record<string, number[]>, avatar: string = '🦊
  * 解码：提取头像 + 还原答案字典
  */
 export function decode(code: string): { answers: Record<string, number[]>, avatar: string } {
-  // Array.from 正确处理 Emoji 宽字符
   const chars = Array.from(code);
   
-  let avatar = '👤'; // 默认头像
+  let avatar = '👤'; 
   let dataChars = chars;
 
-  // ✅ 修复点：先提取变量，再进行判断，消除 TS 报错
   const firstChar = chars[0];
 
-  // 1. 检查第一位是否为预设头像
-  // 使用 firstChar && ... 确保它不是 undefined
+  // 检查第一位是否为预设头像
   if (chars.length > 0 && firstChar && AVATAR_SET.has(firstChar)) {
     avatar = firstChar;
-    dataChars = chars.slice(1); // 截取掉第一位头像，剩下的是数据
+    dataChars = chars.slice(1); 
   }
 
-  // 2. 还原二进制流
   let bitStream = "";
   for (const char of dataChars) {
     const val = EMOJI_TO_INDEX.get(char);
@@ -193,7 +190,6 @@ export function decode(code: string): { answers: Record<string, number[]>, avata
     }
   }
 
-  // 3. 解析题目数据
   const result: Record<string, number[]> = {};
   let pointer = 0;
 

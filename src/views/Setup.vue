@@ -11,76 +11,83 @@ const router = useRouter();
 const store = useConfigStore();
 const modules = questionsData.modules as Module[];
 
-// --- 套餐定义 (映射你的 5 种场景) ---
+// --- 套餐定义 ---
 const PRESETS: Record<string, string[]> = {
-  'custom': [], 
-  // 1. 新手练习: 只做核心 A
+  // 1. 新手练习: A
   'practice': ['A'], 
   // 2. 全面测试: A-J 全选
   'all': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'], 
-  // 3. 身体/激情: 核心+浪漫+性+边界+BDSM
+  // 3. 身体/激情: A+B+C+D+E
   'passion': ['A', 'B', 'C', 'D', 'E'], 
-  // 4. 长期朋友: 核心+边界+生活+活动+价值+财富
+  // 4. 长期朋友: A+D+F+G+H+I
   'friend': ['A', 'D', 'F', 'G', 'H', 'I'], 
-  // 5. 日常玩伴: 核心+边界+活动+价值
+  // 5. 日常玩伴: A+D+G+H
   'playmate': ['A', 'D', 'G', 'H'] 
 };
 
-// 默认选中“新手练习”
-const currentPreset = ref('practice');
-
-// 代理 Store 里的头像
-const currentAvatar = computed({
-  get: () => store.targetAvatar,
-  set: (val) => store.setAvatar(val)
+// --- 实时高亮逻辑 ---
+// 计算当前选中的状态最符合哪个套餐
+const activePresetKey = computed(() => {
+  const currentIds = [...store.enabledModules].sort();
+  
+  // 遍历所有套餐进行比对
+  for (const [key, presetIds] of Object.entries(PRESETS)) {
+    const sortedPreset = [...presetIds].sort();
+    if (JSON.stringify(currentIds) === JSON.stringify(sortedPreset)) {
+      return key;
+    }
+  }
+  return 'custom'; // 都不匹配则为自定义
 });
 
-// 应用套餐逻辑
+// 应用套餐
 function applyPreset(key: string) {
-  currentPreset.value = key;
   if (key === 'custom') return;
-
   const targetIds = PRESETS[key];
   if (!targetIds) return; 
   
-  // 1. 先重置：只保留 Core (A) 或者完全清空？
-  // 你的需求是：套餐1兼具一键清除功能。
-  // 所以逻辑是：先清空所有，然后根据 targetIds 逐个开启。
+  // 逻辑：先开启 targetIds 里的，再关闭不在 targetIds 里的 (除了 A)
+  targetIds.forEach(id => {
+    if (!store.isModuleEnabled(id)) store.toggleModule(id);
+  });
   
-  // 先把 enabledModules 清空，或者重置为 targetIds 的第一个?
-  // 简单粗暴的做法：直接赋值 (Store 需要支持直接赋值会更方便，但 toggle 也可以)
-  
-  // 比较稳妥的做法：
-  // 1. 获取当前所有开启的
-  const currentEnabled = [...store.enabledModules];
-  // 2. 关掉所有不在 targetIds 里的 (除了 A, A 永远开启)
-  currentEnabled.forEach(id => {
+  // 反向检查，关闭多余的
+  [...store.enabledModules].forEach(id => {
     if (!targetIds.includes(id) && id !== 'A') {
       store.toggleModule(id);
     }
   });
-  // 3. 开启所有在 targetIds 里的
-  targetIds.forEach(id => {
-    if (!store.isModuleEnabled(id)) {
-      store.toggleModule(id);
-    }
-  });
 }
 
-// 手动切换处理
+// 手动切换
 function handleManualToggle(moduleId: string, val: boolean) {
-  // A 模块 (Core) 不允许关闭
-  if (moduleId === 'A' && !val) return;
-
-  if (val) {
-    if (!store.isModuleEnabled(moduleId)) store.toggleModule(moduleId);
-  } else {
-    if (store.isModuleEnabled(moduleId)) store.toggleModule(moduleId);
-  }
-  currentPreset.value = 'custom'; // 切回自定义
+  if (moduleId === 'A' && !val) return; // A 不可关
+  if (val && !store.isModuleEnabled(moduleId)) store.toggleModule(moduleId);
+  if (!val && store.isModuleEnabled(moduleId)) store.toggleModule(moduleId);
 }
 
-// 统计题目总数
+// --- 头像逻辑 (4+1 模式) ---
+const DEFAULT_AVATAR = '🌏';
+const FIXED_AVATARS = ['🦊', '🐰', '🐱']; // 固定显示的快捷头像
+const showAvatarModal = ref(false);
+
+// 代理 Store 头像
+const currentAvatar = computed({
+  get: () => store.targetAvatar || DEFAULT_AVATAR,
+  set: (val) => store.setAvatar(val)
+});
+
+
+function handleAvatarClick(emoji: string) {
+  if (currentAvatar.value === emoji) {
+    // 反选逻辑：如果点的是当前选中的，重置回地球
+    currentAvatar.value = DEFAULT_AVATAR;
+  } else {
+    currentAvatar.value = emoji;
+  }
+}
+
+// 统计
 const totalQuestions = computed(() => {
   return modules
     .filter(m => store.isModuleEnabled(m.id))
@@ -101,21 +108,59 @@ function startQuiz() {
         设置假想对象
       </h2>
       <p class="text-xs opacity-50 mb-4">
-        这套配置是针对谁的？选一个头像代表 Ta
+        这套配置是针对谁的？选一个头像代表 Ta。如无，请保持默认。
       </p>
       
-      <div class="flex flex-wrap gap-3 justify-center">
+      <div class="flex items-center justify-center gap-3">
         <button 
-          v-for="emoji in AVATARS" 
+          @click="handleAvatarClick(currentAvatar)"
+          class="btn btn-circle btn-lg text-4xl border-4 border-primary shadow-lg bg-base-100"
+        >
+          {{ currentAvatar }}
+        </button>
+        
+        <div class="w-px h-8 bg-base-content/10 mx-1"></div>
+
+        <button 
+          v-for="emoji in FIXED_AVATARS" 
           :key="emoji"
-          @click="currentAvatar = emoji"
-          class="btn btn-circle btn-lg text-2xl transition-all duration-200 border-2"
-          :class="currentAvatar === emoji ? 'btn-primary scale-110 shadow-lg border-primary' : 'btn-ghost border-transparent opacity-40 grayscale hover:grayscale-0'"
+          @click="handleAvatarClick(emoji)"
+          class="btn btn-circle btn-lg text-2xl bg-base-100 border-base-200 hover:border-primary/50"
         >
           {{ emoji }}
         </button>
+
+        <button 
+          @click="showAvatarModal = true"
+          class="btn btn-circle btn-lg bg-base-100 border-base-200 font-bold text-xl"
+        >
+          •••
+        </button>
       </div>
     </div>
+
+    <dialog class="modal modal-bottom sm:modal-middle" :class="{ 'modal-open': showAvatarModal }">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4 text-center">选择一个头像</h3>
+        <div class="grid grid-cols-5 gap-3 justify-items-center">
+          <button 
+            v-for="emoji in AVATARS" 
+            :key="emoji"
+            @click="handleAvatarClick(emoji); showAvatarModal = false"
+            class="btn btn-circle text-2xl border-2"
+            :class="currentAvatar === emoji ? 'btn-primary border-primary' : 'btn-ghost border-transparent'"
+          >
+            {{ emoji }}
+          </button>
+        </div>
+        <form method="dialog" class="modal-backdrop mt-6">
+          <button class="btn btn-ghost w-full" @click="showAvatarModal = false">取消</button>
+        </form>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button @click="showAvatarModal = false">close</button>
+      </form>
+    </dialog>
 
     <div class="mb-6">
       <h2 class="text-sm font-bold opacity-60 mb-3 uppercase tracking-wider flex items-center gap-2">
@@ -124,12 +169,12 @@ function startQuiz() {
       </h2>
       
       <div class="tabs tabs-boxed bg-base-200 p-1 mb-6 overflow-x-auto flex-nowrap justify-start sm:justify-center no-scrollbar">
-        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': currentPreset === 'practice' }" @click="applyPreset('practice')">🌱 新手练习</a>
-        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': currentPreset === 'all' }" @click="applyPreset('all')">❤️ 全面测试</a>
-        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': currentPreset === 'passion' }" @click="applyPreset('passion')">🔥 激情导向</a>
-        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': currentPreset === 'friend' }" @click="applyPreset('friend')">🤝 长期朋友</a>
-        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': currentPreset === 'playmate' }" @click="applyPreset('playmate')">🏸 日常玩伴</a>
-        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': currentPreset === 'custom' }" @click="applyPreset('custom')">🔧 自定义</a>
+        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': activePresetKey === 'practice' }" @click="applyPreset('practice')">🌱 新手练习</a>
+        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': activePresetKey === 'all' }" @click="applyPreset('all')">❤️ 全面测试</a>
+        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': activePresetKey === 'passion' }" @click="applyPreset('passion')">🔥 激情导向</a>
+        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': activePresetKey === 'friend' }" @click="applyPreset('friend')">🤝 长期朋友</a>
+        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': activePresetKey === 'playmate' }" @click="applyPreset('playmate')">🏸 日常玩伴</a>
+        <a class="tab transition-all duration-200 whitespace-nowrap" :class="{ 'tab-active': activePresetKey === 'custom' }">🔧 自定义</a>
       </div>
     </div>
 
@@ -139,7 +184,7 @@ function startQuiz() {
         :key="mod.id"
         :module="mod"
         :model-value="store.isModuleEnabled(mod.id)"
-        :disabled="mod.id === 'A'" 
+        :disabled="mod.id === 'A'"
         @update:model-value="(val) => handleManualToggle(mod.id, val)"
       />
     </div>
