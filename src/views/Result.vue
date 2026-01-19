@@ -6,28 +6,28 @@ import { useConfigStore } from '../stores/useConfigStore';
 import { encode, decode } from '../logic/codec';
 import LiveCodeBar from '../components/LiveCodeBar.vue';
 import questionsData from '../data/questions.json';
-import type { Attitude, Module } from '../types'; // 确保路径对
+import type { Attitude, Module } from '../types';
+
 const route = useRoute();
 const router = useRouter();
 const store = useConfigStore();
 const { copy, copied } = useClipboard();
 
-// ... (ResultItem 和 ModuleGroup 接口保持不变) ...
 interface ResultItem { id: string; title: string; choice: string; attitude: Attitude; moduleId: string; moduleName: string; }
 interface ModuleGroup { id: string; name: string; items: ResultItem[]; }
 
 const isPreviewMode = ref(false);
 const displayCode = ref('');
 const displayAnswers = ref<Record<string, Attitude[]>>({});
-// ✅ 新增：结果对应的头像
-const resultAvatar = ref('🦊');
+
+// ✅ 优化 1：默认头像改为地球，与 Setup 保持一致
+const resultAvatar = ref('🌏');
 
 const redGroups = ref<ModuleGroup[]>([]);    
 const goldGroups = ref<ModuleGroup[]>([]);   
 const yellowGroups = ref<ModuleGroup[]>([]); 
 const greenItems = ref<ResultItem[]>([]);    
 
-// ... (groupItemsByModule 和 processZoneData 函数保持不变，直接复用) ...
 function groupItemsByModule(items: ResultItem[]): ModuleGroup[] {
   const map = new Map<string, ModuleGroup>();
   items.forEach(item => {
@@ -38,51 +38,46 @@ function groupItemsByModule(items: ResultItem[]): ModuleGroup[] {
 }
 
 function processZoneData(answers: Record<string, Attitude[]>) {
-  const rList: ResultItem[] = [];
-  const gCoreList: ResultItem[] = [];
-  const yList: ResultItem[] = [];
-  const greenList: ResultItem[] = [];
+  const rList: ResultItem[] = [], gCoreList: ResultItem[] = [], yList: ResultItem[] = [], greenList: ResultItem[] = [];
 
-  // 🛡️ 关键修复：强制类型断言
-  // 告诉 TS 忽略旧 JSON 的推断，强制使用我们在 types/index.ts 定义的新结构
+  // 🛡️ 强制类型断言：告诉 TS 使用新定义的 Module 结构
   const modules = (questionsData.modules as unknown) as Module[];
 
   modules.forEach(m => {
+    // ✅ 优化 2：清洗模块名称。把 "模块 A：核心内核" 变成 "核心内核"
+    // 同时也保留了去除旧版 emoji 的逻辑
+    const cleanModuleName = m.name
+      .replace(/^(模块\s*[A-J][：:]\s*)/, '') // 去除 "模块 A："
+      .replace(/📦 |⚛️ /g, '');             // 去除旧版 emoji
+
     m.questions.forEach(q => {
       const states = answers[q.id];
       if (!states) return;
 
       states.forEach((att, optIndex) => {
-        // 0 = N/A 跳过，不展示
         if (att === 0) return;
 
-        // 获取选项数据
-        // q.options 现在可能是 String 或 OptionItem 对象
+        // 获取选项数据 (兼容 String 和 OptionItem)
         const opt = q.options[optIndex];
-
-        // 🛡️ 兼容逻辑：如果是字符串直接用，如果是对象取 .short
         const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
 
         const item: ResultItem = {
           id: q.id + '_' + optIndex,
-          // 优先取短标题，兼容旧数据的 title
           title: q.title_short || q.title, 
           choice: choiceText,
           attitude: att,
           moduleId: m.id,
-          moduleName: m.name.replace(/📦 |⚛️ /g, '')
+          moduleName: cleanModuleName
         };
 
-        // 根据态度分流到不同数组
-        if (att === 1) rList.push(item);          // 1 -> ⛔ 硬边界
-        else if (att === 4) gCoreList.push(item); // 4 -> ⭐ 核心需求
-        else if (att === 2) yList.push(item);     // 2 -> ❔ 待商议
-        else if (att === 3) greenList.push(item); // 3 -> 👌 可接受
+        if (att === 1) rList.push(item);
+        else if (att === 4) gCoreList.push(item);
+        else if (att === 2) yList.push(item);
+        else if (att === 3) greenList.push(item);
       });
     });
   });
 
-  // 分组并赋值给响应式变量
   redGroups.value = groupItemsByModule(rList);
   goldGroups.value = groupItemsByModule(gCoreList);
   yellowGroups.value = groupItemsByModule(yList);
@@ -97,21 +92,24 @@ onMounted(() => {
   const codeParam = route.query.code as string;
   
   if (codeParam) {
-    // A: 预览模式
+    // A: 预览模式 (查看别人的代码)
     isPreviewMode.value = true;
     displayCode.value = codeParam;
     try {
-      // ✅ 适配新 decode 返回结构 { answers, avatar }
       const res = decode(codeParam);
       displayAnswers.value = res.answers as Record<string, Attitude[]>;
-      resultAvatar.value = res.avatar; // 设置解码出的头像
+      resultAvatar.value = res.avatar; 
     } catch (e) { console.error(e); }
   } else {
-    // B: 本机模式
+    // B: 本机模式 (查看自己的结果)
     displayAnswers.value = store.answers;
-    resultAvatar.value = store.targetAvatar; // 设置本机选的头像
-    // ✅ 编码时传入当前头像
-    displayCode.value = encode(store.answers, store.targetAvatar);
+    
+    // 如果 store 里有头像就用 store 的，没有就用默认的地球
+    if (store.targetAvatar) {
+      resultAvatar.value = store.targetAvatar;
+    }
+    
+    displayCode.value = encode(store.answers, resultAvatar.value);
   }
   processZoneData(displayAnswers.value);
 });
