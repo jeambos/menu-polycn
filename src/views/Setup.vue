@@ -13,45 +13,34 @@ const modules = questionsData.modules as Module[];
 
 // --- 套餐定义 ---
 const PRESETS: Record<string, string[]> = {
-  // 1. 新手练习: A
   'practice': ['A'], 
-  // 2. 全面测试: A-J 全选
   'all': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'], 
-  // 3. 身体/激情: A+B+C+D+E
   'passion': ['A', 'B', 'C', 'D', 'E'], 
-  // 4. 长期朋友: A+D+F+G+H+I
   'friend': ['A', 'D', 'F', 'G', 'H', 'I'], 
-  // 5. 日常玩伴: A+D+G+H
   'playmate': ['A', 'D', 'G', 'H'] 
 };
 
 // --- 实时高亮逻辑 ---
-// 计算当前选中的状态最符合哪个套餐
 const activePresetKey = computed(() => {
   const currentIds = [...store.enabledModules].sort();
-  
-  // 遍历所有套餐进行比对
   for (const [key, presetIds] of Object.entries(PRESETS)) {
     const sortedPreset = [...presetIds].sort();
     if (JSON.stringify(currentIds) === JSON.stringify(sortedPreset)) {
       return key;
     }
   }
-  return 'custom'; // 都不匹配则为自定义
+  return 'custom'; 
 });
 
-// 应用套餐
 function applyPreset(key: string) {
   if (key === 'custom') return;
   const targetIds = PRESETS[key];
   if (!targetIds) return; 
   
-  // 逻辑：先开启 targetIds 里的，再关闭不在 targetIds 里的 (除了 A)
   targetIds.forEach(id => {
     if (!store.isModuleEnabled(id)) store.toggleModule(id);
   });
   
-  // 反向检查，关闭多余的
   [...store.enabledModules].forEach(id => {
     if (!targetIds.includes(id) && id !== 'A') {
       store.toggleModule(id);
@@ -59,35 +48,37 @@ function applyPreset(key: string) {
   });
 }
 
-// 手动切换
 function handleManualToggle(moduleId: string, val: boolean) {
-  if (moduleId === 'A' && !val) return; // A 不可关
+  if (moduleId === 'A' && !val) return; 
   if (val && !store.isModuleEnabled(moduleId)) store.toggleModule(moduleId);
   if (!val && store.isModuleEnabled(moduleId)) store.toggleModule(moduleId);
 }
 
-// --- 头像逻辑 (4+1 模式) ---
+// --- 头像逻辑 (智能补位模式) ---
 const DEFAULT_AVATAR = '🌏';
-const FIXED_AVATARS = ['🦊', '🐰', '🐱']; // 固定显示的快捷头像
+// ✅ 定义候选池：狐、兔、猫、狗
+const SHORTCUT_POOL = ['🦊', '🐰', '🐱', '🐶'];
 const showAvatarModal = ref(false);
 
-// 代理 Store 头像
 const currentAvatar = computed({
   get: () => store.targetAvatar || DEFAULT_AVATAR,
   set: (val) => store.setAvatar(val)
 });
 
+// ✅ 计算属性：显示的3个快捷头像
+// 逻辑：从候选池里剔除当前选中的，然后取前3个
+const visibleShortcuts = computed(() => {
+  return SHORTCUT_POOL.filter(a => a !== currentAvatar.value).slice(0, 3);
+});
 
 function handleAvatarClick(emoji: string) {
   if (currentAvatar.value === emoji) {
-    // 反选逻辑：如果点的是当前选中的，重置回地球
-    currentAvatar.value = DEFAULT_AVATAR;
+    currentAvatar.value = DEFAULT_AVATAR; // 反选回地球
   } else {
     currentAvatar.value = emoji;
   }
 }
 
-// 统计
 const totalQuestions = computed(() => {
   return modules
     .filter(m => store.isModuleEnabled(m.id))
@@ -122,7 +113,7 @@ function startQuiz() {
         <div class="w-px h-8 bg-base-content/10 mx-1"></div>
 
         <button 
-          v-for="emoji in FIXED_AVATARS" 
+          v-for="emoji in visibleShortcuts" 
           :key="emoji"
           @click="handleAvatarClick(emoji)"
           class="btn btn-circle btn-lg text-2xl bg-base-100 border-base-200 hover:border-primary/50"

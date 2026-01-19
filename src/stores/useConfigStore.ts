@@ -7,8 +7,8 @@ export const useConfigStore = defineStore('config', () => {
   const answers = ref<Record<string, Attitude[]>>({})
   const enabledModules = ref<string[]>(['core'])
   
-  // ✅ 新增：当前设定的对比对象头像 (默认狐狸)
-  const targetAvatar = ref<string>('🦊'); 
+  // ✅ 修改：默认初始化为地球
+  const targetAvatar = ref<string>('🌏');
 
   // 设置某个选项的态度
   function setOptionAttitude(questionId: string, optionIndex: number, attitude: Attitude) {
@@ -52,8 +52,8 @@ export const useConfigStore = defineStore('config', () => {
 
   function resetAll() {
     answers.value = {}
-    enabledModules.value = ['core']
-    targetAvatar.value = '🦊'; // 重置时恢复默认头像
+    enabledModules.value = ['A'] // 假设你要默认 A
+    targetAvatar.value = '🌏'; // ✅ 重置时也恢复为地球
   }
 
   return {
