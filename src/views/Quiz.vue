@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useClipboard } from '@vueuse/core'; // 引入剪贴板
+import { useClipboard } from '@vueuse/core';
 import { useConfigStore } from '../stores/useConfigStore';
-import { encode } from '../logic/codec'; // 引入编码器
+import { encode } from '../logic/codec';
 import QuestionCard from '../components/QuestionCard.vue';
 import questionsData from '../data/questions.json';
 import type { Module, Question, Attitude } from '../types';
@@ -13,7 +13,8 @@ const store = useConfigStore();
 const { copy, copied } = useClipboard();
 
 // --- 1. 数据准备 ---
-const allModules = questionsData.modules as Module[];
+// 🛡️ 强制类型断言：适配新的 JSON 结构 (含 meta 字段)
+const allModules = (questionsData.modules as unknown) as Module[];
 
 const playlist = computed(() => {
   const enabledModules = allModules.filter(m => store.isModuleEnabled(m.id));
@@ -25,8 +26,8 @@ const playlist = computed(() => {
 });
 
 const currentIndex = ref(0);
-const showSaveModal = ref(false); // 控制保存弹窗
-const currentProgressCode = ref(''); // 保存时的代码
+const showSaveModal = ref(false); 
+const currentProgressCode = ref(''); 
 
 const currentQuestion = computed(() => {
   if (playlist.value.length === 0) return null;
@@ -62,15 +63,15 @@ function finishQuiz() {
   router.push('/result');
 }
 
-// 自动存档到 LocalStorage
 function saveLocal() {
   localStorage.setItem('quiz_index', currentIndex.value.toString());
 }
 
 // --- 3. 手动保存逻辑 ---
 function handleManualSave() {
-  // 生成当前代码
-  currentProgressCode.value = encode(store.answers);
+  // ✅ 修复：编码时传入当前选中的头像，确保存档完整
+  // 如果没有 store.targetAvatar，默认使用 '🌏' (由 codec 处理)
+  currentProgressCode.value = encode(store.answers, store.targetAvatar);
   showSaveModal.value = true;
 }
 

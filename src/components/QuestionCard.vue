@@ -25,14 +25,17 @@ function updateAttitude(optIndex: number, val: number) {
   <div class="card w-full bg-base-100 shadow-xl border border-base-content/5">
     <div class="card-body p-4">
       <div class="flex items-start justify-between mb-4">
-        <h3 class="font-bold text-lg">{{ question.title }}</h3>
-        <span class="text-[10px] opacity-30 font-mono">{{ question.id }}</span>
+        <h3 class="font-bold text-lg leading-snug">
+          {{ question.title_long || question.title }}
+        </h3>
+        <span class="text-[10px] opacity-30 font-mono ml-2 pt-1">{{ question.id }}</span>
       </div>
 
-      <div class="space-y-5"> <div v-for="(opt, index) in question.options" :key="index">
+      <div class="space-y-5"> 
+        <div v-for="(opt, index) in question.options" :key="index">
           
           <div class="text-sm mb-1.5 px-1 opacity-90">
-            {{ opt }}
+            {{ typeof opt === 'string' ? opt : opt.long }}
           </div>
 
           <QuadStateButton

@@ -13,20 +13,43 @@ const router = useRouter();
 const store = useConfigStore();
 const { copy, copied } = useClipboard();
 
-interface ResultItem { id: string; title: string; choice: string; attitude: Attitude; moduleId: string; moduleName: string; }
+interface ResultItem { id: string; title: string; choice: string; attitude: Attitude; moduleId: string; moduleName: string; questionId: string; }
 interface ModuleGroup { id: string; name: string; items: ResultItem[]; }
+
+// 新增：用于前端聚合显示的结构
+interface QuestionGroup {
+  questionId: string;
+  title: string;
+  choices: string[];
+}
 
 const isPreviewMode = ref(false);
 const displayCode = ref('');
 const displayAnswers = ref<Record<string, Attitude[]>>({});
-
-// ✅ 优化 1：默认头像改为地球，与 Setup 保持一致
 const resultAvatar = ref('🌏');
 
 const redGroups = ref<ModuleGroup[]>([]);    
 const goldGroups = ref<ModuleGroup[]>([]);   
 const yellowGroups = ref<ModuleGroup[]>([]); 
 const greenItems = ref<ResultItem[]>([]);    
+
+// 辅助函数：将散乱的选项按题目聚合
+function getQuestionGroups(items: ResultItem[]): QuestionGroup[] {
+  const map = new Map<string, QuestionGroup>();
+  
+  items.forEach(item => {
+    if (!map.has(item.questionId)) {
+      map.set(item.questionId, {
+        questionId: item.questionId,
+        title: item.title,
+        choices: []
+      });
+    }
+    map.get(item.questionId)!.choices.push(item.choice);
+  });
+  
+  return Array.from(map.values());
+}
 
 function groupItemsByModule(items: ResultItem[]): ModuleGroup[] {
   const map = new Map<string, ModuleGroup>();
@@ -39,16 +62,10 @@ function groupItemsByModule(items: ResultItem[]): ModuleGroup[] {
 
 function processZoneData(answers: Record<string, Attitude[]>) {
   const rList: ResultItem[] = [], gCoreList: ResultItem[] = [], yList: ResultItem[] = [], greenList: ResultItem[] = [];
-
-  // 🛡️ 强制类型断言：告诉 TS 使用新定义的 Module 结构
   const modules = (questionsData.modules as unknown) as Module[];
 
   modules.forEach(m => {
-    // ✅ 优化 2：清洗模块名称。把 "模块 A：核心内核" 变成 "核心内核"
-    // 同时也保留了去除旧版 emoji 的逻辑
-    const cleanModuleName = m.name
-      .replace(/^(模块\s*[A-J][：:]\s*)/, '') // 去除 "模块 A："
-      .replace(/📦 |⚛️ /g, '');             // 去除旧版 emoji
+    const cleanModuleName = m.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '');
 
     m.questions.forEach(q => {
       const states = answers[q.id];
@@ -57,12 +74,12 @@ function processZoneData(answers: Record<string, Attitude[]>) {
       states.forEach((att, optIndex) => {
         if (att === 0) return;
 
-        // 获取选项数据 (兼容 String 和 OptionItem)
         const opt = q.options[optIndex];
         const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
 
         const item: ResultItem = {
           id: q.id + '_' + optIndex,
+          questionId: q.id, // 新增：用于聚合
           title: q.title_short || q.title, 
           choice: choiceText,
           attitude: att,
@@ -90,9 +107,7 @@ function handleCopy() {
 
 onMounted(() => {
   const codeParam = route.query.code as string;
-  
   if (codeParam) {
-    // A: 预览模式 (查看别人的代码)
     isPreviewMode.value = true;
     displayCode.value = codeParam;
     try {
@@ -101,14 +116,8 @@ onMounted(() => {
       resultAvatar.value = res.avatar; 
     } catch (e) { console.error(e); }
   } else {
-    // B: 本机模式 (查看自己的结果)
     displayAnswers.value = store.answers;
-    
-    // 如果 store 里有头像就用 store 的，没有就用默认的地球
-    if (store.targetAvatar) {
-      resultAvatar.value = store.targetAvatar;
-    }
-    
+    if (store.targetAvatar) resultAvatar.value = store.targetAvatar;
     displayCode.value = encode(store.answers, resultAvatar.value);
   }
   processZoneData(displayAnswers.value);
@@ -120,7 +129,6 @@ onMounted(() => {
     
     <div class="text-center mb-10">
       <div class="text-6xl mb-2 animate-bounce">{{ resultAvatar }}</div>
-      
       <h2 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
         {{ isPreviewMode ? '配置解读' : '我的配置单' }}
       </h2>
@@ -136,8 +144,12 @@ onMounted(() => {
           <div class="card-body p-4">
             <h3 class="card-title text-sm opacity-90 border-b border-white/20 pb-2 mb-2">{{ group.name }}</h3>
             <div class="flex flex-wrap gap-2">
-              <div v-for="item in group.items" :key="item.id" class="badge badge-white/20 border-0 text-white font-bold h-auto py-2 px-3 gap-2">
-                <span class="opacity-70 text-xs font-normal border-r border-white/30 pr-2 mr-0.5">{{ item.title }}</span><span>{{ item.choice }}</span>
+              <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" 
+                   class="badge bg-white text-error font-bold h-auto py-2 px-3 gap-2 border-0 shadow-sm">
+                <span class="opacity-80 text-xs font-normal border-r border-error/20 pr-2 mr-0.5">{{ q.title }}</span>
+                <div class="flex flex-wrap gap-1">
+                  <span v-for="(c, idx) in q.choices" :key="idx">{{ c }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -152,8 +164,12 @@ onMounted(() => {
           <div class="card-body p-4">
             <h3 class="card-title text-sm opacity-80 border-b border-black/10 pb-2 mb-2 text-black">{{ group.name }}</h3>
             <div class="flex flex-wrap gap-2">
-              <div v-for="item in group.items" :key="item.id" class="badge badge-neutral bg-black/10 border-0 text-black font-bold h-auto py-2 px-3 gap-2">
-                <span class="opacity-60 text-xs font-normal border-r border-black/20 pr-2 mr-0.5">{{ item.title }}</span><span>{{ item.choice }}</span>
+              <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" 
+                   class="badge badge-neutral bg-black/10 border-0 text-black font-bold h-auto py-2 px-3 gap-2">
+                <span class="opacity-60 text-xs font-normal border-r border-black/20 pr-2 mr-0.5">{{ q.title }}</span>
+                <div class="flex flex-wrap gap-1">
+                  <span v-for="(c, idx) in q.choices" :key="idx">{{ c }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -168,8 +184,12 @@ onMounted(() => {
           <div class="card-body p-4">
             <h3 class="card-title text-sm opacity-60 border-b border-base-content/10 pb-2 mb-2">{{ group.name }}</h3>
             <div class="flex flex-wrap gap-2">
-              <div v-for="item in group.items" :key="item.id" class="badge badge-outline border-warning text-warning h-auto py-2 px-3 gap-2 bg-warning/5">
-                <span class="opacity-60 text-xs font-normal border-r border-warning/30 pr-2 mr-0.5 text-base-content">{{ item.title }}</span><span class="font-bold">{{ item.choice }}</span>
+              <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" 
+                   class="badge badge-outline border-warning text-warning h-auto py-2 px-3 gap-2 bg-warning/5">
+                <span class="opacity-60 text-xs font-normal border-r border-warning/30 pr-2 mr-0.5 text-base-content">{{ q.title }}</span>
+                <div class="flex flex-wrap gap-1">
+                   <span v-for="(c, idx) in q.choices" :key="idx" class="font-bold">{{ c }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -180,8 +200,12 @@ onMounted(() => {
     <div v-if="greenItems.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.3s">
       <div class="flex items-center gap-2 mb-4 text-success font-bold text-lg uppercase tracking-wider border-b-2 border-success/20 pb-1"><span>👌</span> 可接受 / Nice to have</div>
       <div class="flex flex-wrap gap-2 bg-base-200/30 p-4 rounded-xl border border-base-content/5">
-        <div v-for="item in greenItems" :key="item.id" class="badge badge-success badge-outline bg-success/5 h-auto py-2 px-3 gap-2">
-          <span class="opacity-50 text-xs font-normal border-r border-success/30 pr-2 mr-0.5 text-base-content">{{ item.title }}</span><span class="font-bold">{{ item.choice }}</span>
+        <div v-for="q in getQuestionGroups(greenItems)" :key="q.questionId" 
+             class="badge badge-success badge-outline bg-success/5 h-auto py-2 px-3 gap-2">
+          <span class="opacity-50 text-xs font-normal border-r border-success/30 pr-2 mr-0.5 text-base-content">{{ q.title }}</span>
+          <div class="flex flex-wrap gap-1">
+             <span v-for="(c, idx) in q.choices" :key="idx" class="font-bold">{{ c }}</span>
+          </div>
         </div>
       </div>
     </div>
