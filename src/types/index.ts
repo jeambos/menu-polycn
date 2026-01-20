@@ -15,6 +15,7 @@ export interface Question {
   title_short: string; // 新增：结果用
   // ✅ 关键修改：选项改为对象数组
   // 为了兼容过渡期，这里允许它是 string 或 OptionItem
+  description?: string;
   options: (string | OptionItem)[]; 
 }
 

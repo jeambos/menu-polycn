@@ -1,24 +1,22 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router'; // 🔍 修复：删除了未使用的 useRoute
 import { useClipboard } from '@vueuse/core';
 import { useConfigStore } from '../stores/useConfigStore';
 import { encode } from '../logic/codec';
 import QuestionCard from '../components/QuestionCard.vue';
-import QuadStateButton from '../components/QuadStateButton.vue';
 import questionsData from '../data/questions.json';
 import type { Module, Question, Attitude } from '../types';
 
 const router = useRouter();
-const route = useRoute();
 const store = useConfigStore();
 const { copy, copied } = useClipboard();
 
 // --- 1. 数据准备 ---
-// 🛡️ 强制类型断言：适配新的 JSON 结构 (含 meta 字段)
-const allModules = (questionsData.modules as unknown) as Module[];
+const allModules = ((questionsData as any).modules || []) as Module[];
 
 const playlist = computed(() => {
+  if (!allModules || allModules.length === 0) return [];
   const enabledModules = allModules.filter(m => store.isModuleEnabled(m.id));
   let list: Question[] = [];
   enabledModules.forEach(m => {
@@ -32,11 +30,10 @@ const showSaveModal = ref(false);
 const currentProgressCode = ref(''); 
 
 const currentQuestion = computed(() => {
-  if (playlist.value.length === 0) return null;
+  if (!playlist.value || playlist.value.length === 0) return undefined;
   return playlist.value[currentIndex.value];
 });
 
-// 计算当前题目所属的模块（用于贪心检测统计）
 const currentModule = computed(() => {
   if (!currentQuestion.value) return null;
   return allModules.find(m => m.questions.some(q => q.id === currentQuestion.value?.id));
@@ -47,18 +44,14 @@ const progress = computed(() => {
   return Math.round(((currentIndex.value + 1) / playlist.value.length) * 100);
 });
 
-// --- 2. 贪心拦截逻辑 (Greedy Reminder) ---
-// 记录暂存的操作（用于弹窗确认后恢复）
+// --- 2. 拦截逻辑 ---
 const pendingUpdate = ref<{ qId: string, optIndex: number, val: number } | null>(null);
-// 记录每个模块是否已经警告过（避免重复打扰）
 const hasWarnedMap = ref<Record<string, boolean>>({}); 
 
-// 计算当前模块已选了多少个“核心需求”
 const currentCoreCount = computed(() => {
   if (!currentModule.value) return 0;
   let count = 0;
   currentModule.value.questions.forEach(q => {
-    // 直接读取 Store 中的数据
     const userAnswers = store.answers[q.id]; 
     if (userAnswers) {
       count += userAnswers.filter(a => a === 4).length;
@@ -67,51 +60,41 @@ const currentCoreCount = computed(() => {
   return count;
 });
 
-function handleOptionUpdate(qId: string, optIndex: number, newVal: number) {
+function handleAnswerRequest(optIndex: number, newVal: number) {
+  if (!currentQuestion.value) return;
+  
+  const qId = currentQuestion.value.id;
   const modId = currentModule.value?.id || 'default';
   
-  // 触发拦截条件：
-  // 1. 用户试图选“核心需求”(4)
-  // 2. 当前模块已经有 >= 2 个核心需求了 (这意味着这将是第3个)
-  // 3. 本模块从未警告过
   if (newVal === 4 && currentCoreCount.value >= 2 && !hasWarnedMap.value[modId]) {
-    
-    // ✋ 阻断并暂存操作
     pendingUpdate.value = { qId, optIndex, val: newVal };
-    
-    // 呼出弹窗
     const modal = document.getElementById('greedy_modal') as HTMLDialogElement;
     modal?.showModal();
     return;
   }
 
-  // ✅ 正常写入 Store
-  store.setOptionAttitude(qId, optIndex, newVal);
-  
-  // 自动跳转逻辑：如果是最后一题的最后一个选项被点击，可以考虑自动跳下一题（可选，这里暂不加）
+  // 🔍 修复：添加 'as Attitude' 类型断言，告诉 TS 这个数字是合法的态度值
+  store.setOptionAttitude(qId, optIndex, newVal as Attitude);
 }
 
 function executePendingUpdate() {
   if (pendingUpdate.value) {
     const { qId, optIndex, val } = pendingUpdate.value;
     
-    // 1. 写入 Store (这会触发 QuadStateButton 的 watch -> 放烟花)
-    store.setOptionAttitude(qId, optIndex, val);
+    // 🔍 修复：这里也添加 'as Attitude'
+    store.setOptionAttitude(qId, optIndex, val as Attitude);
     
-    // 2. 标记本模块已警告
     const modId = currentModule.value?.id || 'default';
     hasWarnedMap.value[modId] = true;
     
-    // 3. 清理暂存
     pendingUpdate.value = null;
   }
 }
 
-// --- 3. 导航逻辑 ---
+// --- 3. 导航与保存 ---
 function goNext() {
   if (currentIndex.value < playlist.value.length - 1) {
     currentIndex.value++;
-    // 滚动回顶部
     window.scrollTo({ top: 0, behavior: 'smooth' });
     saveLocal();
   } else {
@@ -137,13 +120,11 @@ function saveLocal() {
   localStorage.setItem('quiz_index', currentIndex.value.toString());
 }
 
-// --- 4. 手动保存逻辑 ---
 function handleManualSave() {
   currentProgressCode.value = encode(store.answers, store.targetAvatar);
   showSaveModal.value = true;
 }
 
-// 初始化
 onMounted(() => {
   const savedIndex = localStorage.getItem('quiz_index');
   if (savedIndex) {
@@ -154,9 +135,8 @@ onMounted(() => {
   }
 });
 
-// 😈 上帝模式
 function cheatFill() {
-  if (!confirm('⚠️ 启用上帝模式？\n这将随机填充数据并跳转。')) return;
+  if (!confirm('⚠️ 启用上帝模式？')) return;
   playlist.value.forEach(q => {
     q.options.forEach((_, index) => {
       const rand = Math.random();
@@ -176,7 +156,7 @@ function cheatFill() {
 <template>
   <div class="min-h-[80vh] flex flex-col justify-between pb-6 relative">
     
-    <div class="w-full mb-4 pt-2 sticky top-0 z-20 bg-base-100/95 backdrop-blur-sm pb-2">
+    <div class="w-full mb-4 pt-2 sticky top-0 z-20 bg-base-100/95 backdrop-blur-sm pb-2 transition-colors">
       <div class="flex justify-between text-xs opacity-50 mb-1 px-1">
         <span>Q{{ currentIndex + 1 }}</span>
         <span>{{ progress }}%</span>
@@ -184,41 +164,27 @@ function cheatFill() {
       <progress class="progress progress-primary w-full transition-all duration-300" :value="progress" max="100"></progress>
     </div>
 
-    <div class="flex-1 flex flex-col items-center relative min-h-[400px] w-full max-w-2xl mx-auto">
+    <div class="flex-1 flex flex-col items-center relative min-h-[400px] w-full max-w-2xl mx-auto px-2">
       <Transition name="slide-fade" mode="out-in">
-        <div v-if="currentQuestion" :key="currentQuestion.id" class="w-full px-2">
-          
-          <QuestionCard :question="currentQuestion" />
-
-          <div class="mt-6 flex flex-col gap-3 animate-fade-in-up">
-            <div 
-              v-for="(opt, idx) in currentQuestion.options" 
-              :key="idx" 
-              class="flex flex-col gap-1"
-            >
-              <span class="text-sm font-bold opacity-80 px-1">
-                {{ typeof opt === 'string' ? opt : opt.long }}
-              </span>
-              
-              <QuadStateButton 
-                :model-value="store.getAnswer(currentQuestion.id, idx)"
-                @update:model-value="(val) => handleOptionUpdate(currentQuestion.id, idx, val)"
-              />
-            </div>
-          </div>
-
+        
+        <div v-if="currentQuestion && currentQuestion.id" :key="currentQuestion.id" class="w-full">
+          <QuestionCard 
+            :question="currentQuestion" 
+            @answer="handleAnswerRequest"
+          />
         </div>
-        <div v-else class="text-center opacity-50 mt-20">加载中...</div>
+
+        <div v-else class="text-center opacity-50 mt-20" key="loading">
+          <span class="loading loading-spinner loading-lg"></span>
+          <p class="mt-4 text-sm">加载中...</p>
+        </div>
+
       </Transition>
     </div>
 
     <div class="flex justify-between items-center mt-12 px-2 max-w-2xl mx-auto w-full">
       <button @click="goPrev" class="btn btn-ghost btn-sm">⬅️ 上一题</button>
-      
-      <button @click="handleManualSave" class="btn btn-outline btn-sm gap-2">
-        <span>💾</span> 保存
-      </button>
-
+      <button @click="handleManualSave" class="btn btn-outline btn-sm gap-2"><span>💾</span> 保存</button>
       <button @click="goNext" class="btn btn-primary btn-sm px-6">
         {{ currentIndex === playlist.length - 1 ? '完成 🏁' : '下一题 ➡️' }}
       </button>
@@ -227,10 +193,10 @@ function cheatFill() {
     <button @click="cheatFill" class="fixed bottom-1 right-1 btn btn-xs btn-circle btn-ghost opacity-5 hover:opacity-100 text-warning z-50">⚡</button>
 
     <dialog class="modal" :class="{ 'modal-open': showSaveModal }">
-      <div class="modal-box">
+       <div class="modal-box">
         <h3 class="font-bold text-lg">进度已暂存 ✅</h3>
         <p class="py-4 text-sm opacity-80">
-          为了防止清理缓存导致数据丢失，你可以<span class="font-bold text-primary">复制下方代码</span>。下次在首页点击“代码解读”即可恢复进度。
+          为了防止清理缓存导致数据丢失，你可以<span class="font-bold text-primary">复制下方代码</span>。
         </p>
         <div class="bg-base-200 p-3 rounded-lg font-mono text-xs break-all mb-4 border border-base-content/10">
           {{ currentProgressCode }}
@@ -242,35 +208,36 @@ function cheatFill() {
           <button class="btn btn-ghost btn-sm" @click="showSaveModal = false">继续答题</button>
         </div>
       </div>
-      <form method="dialog" class="modal-backdrop">
-        <button @click="showSaveModal = false">close</button>
-      </form>
+      <form method="dialog" class="modal-backdrop"><button @click="showSaveModal = false">close</button></form>
     </dialog>
 
     <dialog id="greedy_modal" class="modal modal-bottom sm:modal-middle">
-      <div class="modal-box border-t-4 border-[#FFD700]">
-        <h3 class="font-bold text-lg text-[#FFD700] flex items-center gap-2">
-          <span>🌟</span> 核心需求贵在精简
-        </h3>
-        <p class="py-4 text-sm opacity-80 leading-relaxed">
-          建议您在本模块中保留 <strong>1~2 个</strong> 最关键的金星。<br/>
-          如果一切都是重点，那么就没有重点了。
-          <br/><br/>
-          其他的偏好，建议改为 <span class="text-success font-bold">同意 (绿色)</span> 哦。
-        </p>
-        <div class="modal-action">
-          <form method="dialog">
-            <button class="btn btn-primary bg-[#FFD700] border-none text-black hover:bg-[#E6C200]" @click="executePendingUpdate">
-              我已了解，继续选择
-            </button>
-          </form>
+      <div class="modal-box p-0 border-t-4 border-transparent overflow-hidden" style="background: linear-gradient(#fff, #fff) padding-box, linear-gradient(to right, #B45309, #F59E0B, #B45309) border-box;">
+        <div class="bg-base-100 p-6">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+              <span class="text-2xl drop-shadow-sm">🌟</span> 
+              <span class="bg-gradient-to-r from-[#B45309] to-[#F59E0B] bg-clip-text text-transparent uppercase tracking-wide">核心需求贵在精简</span>
+            </h3>
+            <p class="py-4 text-sm opacity-80 leading-relaxed">
+              建议您在本模块中保留 <strong>1~2 个</strong> 最关键的金星。<br/>
+              如果一切都是重点，那么就没有重点了。<br/><br/>
+              其他的偏好，建议改为 <span class="text-[#0EA5E9] font-bold">同意 (蓝色)</span> 哦。
+            </p>
+            <div class="modal-action">
+              <form method="dialog">
+                <button 
+                  class="btn border-none text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                  style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);"
+                  @click="executePendingUpdate"
+                >
+                  我已了解，继续选择
+                </button>
+              </form>
+            </div>
         </div>
       </div>
-      <form method="dialog" class="modal-backdrop">
-        <button @click="pendingUpdate = null">close</button>
-      </form>
+      <form method="dialog" class="modal-backdrop"><button @click="pendingUpdate = null">close</button></form>
     </dialog>
-
   </div>
 </template>
 
