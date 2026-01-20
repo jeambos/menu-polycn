@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router'; // 🔍 修复：删除了未使用的 useRoute
+import { useRouter } from 'vue-router';
 import { useClipboard } from '@vueuse/core';
 import { useConfigStore } from '../stores/useConfigStore';
 import { encode } from '../logic/codec';
@@ -34,43 +34,39 @@ const currentQuestion = computed(() => {
   return playlist.value[currentIndex.value];
 });
 
-const currentModule = computed(() => {
-  if (!currentQuestion.value) return null;
-  return allModules.find(m => m.questions.some(q => q.id === currentQuestion.value?.id));
-});
-
 const progress = computed(() => {
   if (playlist.value.length === 0) return 0;
   return Math.round(((currentIndex.value + 1) / playlist.value.length) * 100);
 });
 
-// --- 2. 拦截逻辑 ---
+// --- 2. 拦截逻辑 (修正版：基于单题计数) ---
 const pendingUpdate = ref<{ qId: string, optIndex: number, val: number } | null>(null);
+
+// ⚠️ 锁的映射表：Key 是题目 ID (qId)，而不是模块 ID
 const hasWarnedMap = ref<Record<string, boolean>>({}); 
 
-// 🟢 新代码 (基于单题统计 - 完美符合“下一页从头开始”)
+// ⚠️ 计数器：只统计“当前这道题”选了几个星星
 const currentCoreCount = computed(() => {
   if (!currentQuestion.value) return 0;
   
-  // 获取当前这道题的答案数组
   const qId = currentQuestion.value.id;
-  const userAnswers = store.answers[qId];
+  // 直接从 store 获取当前题目的答案数组
+  const ans = store.answers[qId];
   
-  if (!userAnswers) return 0;
-  
-  // 统计当前这道题里有几个 4 (星星)
-  return userAnswers.filter(a => a === 4).length;
+  if (!ans) return 0;
+  // 统计值为 4 的数量
+  return ans.filter(a => a === 4).length;
 });
 
 function handleAnswerRequest(optIndex: number, newVal: number) {
   if (!currentQuestion.value) return;
   
   const qId = currentQuestion.value.id;
-  // 🟢 新逻辑: 使用 qId 作为锁的 key
-  // 触发条件：
-  // 1. 动作是点亮星星 (4)
-  // 2. 当前这道题已经有 >= 2 个星星了 (点击后就是第3个)
-  // 3. 当前这道题(qId) 还没弹过窗
+  
+  // 触发拦截条件：
+  // 1. 用户试图选星星 (4)
+  // 2. 当前这道题已经有 >= 2 个星星了 (这将是第3个)
+  // 3. 当前这道题还没弹过警告 (hasWarnedMap[qId] 为 false)
   if (newVal === 4 && currentCoreCount.value >= 2 && !hasWarnedMap.value[qId]) {
     pendingUpdate.value = { qId, optIndex, val: newVal };
     const modal = document.getElementById('greedy_modal') as HTMLDialogElement;
@@ -85,10 +81,10 @@ function executePendingUpdate() {
   if (pendingUpdate.value) {
     const { qId, optIndex, val } = pendingUpdate.value;
     
-    // 🔍 修复：这里也添加 'as Attitude'
     store.setOptionAttitude(qId, optIndex, val as Attitude);
     
-    // const modId = currentModule.value?.id || 'default';
+    // ⚠️ 锁定：标记“这道题”已经警告过了
+    // 当用户翻到下一题时，qId 变了，hasWarnedMap[newQId] 是 false，计数器也会重置
     hasWarnedMap.value[qId] = true;
     
     pendingUpdate.value = null;

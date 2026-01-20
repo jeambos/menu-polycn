@@ -44,20 +44,15 @@ export const useConfigStore = defineStore('config', () => {
   // --- Actions ---
 
   function setOptionAttitude(questionId: string, optionIndex: number, attitude: Attitude) {
+    // 确保当前题目的答案数组已初始化
     if (!answers.value[questionId]) {
       answers.value[questionId] = [];
     }
     
-    // Core (4) 互斥逻辑
-    if (attitude === 4) {
-      const currentOpts = answers.value[questionId];
-      for (let i = 0; i < currentOpts.length; i++) {
-        if (currentOpts[i] === 4) {
-           currentOpts[i] = 3; 
-        }
-      }
-    }
+    // ⚠️ 已删除 Core (4) 互斥逻辑
+    // 现在允许同一道题有多个 4 (核心需求)
 
+    // 更新当前选项的态度
     answers.value[questionId][optionIndex] = attitude;
 
     // 实时同步到 profiles
