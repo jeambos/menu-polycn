@@ -16,6 +16,7 @@ declare module 'vue' {
     CompareDashboard: typeof import('./src/components/CompareDashboard.vue')['default']
     IconPhArrowLeft: typeof import('~icons/ph/arrow-left')['default']
     IconPhArrowRight: typeof import('~icons/ph/arrow-right')['default']
+    IconPhCaretDown: typeof import('~icons/ph/caret-down')['default']
     IconPhCheckCircle: typeof import('~icons/ph/check-circle')['default']
     IconPhCheckCircleFill: typeof import('~icons/ph/check-circle-fill')['default']
     IconPhCircle: typeof import('~icons/ph/circle')['default']
