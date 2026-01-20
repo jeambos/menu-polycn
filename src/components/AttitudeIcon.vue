@@ -1,21 +1,15 @@
 <script setup lang="ts">
 import type { Attitude } from '../types';
 
+// 定义接收的参数
 defineProps<{
-  attitude: Attitude;
-  size?: string; // 允许自定义大小，如 'text-lg'
+  attitude: Attitude | number; // 接收态度数值
+  size?: string;      // 选填：自定义大小，例如 'text-lg', 'text-xl'
 }>();
-
-// 图标映射逻辑
-// 我们使用 Phosphor Icons (ph)
-// 4 (核心): Star (Fill) - 实心星星
-// 3 (可接受): CheckCircle - 圆圈对勾
-// 2 (待商议): Question - 问号
-// 1 (硬边界): Prohibit - 禁止符号
 </script>
 
 <template>
-  <span :class="['inline-flex items-center justify-center', size || 'text-base']">
+  <span :class="['inline-flex items-center justify-center align-middle', size || 'text-base']">
     
     <icon-ph-star-fill v-if="attitude === 4" class="text-warning drop-shadow-sm" />
     

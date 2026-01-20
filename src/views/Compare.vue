@@ -6,6 +6,7 @@ import questionsData from '../data/questions.json';
 import type { Attitude, Module } from '../types';
 import CompareDashboard from '../components/CompareDashboard.vue'; 
 import OptionPopover from '../components/OptionPopover.vue'; // ✅ 引入
+import AttitudeIcon from '../components/AttitudeIcon.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -46,11 +47,6 @@ const hasData = computed(() => {
   return listResonance.value.length + listCritical.value.length + listDiscuss.value.length + listNegotiate.value.length > 0;
 });
 
-function getIcon(att: Attitude) {
-  switch (att) {
-    case 4: return '⭐'; case 3: return '👌'; case 2: return '❔'; case 1: return '⛔'; default: return '⚪';
-  }
-}
 
 function groupAndFilter(items: CompareItem[]): ModuleGroup[] {
   const filtered = items.filter(i => selectedModuleIds.value.includes(i.moduleId));
@@ -209,174 +205,181 @@ onMounted(() => {
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 gap-y-12">
         
-        <div id="zone-critical" class="scroll-mt-32">
-          <div v-if="groupsCritical.length > 0" class="animate-fade-in-up">
-            <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1">
-              <span>⚡</span> 核心关注
-            </div>
-            <div class="flex flex-col gap-4">
-              <div v-for="group in groupsCritical" :key="group.id" class="card bg-warning text-warning-content shadow-lg">
-                <div class="card-body p-4">
-                  <h3 class="text-xs font-bold opacity-80 mb-2 border-b border-black/10 pb-1 text-black">{{ group.name }}</h3>
-                  <div class="flex flex-col gap-2">
-                    <div v-for="item in group.items" :key="item.id" class="flex">
-                      
-                      <OptionPopover 
-                        :question="item.originalQuestion" 
-                        :selections="[
-  { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
-  { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
-]"
-                        :is-open="activePopoverId === item.id"
-                        @toggle="togglePopover(item.id)"
-                        @close="activePopoverId = null"
-                        class="w-full"
-                      >
-                        <div class="bg-white/20 p-2 rounded-lg flex items-center justify-between w-full hover:bg-white/30 transition-colors">
-                          <div class="flex-1 mr-2 min-w-0">
-                            <div class="text-xs opacity-60 truncate">{{ item.title }}</div>
-                            <div class="font-bold text-sm truncate">{{ item.choice }}</div>
-                          </div>
-                          <div class="flex items-center gap-2 bg-black/10 px-2 py-1 rounded shrink-0">
-                            <span class="text-lg">{{ getIcon(item.myAttitude) }}</span>
-                            <span class="text-xs font-bold opacity-50">{{ myAvatar }}</span>
-                            <span class="text-xs opacity-30">/</span>
-                            <span class="text-xs font-bold opacity-50">{{ partnerAvatar }}</span>
-                            <span class="text-lg">{{ getIcon(item.partnerAttitude) }}</span>
-                          </div>
-                        </div>
-                      </OptionPopover>
-
+  <div id="zone-critical" class="scroll-mt-32">
+    <div v-if="groupsCritical.length > 0" class="animate-fade-in-up">
+      <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1">
+        <AttitudeIcon :attitude="4" size="text-xl" />
+        <span>核心关注</span>
+      </div>
+      <div class="flex flex-col gap-4">
+        <div v-for="group in groupsCritical" :key="group.id" class="card bg-warning text-warning-content shadow-lg">
+          <div class="card-body p-4">
+            <h3 class="text-xs font-bold opacity-80 mb-2 border-b border-black/10 pb-1 text-black">{{ group.name }}</h3>
+            <div class="flex flex-col gap-2">
+              <div v-for="item in group.items" :key="item.id" class="flex">
+                
+                <OptionPopover 
+                  :question="item.originalQuestion" 
+                  :selections="[
+                    { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+                    { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+                  ]"
+                  :is-open="activePopoverId === item.id"
+                  @toggle="togglePopover(item.id)"
+                  @close="activePopoverId = null"
+                  class="w-full"
+                >
+                  <div class="bg-white/20 p-2 rounded-lg flex items-center justify-between w-full hover:bg-white/30 transition-colors">
+                    <div class="flex-1 mr-2 min-w-0">
+                      <div class="text-xs opacity-60 truncate">{{ item.title }}</div>
+                      <div class="font-bold text-sm truncate">{{ item.choice }}</div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-black/10 px-2 py-1 rounded shrink-0">
+                      <AttitudeIcon :attitude="item.myAttitude" size="text-lg" />
+                      <span class="text-xs font-bold opacity-50">{{ myAvatar }}</span>
+                      <span class="text-xs opacity-30">/</span>
+                      <span class="text-xs font-bold opacity-50">{{ partnerAvatar }}</span>
+                      <AttitudeIcon :attitude="item.partnerAttitude" size="text-lg" />
                     </div>
                   </div>
-                </div>
+                </OptionPopover>
+
               </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div id="zone-resonance" class="scroll-mt-32">
-          <div v-if="groupsResonance.length > 0" class="animate-fade-in-up">
-            <div class="flex items-center gap-2 mb-4 text-success font-bold text-lg uppercase tracking-wider border-b-2 border-success/20 pb-1">
-              <span>✨</span> 默契共振
-            </div>
-            <div class="flex flex-col gap-4">
-              <div v-for="group in groupsResonance" :key="group.id" class="card bg-success/5 border border-success/20 shadow-sm">
-                <div class="card-body p-3">
-                  <h3 class="text-xs font-bold opacity-60 text-success mb-2 uppercase">{{ group.name }}</h3>
-                  <div class="flex flex-wrap gap-2">
-                    <div v-for="item in group.items" :key="item.id" class="flex">
-                       <OptionPopover 
-                        :question="item.originalQuestion" 
-                        :selections="[
-  { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
-  { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
-]"
-                        :is-open="activePopoverId === item.id"
-                        @toggle="togglePopover(item.id)"
-                        @close="activePopoverId = null"
-                      >
-                        <div class="badge badge-outline badge-success h-auto py-1.5 px-3 gap-2 bg-base-100/50 hover:bg-success/10 transition-colors">
-                          <div class="flex flex-col text-left border-r border-success/20 pr-2 mr-1">
-                            <span class="text-xs opacity-60 leading-tight">{{ item.title }}</span>
-                            <span class="font-bold text-xs">{{ item.choice }}</span>
-                          </div>
-                          <div class="flex items-center gap-1 text-sm">
-                            <span>{{ getIcon(item.myAttitude) }}</span>
-                            <span class="text-xs opacity-50">{{ myAvatar }}={{ partnerAvatar }}</span>
-                            <span>{{ getIcon(item.partnerAttitude) }}</span>
-                          </div>
-                        </div>
-                      </OptionPopover>
+  <div id="zone-resonance" class="scroll-mt-32">
+    <div v-if="groupsResonance.length > 0" class="animate-fade-in-up">
+      <div class="flex items-center gap-2 mb-4 text-success font-bold text-lg uppercase tracking-wider border-b-2 border-success/20 pb-1">
+        <AttitudeIcon :attitude="3" size="text-xl" />
+        <span>默契共振</span>
+      </div>
+      <div class="flex flex-col gap-4">
+        <div v-for="group in groupsResonance" :key="group.id" class="card bg-success/5 border border-success/20 shadow-sm">
+          <div class="card-body p-3">
+            <h3 class="text-xs font-bold opacity-60 text-success mb-2 uppercase">{{ group.name }}</h3>
+            <div class="flex flex-wrap gap-2">
+              <div v-for="item in group.items" :key="item.id" class="flex">
+                  <OptionPopover 
+                  :question="item.originalQuestion" 
+                  :selections="[
+                    { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+                    { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+                  ]"
+                  :is-open="activePopoverId === item.id"
+                  @toggle="togglePopover(item.id)"
+                  @close="activePopoverId = null"
+                >
+                  <div class="badge badge-outline badge-success h-auto py-1.5 px-3 gap-2 bg-base-100/50 hover:bg-success/10 transition-colors">
+                    <div class="flex flex-col text-left border-r border-success/20 pr-2 mr-1">
+                      <span class="text-xs opacity-60 leading-tight">{{ item.title }}</span>
+                      <span class="font-bold text-xs">{{ item.choice }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-sm">
+                      <AttitudeIcon :attitude="item.myAttitude" />
+                      <span class="text-xs opacity-50">{{ myAvatar }}={{ partnerAvatar }}</span>
+                      <AttitudeIcon :attitude="item.partnerAttitude" />
                     </div>
                   </div>
-                </div>
+                </OptionPopover>
               </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div id="zone-discuss" class="scroll-mt-32">
-          <div v-if="groupsDiscuss.length > 0" class="animate-fade-in-up">
-            <div class="flex items-center gap-2 mb-4 text-info font-bold text-lg uppercase tracking-wider border-b-2 border-info/20 pb-1">
-              <span>💬</span> 待厘清 / 需要沟通
-            </div>
-            <div class="flex flex-col gap-4">
-              <div v-for="group in groupsDiscuss" :key="group.id" class="card bg-base-200 border border-base-300">
-                <div class="card-body p-3">
-                  <h3 class="text-xs font-bold opacity-50 mb-2">{{ group.name }}</h3>
-                  <div class="flex flex-wrap gap-2">
-                    <div v-for="item in group.items" :key="item.id" class="flex">
-                       <OptionPopover 
-                        :question="item.originalQuestion" 
-                        :selections="[
-  { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
-  { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
-]"
-                        :is-open="activePopoverId === item.id"
-                        @toggle="togglePopover(item.id)"
-                        @close="activePopoverId = null"
-                      >
-                        <div class="badge badge-ghost h-auto py-1.5 px-3 gap-2 border border-base-content/10 hover:bg-base-300 transition-colors">
-                          <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
-                            <span class="text-xs opacity-50 leading-tight">{{ item.title }}</span>
-                            <span class="font-bold text-xs">{{ item.choice }}</span>
-                          </div>
-                          <div class="flex items-center gap-1 text-sm grayscale opacity-80">
-                            <span>{{ getIcon(item.myAttitude) }}</span>
-                            <span class="text-xs opacity-50">{{ myAvatar }}?{{ partnerAvatar }}</span>
-                            <span>{{ getIcon(item.partnerAttitude) }}</span>
-                          </div>
-                        </div>
-                      </OptionPopover>
+  <div id="zone-discuss" class="scroll-mt-32">
+    <div v-if="groupsDiscuss.length > 0" class="animate-fade-in-up">
+      <div class="flex items-center gap-2 mb-4 text-info font-bold text-lg uppercase tracking-wider border-b-2 border-info/20 pb-1">
+        <AttitudeIcon :attitude="2" size="text-xl" />
+        <span>待厘清 / 需要沟通</span>
+      </div>
+      <div class="flex flex-col gap-4">
+        <div v-for="group in groupsDiscuss" :key="group.id" class="card bg-base-200 border border-base-300">
+          <div class="card-body p-3">
+            <h3 class="text-xs font-bold opacity-50 mb-2">{{ group.name }}</h3>
+            <div class="flex flex-wrap gap-2">
+              <div v-for="item in group.items" :key="item.id" class="flex">
+                  <OptionPopover 
+                  :question="item.originalQuestion" 
+                  :selections="[
+                    { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+                    { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+                  ]"
+                  :is-open="activePopoverId === item.id"
+                  @toggle="togglePopover(item.id)"
+                  @close="activePopoverId = null"
+                >
+                  <div class="badge badge-ghost h-auto py-1.5 px-3 gap-2 border border-base-content/10 hover:bg-base-300 transition-colors">
+                    <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
+                      <span class="text-xs opacity-50 leading-tight">{{ item.title }}</span>
+                      <span class="font-bold text-xs">{{ item.choice }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-sm grayscale opacity-80">
+                      <AttitudeIcon :attitude="item.myAttitude" />
+                      <span class="text-xs opacity-50">{{ myAvatar }}?{{ partnerAvatar }}</span>
+                      <AttitudeIcon :attitude="item.partnerAttitude" />
                     </div>
                   </div>
-                </div>
+                </OptionPopover>
               </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div id="zone-negotiate" class="scroll-mt-32">
-          <div v-if="groupsNegotiate.length > 0" class="animate-fade-in-up">
-            <div class="flex items-center gap-2 mb-4 text-base-content/60 font-bold text-lg uppercase tracking-wider border-b-2 border-base-content/10 pb-1">
-              <span>🤝</span> 协商让步
-            </div>
-            <div class="flex flex-col gap-4">
-              <div v-for="group in groupsNegotiate" :key="group.id" class="card bg-base-100 border-2 border-base-200">
-                <div class="card-body p-3">
-                  <h3 class="text-xs font-bold opacity-40 mb-2">{{ group.name }}</h3>
-                  <div class="flex flex-wrap gap-2">
-                     <div v-for="item in group.items" :key="item.id" class="flex">
-                        <OptionPopover 
-                          :question="item.originalQuestion" 
-                          :selections="[
-                              { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
-                              { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
-]"
-                          :is-open="activePopoverId === item.id"
-                          @toggle="togglePopover(item.id)"
-                          @close="activePopoverId = null"
-                        >
-                          <div class="badge badge-outline opacity-70 h-auto py-1.5 px-3 gap-2 hover:bg-base-200 transition-colors">
-                            <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
-                              <span class="text-xs opacity-50 leading-tight">{{ item.title }}</span>
-                              <span class="font-bold text-xs">{{ item.choice }}</span>
-                            </div>
-                            <div class="flex items-center gap-1 text-sm">
-                              <span>{{ getIcon(item.myAttitude) }}</span>
-                              <span class="text-xs opacity-50">{{ myAvatar }}/{{ partnerAvatar }}</span>
-                              <span>{{ getIcon(item.partnerAttitude) }}</span>
-                            </div>
-                          </div>
-                        </OptionPopover>
-                     </div>
-                  </div>
+  <div id="zone-negotiate" class="scroll-mt-32">
+    <div v-if="groupsNegotiate.length > 0" class="animate-fade-in-up">
+      <div class="flex items-center gap-2 mb-4 text-base-content/60 font-bold text-lg uppercase tracking-wider border-b-2 border-base-content/10 pb-1">
+        <AttitudeIcon :attitude="1" size="text-xl" />
+        <span>协商让步</span>
+      </div>
+      <div class="flex flex-col gap-4">
+        <div v-for="group in groupsNegotiate" :key="group.id" class="card bg-base-100 border-2 border-base-200">
+          <div class="card-body p-3">
+            <h3 class="text-xs font-bold opacity-40 mb-2">{{ group.name }}</h3>
+            <div class="flex flex-wrap gap-2">
+                <div v-for="item in group.items" :key="item.id" class="flex">
+                  <OptionPopover 
+                    :question="item.originalQuestion" 
+                    :selections="[
+                        { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+                        { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+                    ]"
+                    :is-open="activePopoverId === item.id"
+                    @toggle="togglePopover(item.id)"
+                    @close="activePopoverId = null"
+                  >
+                    <div class="badge badge-outline opacity-70 h-auto py-1.5 px-3 gap-2 hover:bg-base-200 transition-colors">
+                      <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
+                        <span class="text-xs opacity-50 leading-tight">{{ item.title }}</span>
+                        <span class="font-bold text-xs">{{ item.choice }}</span>
+                      </div>
+                      <div class="flex items-center gap-1 text-sm">
+                        <AttitudeIcon :attitude="item.myAttitude" />
+                        <span class="text-xs opacity-50">{{ myAvatar }}/{{ partnerAvatar }}</span>
+                        <AttitudeIcon :attitude="item.partnerAttitude" />
+                      </div>
+                    </div>
+                  </OptionPopover>
                 </div>
-              </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+
+      
 
       </div> 
     </div>

@@ -7,6 +7,7 @@ import { encode, decode } from '../logic/codec';
 import questionsData from '../data/questions.json';
 import type { Attitude, Module } from '../types';
 import OptionPopover from '../components/OptionPopover.vue'; // ✅ 引入新组件
+import AttitudeIcon from '../components/AttitudeIcon.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -248,7 +249,7 @@ onMounted(() => {
     </div>
 
     <div v-if="redGroups.length > 0" class="mb-8 animate-fade-in-up">
-      <div class="flex items-center gap-2 mb-4 text-error font-bold text-lg uppercase tracking-wider border-b-2 border-error/20 pb-1"><span>⛔</span> 硬边界 / Deal Breakers</div>
+      <div class="flex items-center gap-2 mb-4 text-error font-bold text-lg uppercase tracking-wider border-b-2 border-error/20 pb-1"><span><AttitudeIcon :attitude="1" size="text-xl" class="mr-1" /></span> 硬边界 / Deal Breakers</div>
       <div class="flex flex-col gap-4">
         <div v-for="group in redGroups" :key="group.id" class="card bg-error text-error-content shadow-lg">
           <div class="card-body p-4">
@@ -277,7 +278,7 @@ onMounted(() => {
     </div>
 
     <div v-if="goldGroups.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.1s">
-      <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1"><span>⭐</span> 核心需求 / Must Haves</div>
+      <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1"><span><AttitudeIcon :attitude="4" size="text-xl" class="mr-1" /></span> 核心需求 / Must Haves</div>
       <div class="flex flex-col gap-4">
         <div v-for="group in goldGroups" :key="group.id" class="card bg-warning text-warning-content shadow-lg">
           <div class="card-body p-4">
@@ -306,7 +307,7 @@ onMounted(() => {
     </div>
 
     <div v-if="yellowGroups.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.2s">
-      <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1"><span>❔</span> 待商议 / Soft Limits</div>
+      <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1"><span><AttitudeIcon :attitude="2" size="text-xl" class="mr-1" /></span> 待商议 / Soft Limits</div>
       <div class="flex flex-col gap-4">
         <div v-for="group in yellowGroups" :key="group.id" class="card bg-base-100 border-2 border-base-300 shadow-sm">
           <div class="card-body p-4">
@@ -335,7 +336,7 @@ onMounted(() => {
     </div>
 
     <div v-if="greenItems.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.3s">
-      <div class="flex items-center gap-2 mb-4 text-success font-bold text-lg uppercase tracking-wider border-b-2 border-success/20 pb-1"><span>👌</span> 可接受 / Nice to have</div>
+      <div class="flex items-center gap-2 mb-4 text-success font-bold text-lg uppercase tracking-wider border-b-2 border-success/20 pb-1"><span><AttitudeIcon :attitude="3" size="text-xl" class="mr-1" /></span> 可接受 / Nice to have</div>
       <div class="flex flex-wrap gap-2 bg-base-200/30 p-4 rounded-xl border border-base-content/5">
         <div v-for="q in getQuestionGroups(greenItems)" :key="q.questionId" class="flex">
           <OptionPopover 

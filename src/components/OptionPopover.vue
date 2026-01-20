@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useFloating, autoUpdate, offset, flip, shift, arrow } from '@floating-ui/vue';
 import { onClickOutside } from '@vueuse/core';
 import type { Question, Attitude } from '../types';
+import AttitudeIcon from './AttitudeIcon.vue';
 
 const props = defineProps<{
   question: Question;
@@ -47,16 +48,6 @@ const arrowStyle = computed(() => {
   };
 });
 
-// ✅ 态度图标映射
-function getIcon(att: number) {
-  switch (att) {
-    case 4: return '⭐'; 
-    case 3: return '👌'; 
-    case 2: return '❔'; 
-    case 1: return '⛔'; 
-    default: return '';
-  }
-}
 </script>
 
 <template>
@@ -104,7 +95,7 @@ function getIcon(att: number) {
                 :key="sel.avatar"
                 class="flex items-center gap-1 bg-black/20 px-1.5 py-0.5 rounded text-[10px]"
               >
-                <span>{{ getIcon(sel.attitude) }}</span>
+                <span><AttitudeIcon :attitude="sel.attitude" size="text-xs" /></span>
                 <span class="opacity-80">{{ sel.avatar }}</span>
               </div>
             </div>
