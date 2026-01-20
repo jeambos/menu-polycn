@@ -1,17 +1,22 @@
 import { createApp } from 'vue'
-import { createPinia } from 'pinia'
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate' // ✅ 引入插件
-import './style.css' // 假设你有样式文件，如果没有请忽略这一行
+import './style.css'
 import App from './App.vue'
+import { createPinia } from 'pinia'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import router from './router'
 
-const app = createApp(App)
-const pinia = createPinia()
+// ✅ 1. 引入 auto-animate
+import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 
-// ✅ 注册持久化插件
+const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
+
+const app = createApp(App)
 
 app.use(pinia)
 app.use(router)
+
+// ✅ 2. 注册插件
+app.use(autoAnimatePlugin)
 
 app.mount('#app')
