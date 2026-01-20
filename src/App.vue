@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
-import MainLayout from './components/MainLayout.vue';
+import AppHeader from './components/AppHeader.vue'; // 引入组件
 </script>
 
 <template>
-  <MainLayout>
-    <RouterView />
-  </MainLayout>
+  <div class="min-h-screen bg-base-100 text-base-content font-sans">
+    <AppHeader />
+    
+    <div class="container mx-auto px-4 py-4 max-w-4xl">
+      <router-view></router-view>
+    </div>
+  </div>
 </template>

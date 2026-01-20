@@ -9,6 +9,14 @@ export const useConfigStore = defineStore('config', () => {
   const profiles = ref<Record<string, Record<string, Attitude[]>>>({});
   const enabledModules = ref<string[]>(['A'])
 
+  // --- Persistence Helper (放在最前面，确保都能访问) ---
+  function saveState() {
+    localStorage.setItem('poly_answers', JSON.stringify(answers.value));
+    localStorage.setItem('poly_modules', JSON.stringify(enabledModules.value));
+    localStorage.setItem('poly_avatar', targetAvatar.value);
+    localStorage.setItem('poly_profiles', JSON.stringify(profiles.value));
+  }
+
   // --- Getters ---
 
   function getQuestionState(questionId: string): Attitude[] {
@@ -19,17 +27,14 @@ export const useConfigStore = defineStore('config', () => {
     return enabledModules.value.includes(moduleId)
   }
 
-  // 判断某个头像是否有存档
   function hasProfileData(avatar: string): boolean {
     const profile = profiles.value[avatar];
     return !!profile && Object.keys(profile).length > 0;
   }
 
-  // ✅ 新增：获取所有存档的统计信息 (用于 Welcome 页展示)
   function getProfileStats() {
     const stats: { avatar: string; count: number }[] = [];
     for (const [avatar, data] of Object.entries(profiles.value)) {
-      // 统计该 Profile 下有多少个题目有答案 (数组长度 > 0 且不全是 0)
       let count = 0;
       Object.values(data).forEach(arr => {
         if (arr.some(v => v !== 0)) count++;
@@ -44,23 +49,21 @@ export const useConfigStore = defineStore('config', () => {
   // --- Actions ---
 
   function setOptionAttitude(questionId: string, optionIndex: number, attitude: Attitude) {
-    // 确保当前题目的答案数组已初始化
     if (!answers.value[questionId]) {
       answers.value[questionId] = [];
     }
     
-    // ⚠️ 已删除 Core (4) 互斥逻辑
-    // 现在允许同一道题有多个 4 (核心需求)
+    // Core (4) 互斥逻辑已移除，允许同题多选核心需求
 
-    // 更新当前选项的态度
     answers.value[questionId][optionIndex] = attitude;
 
     // 实时同步到 profiles
     if (!profiles.value[targetAvatar.value]) {
       profiles.value[targetAvatar.value] = {};
     }
-    // 非空断言确保安全
     profiles.value[targetAvatar.value]![questionId] = [...answers.value[questionId]];
+    
+    saveState(); // 每次修改都保存
   }
 
   function toggleModule(moduleId: string) {
@@ -71,6 +74,7 @@ export const useConfigStore = defineStore('config', () => {
     } else {
       enabledModules.value.push(moduleId)
     }
+    saveState();
   }
 
   function setAvatar(newAvatar: string) {
@@ -90,6 +94,7 @@ export const useConfigStore = defineStore('config', () => {
     } else {
       answers.value = {};
     }
+    saveState();
   }
 
   function resetCurrentProfile() {
@@ -97,6 +102,7 @@ export const useConfigStore = defineStore('config', () => {
     if (profiles.value[targetAvatar.value]) {
       delete profiles.value[targetAvatar.value];
     }
+    saveState();
   }
 
   function resetAll() {
@@ -104,7 +110,33 @@ export const useConfigStore = defineStore('config', () => {
     profiles.value = {}
     enabledModules.value = ['A'] 
     targetAvatar.value = '🌏'; 
+    saveState();
   }
+
+  // ✅ 新增：删除指定存档
+  function deleteProfile(avatar: string) {
+    if (profiles.value[avatar]) {
+      delete profiles.value[avatar];
+      saveState(); // 现在能找到了
+    }
+  }
+
+  // 初始化加载
+  function loadState() {
+    const savedAnswers = localStorage.getItem('poly_answers');
+    if (savedAnswers) answers.value = JSON.parse(savedAnswers);
+
+    const savedModules = localStorage.getItem('poly_modules');
+    if (savedModules) enabledModules.value = JSON.parse(savedModules);
+
+    const savedAvatar = localStorage.getItem('poly_avatar');
+    if (savedAvatar) targetAvatar.value = savedAvatar;
+
+    const savedProfiles = localStorage.getItem('poly_profiles');
+    if (savedProfiles) profiles.value = JSON.parse(savedProfiles);
+  }
+
+  loadState();
 
   return {
     answers,
@@ -117,9 +149,10 @@ export const useConfigStore = defineStore('config', () => {
     toggleModule,
     isModuleEnabled,
     hasProfileData, 
-    getProfileStats, // ✅ 记得导出这个新函数
+    getProfileStats,
     resetCurrentProfile,
-    resetAll
+    resetAll,
+    deleteProfile // ✅ 导出
   }
 }, {
   persist: true
