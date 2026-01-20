@@ -18,6 +18,7 @@ function handleClick(val: Attitude) {
   }
 }
 
+// 监听变更为 4 时触发烟花
 watch(() => props.modelValue, (newVal) => {
   if (newVal === 4) {
     nextTick(() => {
@@ -40,7 +41,6 @@ function triggerStarConfetti(element: HTMLElement) {
     gravity: 1.5,         
     origin: { x, y },
     shapes: ['star'],     
-    // ✅ 升级配色：加入深金和亮银，更有层次
     colors: ['#F59E0B', '#FCD34D', '#FFFFFF', '#B45309'], 
     disableForReducedMotion: true
   });
@@ -51,35 +51,53 @@ function triggerStarConfetti(element: HTMLElement) {
   <div class="flex w-full h-11 rounded-xl overflow-hidden border border-base-content/10 shadow-sm select-none bg-base-100/50">
     
     <button 
-      class="flex-1 flex items-center justify-center transition-all duration-200 active:scale-95 group relative"
-      :class="modelValue === 1 ? 'bg-error text-white shadow-inner' : 'hover:bg-error/10'"
+      class="flex-1 flex items-center justify-center transition-all duration-300 active:scale-95 group relative overflow-hidden"
       @click="handleClick(1)"
     >
-      <icon-ph-prohibit-inset-fill v-if="modelValue === 1" class="text-xl drop-shadow-sm" />
-      <icon-ph-prohibit v-else class="text-xl opacity-30 group-hover:opacity-100 text-error transition-opacity" />
+      <div 
+        class="absolute inset-0 bg-gradient-to-br from-rose-400 to-red-600 transition-opacity duration-300"
+        :class="modelValue === 1 ? 'opacity-100' : 'opacity-0 group-hover:opacity-10'"
+      ></div>
+
+      <div class="relative z-10">
+        <icon-ph-prohibit-inset-fill v-if="modelValue === 1" class="text-xl text-white drop-shadow-md animate-bounce-short" />
+        <icon-ph-prohibit v-else class="text-xl opacity-30 group-hover:opacity-100 text-red-500 transition-opacity" />
+      </div>
     </button>
 
     <button 
-      class="flex-1 flex items-center justify-center border-l border-base-content/5 transition-all duration-200 active:scale-95 group"
-      :class="modelValue === 2 ? 'bg-[#F97316] text-white shadow-inner' : 'hover:bg-[#F97316]/10'"
+      class="flex-1 flex items-center justify-center border-l border-base-content/5 transition-all duration-300 active:scale-95 group relative overflow-hidden"
       @click="handleClick(2)"
     >
-      <icon-ph-question-fill v-if="modelValue === 2" class="text-xl drop-shadow-sm" />
-      <icon-ph-question v-else class="text-xl opacity-30 group-hover:opacity-100 text-[#F97316] transition-opacity" />
+      <div 
+        class="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 transition-opacity duration-300"
+        :class="modelValue === 2 ? 'opacity-100' : 'opacity-0 group-hover:opacity-10'"
+      ></div>
+
+      <div class="relative z-10">
+        <icon-ph-question-fill v-if="modelValue === 2" class="text-xl text-white drop-shadow-md animate-bounce-short" />
+        <icon-ph-question v-else class="text-xl opacity-30 group-hover:opacity-100 text-amber-500 transition-opacity" />
+      </div>
     </button>
 
     <button 
-      class="flex-1 flex items-center justify-center border-l border-base-content/5 transition-all duration-200 active:scale-95 group"
-      :class="modelValue === 3 ? 'bg-[#0EA5E9] text-white shadow-inner' : 'hover:bg-[#0EA5E9]/10'"
+      class="flex-1 flex items-center justify-center border-l border-base-content/5 transition-all duration-300 active:scale-95 group relative overflow-hidden"
       @click="handleClick(3)"
     >
-      <icon-ph-check-circle-fill v-if="modelValue === 3" class="text-xl drop-shadow-sm" />
-      <icon-ph-check-circle v-else class="text-xl opacity-30 group-hover:opacity-100 text-[#0EA5E9] transition-opacity" />
+      <div 
+        class="absolute inset-0 bg-gradient-to-br from-emerald-400 to-green-600 transition-opacity duration-300"
+        :class="modelValue === 3 ? 'opacity-100' : 'opacity-0 group-hover:opacity-10'"
+      ></div>
+
+      <div class="relative z-10">
+        <icon-ph-check-circle-fill v-if="modelValue === 3" class="text-xl text-white drop-shadow-md animate-bounce-short" />
+        <icon-ph-check-circle v-else class="text-xl opacity-30 group-hover:opacity-100 text-emerald-500 transition-opacity" />
+      </div>
     </button>
 
     <button 
       :id="`btn-star-${uid}`"
-      class="flex-1 flex items-center justify-center border-l border-base-content/5 transition-all duration-300 active:scale-95 group overflow-hidden relative"
+      class="flex-1 flex items-center justify-center border-l border-base-content/5 transition-all duration-300 active:scale-95 group relative overflow-hidden"
       @click="handleClick(4)"
     >
       <div 
@@ -97,7 +115,7 @@ function triggerStarConfetti(element: HTMLElement) {
 </template>
 
 <style scoped>
-/* 一个微小的弹跳动画，增加点击爽感 */
+/* 点击时的微小弹跳动画 */
 @keyframes bounce-short {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.2); }
