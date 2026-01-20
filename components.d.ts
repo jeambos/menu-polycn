@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AppHeader: typeof import('./src/components/AppHeader.vue')['default']
     AttitudeIcon: typeof import('./src/components/AttitudeIcon.vue')['default']
     CompareDashboard: typeof import('./src/components/CompareDashboard.vue')['default']
     IconPhCheckCircle: typeof import('~icons/ph/check-circle')['default']

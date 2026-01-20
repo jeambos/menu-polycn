@@ -136,19 +136,26 @@ onMounted(() => {
 });
 
 function cheatFill() {
-  if (!confirm('⚠️ 启用上帝模式？')) return;
+  if (!confirm('⚠️ 启用上帝模式？\n这将随机填充数据并跳转。')) return;
+  
+  // 遍历所有题目
   playlist.value.forEach(q => {
     q.options.forEach((_, index) => {
       const rand = Math.random();
       let att: Attitude = 0;
-      if (rand < 0.3) att = 0;
-      else if (rand < 0.5) att = 3;
-      else if (rand < 0.7) att = 2;
-      else if (rand < 0.9) att = 1;
-      else att = 4;
+      // 随机生成概率分布
+      if (rand < 0.2) att = 0;      // 20% 未选
+      else if (rand < 0.5) att = 3; // 30% 同意
+      else if (rand < 0.7) att = 2; // 20% 待商议
+      else if (rand < 0.9) att = 1; // 20% 硬边界
+      else att = 4;                 // 10% 核心需求
+      
+      // 直接写入 Store
       store.setOptionAttitude(q.id, index, att);
     });
   });
+  
+  // 稍微延迟后跳转，让 store 反应一下
   setTimeout(() => router.push('/result'), 200);
 }
 </script>
@@ -190,7 +197,13 @@ function cheatFill() {
       </button>
     </div>
 
-    <button @click="cheatFill" class="fixed bottom-1 right-1 btn btn-xs btn-circle btn-ghost opacity-5 hover:opacity-100 text-warning z-50">⚡</button>
+    <button 
+      @click="cheatFill" 
+      class="fixed bottom-1 right-1 btn btn-xs btn-circle btn-ghost opacity-50 hover:opacity-100 text-warning z-50"
+      title="上帝模式：自动答题"
+    >
+      ⚡
+    </button>
 
     <dialog class="modal" :class="{ 'modal-open': showSaveModal }">
        <div class="modal-box">
