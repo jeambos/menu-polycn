@@ -4,7 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { decode } from '../logic/codec';
 import questionsData from '../data/questions.json';
 import type { Attitude, Module } from '../types';
-import CompareDashboard from '../components/CompareDashboard.vue'; // 确保你有这个组件
+import CompareDashboard from '../components/CompareDashboard.vue'; 
+import OptionPopover from '../components/OptionPopover.vue'; // ✅ 引入
 
 const route = useRoute();
 const router = useRouter();
@@ -18,38 +19,39 @@ interface CompareItem {
   moduleName: string; 
   myAttitude: Attitude; 
   partnerAttitude: Attitude; 
+  originalQuestion: any; // ✅ 新增
+  myOptionIndex: number; // ✅ 新增
+  partnerOptionIndex: number; // ✅ 新增
 }
 interface ModuleGroup { id: string; name: string; items: CompareItem[]; }
 
 const allModules = (questionsData.modules as unknown) as Module[];
 const selectedModuleIds = ref<string[]>(allModules.map(m => m.id));
 
-// --- 结果列表 ---
 const listResonance = ref<CompareItem[]>([]); 
 const listCritical = ref<CompareItem[]>([]);  
 const listDiscuss = ref<CompareItem[]>([]);   
 const listNegotiate = ref<CompareItem[]>([]); 
 
-// --- 头像 ---
 const myAvatar = ref('😎');
 const partnerAvatar = ref('😎');
+
+// Popover 状态
+const activePopoverId = ref<string | null>(null);
+function togglePopover(id: string) {
+  activePopoverId.value = activePopoverId.value === id ? null : id;
+}
 
 const hasData = computed(() => {
   return listResonance.value.length + listCritical.value.length + listDiscuss.value.length + listNegotiate.value.length > 0;
 });
 
-// 辅助：获取图标
 function getIcon(att: Attitude) {
   switch (att) {
-    case 4: return '⭐'; 
-    case 3: return '👌'; 
-    case 2: return '❔'; 
-    case 1: return '⛔'; 
-    default: return '⚪';
+    case 4: return '⭐'; case 3: return '👌'; case 2: return '❔'; case 1: return '⛔'; default: return '⚪';
   }
 }
 
-// 辅助：分组与筛选
 function groupAndFilter(items: CompareItem[]): ModuleGroup[] {
   const filtered = items.filter(i => selectedModuleIds.value.includes(i.moduleId));
   const map = new Map<string, ModuleGroup>();
@@ -65,7 +67,6 @@ const groupsCritical = computed(() => groupAndFilter(listCritical.value));
 const groupsDiscuss = computed(() => groupAndFilter(listDiscuss.value));
 const groupsNegotiate = computed(() => groupAndFilter(listNegotiate.value));
 
-// 滚动定位
 function scrollToZone(elementId: string) {
   const el = document.getElementById(elementId);
   if (el) {
@@ -78,12 +79,10 @@ function scrollToZone(elementId: string) {
   }
 }
 
-// 核心分析逻辑
 function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, Attitude[]>) {
   const nList: CompareItem[] = [], hList: CompareItem[] = [], rList: CompareItem[] = [], dList: CompareItem[] = [];
   
   allModules.forEach(m => {
-    // 清洗模块名
     const cleanModuleName = m.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '');
 
     m.questions.forEach(q => {
@@ -96,10 +95,8 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
         const a = (myStates[index] || 0) as Attitude;
         const b = (partnerStates[index] || 0) as Attitude;
         
-        // 双方只要有一方没做(0)，就不进入对比
         if (a === 0 || b === 0) return;
 
-        // 提取选项短文案
         const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
 
         const item: CompareItem = {
@@ -109,10 +106,12 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
           moduleId: m.id, 
           moduleName: cleanModuleName,
           myAttitude: a, 
-          partnerAttitude: b
+          partnerAttitude: b,
+          originalQuestion: q, // ✅
+          myOptionIndex: index, // ✅
+          partnerOptionIndex: index // ✅ (注意：这里简化了逻辑，实际上compare页只展示重合项，所以索引是一样的)
         };
 
-        // 对比分类逻辑
         if (a === 2 || b === 2) dList.push(item); 
         else if ((a === 4 && b === 1) || (a === 1 && b === 4)) nList.push(item); 
         else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) rList.push(item); 
@@ -127,36 +126,26 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
   listNegotiate.value = hList;
 }
 
-// 筛选器交互
 function toggleFilter(modId: string) {
   if (selectedModuleIds.value.includes(modId)) {
-    // 至少保留一个
     if (selectedModuleIds.value.length > 1) selectedModuleIds.value = selectedModuleIds.value.filter(id => id !== modId);
   } else selectedModuleIds.value.push(modId);
 }
-
 function toggleAllFilters() {
-  selectedModuleIds.value.length === allModules.length 
-    ? selectedModuleIds.value = ['A'] // 默认保留 A
-    : selectedModuleIds.value = allModules.map(m => m.id);
+  selectedModuleIds.value.length === allModules.length ? selectedModuleIds.value = ['A'] : selectedModuleIds.value = allModules.map(m => m.id);
 }
 
 onMounted(() => {
   const myCode = route.query.my as string;
   const partnerCode = route.query.partner as string;
-  
   if (myCode && partnerCode) {
     try {
       const res1 = decode(myCode);
       const res2 = decode(partnerCode);
       
-      // ✅ 修正逻辑：交叉赋值
-      // “我”的头像 = 伴侣代码里的目标头像
       myAvatar.value = res2.avatar;
-      // “伴侣”的头像 = 我的代码里的目标头像
       partnerAvatar.value = res1.avatar;
 
-      // 提取答案
       const myAnswers = res1.answers as Record<string, Attitude[]>;
       const partnerAnswers = res2.answers as Record<string, Attitude[]>;
       
@@ -203,7 +192,7 @@ onMounted(() => {
             数据已就绪。点击右侧环形图的扇区，可快速跳转至对应板块。
           </p>
           <div class="mt-4 flex items-center justify-center md:justify-start gap-4 text-2xl opacity-80">
-              <span>{{ myAvatar }}</span> <span class="text-s opacity-50">VS</span> <span>{{ partnerAvatar }}</span>
+              <span>{{ myAvatar }}</span> <span class="text-xs opacity-50">VS</span> <span>{{ partnerAvatar }}</span>
           </div>
         </div>
         
@@ -228,20 +217,36 @@ onMounted(() => {
             <div class="flex flex-col gap-4">
               <div v-for="group in groupsCritical" :key="group.id" class="card bg-warning text-warning-content shadow-lg">
                 <div class="card-body p-4">
-                  <h3 class="text-s font-bold opacity-80 mb-2 border-b border-black/10 pb-1 text-black">{{ group.name }}</h3>
+                  <h3 class="text-xs font-bold opacity-80 mb-2 border-b border-black/10 pb-1 text-black">{{ group.name }}</h3>
                   <div class="flex flex-col gap-2">
-                    <div v-for="item in group.items" :key="item.id" class="bg-white/20 p-2 rounded-lg flex items-center justify-between">
-                      <div class="flex-1 mr-2 min-w-0">
-                        <div class="text-xs opacity-60 truncate">{{ item.title }}</div>
-                        <div class="font-bold text-sm truncate">{{ item.choice }}</div>
-                      </div>
-                      <div class="flex items-center gap-2 bg-black/10 px-2 py-1 rounded shrink-0">
-                        <span class="text-lg">{{ getIcon(item.myAttitude) }}</span>
-                        <span class="text-s font-bold opacity-50">{{ myAvatar }}</span>
-                        <span class="text-s opacity-30">/</span>
-                        <span class="text-s font-bold opacity-50">{{ partnerAvatar }}</span>
-                        <span class="text-lg">{{ getIcon(item.partnerAttitude) }}</span>
-                      </div>
+                    <div v-for="item in group.items" :key="item.id" class="flex">
+                      
+                      <OptionPopover 
+                        :question="item.originalQuestion" 
+                        :selections="[
+                          { avatar: myAvatar, index: item.myOptionIndex },
+                          { avatar: partnerAvatar, index: item.partnerOptionIndex }
+                        ]"
+                        :is-open="activePopoverId === item.id"
+                        @toggle="togglePopover(item.id)"
+                        @close="activePopoverId = null"
+                        class="w-full"
+                      >
+                        <div class="bg-white/20 p-2 rounded-lg flex items-center justify-between w-full hover:bg-white/30 transition-colors">
+                          <div class="flex-1 mr-2 min-w-0">
+                            <div class="text-xs opacity-60 truncate">{{ item.title }}</div>
+                            <div class="font-bold text-sm truncate">{{ item.choice }}</div>
+                          </div>
+                          <div class="flex items-center gap-2 bg-black/10 px-2 py-1 rounded shrink-0">
+                            <span class="text-lg">{{ getIcon(item.myAttitude) }}</span>
+                            <span class="text-xs font-bold opacity-50">{{ myAvatar }}</span>
+                            <span class="text-xs opacity-30">/</span>
+                            <span class="text-xs font-bold opacity-50">{{ partnerAvatar }}</span>
+                            <span class="text-lg">{{ getIcon(item.partnerAttitude) }}</span>
+                          </div>
+                        </div>
+                      </OptionPopover>
+
                     </div>
                   </div>
                 </div>
@@ -258,18 +263,31 @@ onMounted(() => {
             <div class="flex flex-col gap-4">
               <div v-for="group in groupsResonance" :key="group.id" class="card bg-success/5 border border-success/20 shadow-sm">
                 <div class="card-body p-3">
-                  <h3 class="text-s font-bold opacity-60 text-success mb-2 uppercase">{{ group.name }}</h3>
+                  <h3 class="text-xs font-bold opacity-60 text-success mb-2 uppercase">{{ group.name }}</h3>
                   <div class="flex flex-wrap gap-2">
-                    <div v-for="item in group.items" :key="item.id" class="badge badge-outline badge-success h-auto py-1.5 px-3 gap-2 bg-base-100/50">
-                      <div class="flex flex-col text-left border-r border-success/20 pr-2 mr-1">
-                        <span class="text-xs opacity-60 leading-tight">{{ item.title }}</span>
-                        <span class="font-bold text-s">{{ item.choice }}</span>
-                      </div>
-                      <div class="flex items-center gap-1 text-sm">
-                        <span>{{ getIcon(item.myAttitude) }}</span>
-                        <span class="text-xs opacity-50">{{ myAvatar }}={{ partnerAvatar }}</span>
-                        <span>{{ getIcon(item.partnerAttitude) }}</span>
-                      </div>
+                    <div v-for="item in group.items" :key="item.id" class="flex">
+                       <OptionPopover 
+                        :question="item.originalQuestion" 
+                        :selections="[
+                          { avatar: myAvatar, index: item.myOptionIndex },
+                          { avatar: partnerAvatar, index: item.partnerOptionIndex }
+                        ]"
+                        :is-open="activePopoverId === item.id"
+                        @toggle="togglePopover(item.id)"
+                        @close="activePopoverId = null"
+                      >
+                        <div class="badge badge-outline badge-success h-auto py-1.5 px-3 gap-2 bg-base-100/50 hover:bg-success/10 transition-colors">
+                          <div class="flex flex-col text-left border-r border-success/20 pr-2 mr-1">
+                            <span class="text-xs opacity-60 leading-tight">{{ item.title }}</span>
+                            <span class="font-bold text-xs">{{ item.choice }}</span>
+                          </div>
+                          <div class="flex items-center gap-1 text-sm">
+                            <span>{{ getIcon(item.myAttitude) }}</span>
+                            <span class="text-xs opacity-50">{{ myAvatar }}={{ partnerAvatar }}</span>
+                            <span>{{ getIcon(item.partnerAttitude) }}</span>
+                          </div>
+                        </div>
+                      </OptionPopover>
                     </div>
                   </div>
                 </div>
@@ -286,18 +304,31 @@ onMounted(() => {
             <div class="flex flex-col gap-4">
               <div v-for="group in groupsDiscuss" :key="group.id" class="card bg-base-200 border border-base-300">
                 <div class="card-body p-3">
-                  <h3 class="text-s font-bold opacity-50 mb-2">{{ group.name }}</h3>
+                  <h3 class="text-xs font-bold opacity-50 mb-2">{{ group.name }}</h3>
                   <div class="flex flex-wrap gap-2">
-                    <div v-for="item in group.items" :key="item.id" class="badge badge-ghost h-auto py-1.5 px-3 gap-2 border border-base-content/10">
-                      <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
-                        <span class="text-xs opacity-50 leading-tight">{{ item.title }}</span>
-                        <span class="font-bold text-s">{{ item.choice }}</span>
-                      </div>
-                      <div class="flex items-center gap-1 text-sm grayscale opacity-80">
-                        <span>{{ getIcon(item.myAttitude) }}</span>
-                        <span class="text-xs opacity-50">{{ myAvatar }}?{{ partnerAvatar }}</span>
-                        <span>{{ getIcon(item.partnerAttitude) }}</span>
-                      </div>
+                    <div v-for="item in group.items" :key="item.id" class="flex">
+                       <OptionPopover 
+                        :question="item.originalQuestion" 
+                        :selections="[
+                          { avatar: myAvatar, index: item.myOptionIndex },
+                          { avatar: partnerAvatar, index: item.partnerOptionIndex }
+                        ]"
+                        :is-open="activePopoverId === item.id"
+                        @toggle="togglePopover(item.id)"
+                        @close="activePopoverId = null"
+                      >
+                        <div class="badge badge-ghost h-auto py-1.5 px-3 gap-2 border border-base-content/10 hover:bg-base-300 transition-colors">
+                          <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
+                            <span class="text-xs opacity-50 leading-tight">{{ item.title }}</span>
+                            <span class="font-bold text-xs">{{ item.choice }}</span>
+                          </div>
+                          <div class="flex items-center gap-1 text-sm grayscale opacity-80">
+                            <span>{{ getIcon(item.myAttitude) }}</span>
+                            <span class="text-xs opacity-50">{{ myAvatar }}?{{ partnerAvatar }}</span>
+                            <span>{{ getIcon(item.partnerAttitude) }}</span>
+                          </div>
+                        </div>
+                      </OptionPopover>
                     </div>
                   </div>
                 </div>
@@ -314,19 +345,32 @@ onMounted(() => {
             <div class="flex flex-col gap-4">
               <div v-for="group in groupsNegotiate" :key="group.id" class="card bg-base-100 border-2 border-base-200">
                 <div class="card-body p-3">
-                  <h3 class="text-s font-bold opacity-40 mb-2">{{ group.name }}</h3>
+                  <h3 class="text-xs font-bold opacity-40 mb-2">{{ group.name }}</h3>
                   <div class="flex flex-wrap gap-2">
-                    <div v-for="item in group.items" :key="item.id" class="badge badge-outline opacity-70 h-auto py-1.5 px-3 gap-2">
-                      <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
-                        <span class="text-xs opacity-50 leading-tight">{{ item.title }}</span>
-                        <span class="font-bold text-s">{{ item.choice }}</span>
-                      </div>
-                      <div class="flex items-center gap-1 text-sm">
-                        <span>{{ getIcon(item.myAttitude) }}</span>
-                        <span class="text-xs opacity-50">{{ myAvatar }}/{{ partnerAvatar }}</span>
-                        <span>{{ getIcon(item.partnerAttitude) }}</span>
-                      </div>
-                    </div>
+                     <div v-for="item in group.items" :key="item.id" class="flex">
+                        <OptionPopover 
+                          :question="item.originalQuestion" 
+                          :selections="[
+                            { avatar: myAvatar, index: item.myOptionIndex },
+                            { avatar: partnerAvatar, index: item.partnerOptionIndex }
+                          ]"
+                          :is-open="activePopoverId === item.id"
+                          @toggle="togglePopover(item.id)"
+                          @close="activePopoverId = null"
+                        >
+                          <div class="badge badge-outline opacity-70 h-auto py-1.5 px-3 gap-2 hover:bg-base-200 transition-colors">
+                            <div class="flex flex-col text-left border-r border-base-content/10 pr-2 mr-1">
+                              <span class="text-xs opacity-50 leading-tight">{{ item.title }}</span>
+                              <span class="font-bold text-xs">{{ item.choice }}</span>
+                            </div>
+                            <div class="flex items-center gap-1 text-sm">
+                              <span>{{ getIcon(item.myAttitude) }}</span>
+                              <span class="text-xs opacity-50">{{ myAvatar }}/{{ partnerAvatar }}</span>
+                              <span>{{ getIcon(item.partnerAttitude) }}</span>
+                            </div>
+                          </div>
+                        </OptionPopover>
+                     </div>
                   </div>
                 </div>
               </div>

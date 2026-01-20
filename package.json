@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@floating-ui/vue": "^1.1.9",
     "@vueuse/core": "^14.1.0",
     "canvas-confetti": "^1.9.4",
     "echarts": "^6.0.0",
