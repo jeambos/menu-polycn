@@ -22,6 +22,7 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@iconify/json": "^2.2.430",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.1",
@@ -31,6 +32,8 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.3",
+    "unplugin-icons": "^23.0.1",
+    "unplugin-vue-components": "^31.0.0",
     "vite": "^7.2.4",
     "vue-tsc": "^3.1.4"
   }
