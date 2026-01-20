@@ -19,6 +19,7 @@ declare module 'vue' {
     IconPhCheckCircle: typeof import('~icons/ph/check-circle')['default']
     IconPhCheckCircleFill: typeof import('~icons/ph/check-circle-fill')['default']
     IconPhCircle: typeof import('~icons/ph/circle')['default']
+    IconPhClipboardText: typeof import('~icons/ph/clipboard-text')['default']
     IconPhProhibit: typeof import('~icons/ph/prohibit')['default']
     IconPhProhibitInsetFill: typeof import('~icons/ph/prohibit-inset-fill')['default']
     IconPhQuestion: typeof import('~icons/ph/question')['default']
