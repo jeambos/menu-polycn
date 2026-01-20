@@ -211,7 +211,7 @@ onMounted(() => {
         <AttitudeIcon :attitude="4" size="text-xl" />
         <span>核心关注</span>
       </div>
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4" v-auto-animate>
         <div v-for="group in groupsCritical" :key="group.id" class="card bg-warning text-warning-content shadow-lg">
           <div class="card-body p-4">
             <h3 class="text-xs font-bold opacity-80 mb-2 border-b border-black/10 pb-1 text-black">{{ group.name }}</h3>
@@ -258,7 +258,7 @@ onMounted(() => {
         <AttitudeIcon :attitude="3" size="text-xl" />
         <span>默契共振</span>
       </div>
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4" v-auto-animate>
         <div v-for="group in groupsResonance" :key="group.id" class="card bg-success/5 border border-success/20 shadow-sm">
           <div class="card-body p-3">
             <h3 class="text-xs font-bold opacity-60 text-success mb-2 uppercase">{{ group.name }}</h3>
@@ -300,7 +300,7 @@ onMounted(() => {
         <AttitudeIcon :attitude="2" size="text-xl" />
         <span>待厘清 / 需要沟通</span>
       </div>
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4" v-auto-animate>
         <div v-for="group in groupsDiscuss" :key="group.id" class="card bg-base-200 border border-base-300">
           <div class="card-body p-3">
             <h3 class="text-xs font-bold opacity-50 mb-2">{{ group.name }}</h3>
@@ -342,7 +342,7 @@ onMounted(() => {
         <AttitudeIcon :attitude="1" size="text-xl" />
         <span>协商让步</span>
       </div>
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4" v-auto-animate>
         <div v-for="group in groupsNegotiate" :key="group.id" class="card bg-base-100 border-2 border-base-200">
           <div class="card-body p-3">
             <h3 class="text-xs font-bold opacity-40 mb-2">{{ group.name }}</h3>
