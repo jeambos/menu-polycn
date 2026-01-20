@@ -250,11 +250,11 @@ onMounted(() => {
 
     <div v-if="redGroups.length > 0" class="mb-8 animate-fade-in-up">
       <div class="flex items-center gap-2 mb-4 text-error font-bold text-lg uppercase tracking-wider border-b-2 border-error/20 pb-1"><span><AttitudeIcon :attitude="1" size="text-xl" class="mr-1" /></span> 硬边界 / Deal Breakers</div>
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4" v-auto-animate>
         <div v-for="group in redGroups" :key="group.id" class="card bg-error text-error-content shadow-lg">
           <div class="card-body p-4">
             <h3 class="card-title text-sm opacity-90 border-b border-white/20 pb-2 mb-2">{{ group.name }}</h3>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2" v-auto-animate>
               <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" class="flex">
                 <OptionPopover 
                   :question="q.items[0]?.originalQuestion" 
@@ -279,11 +279,11 @@ onMounted(() => {
 
     <div v-if="goldGroups.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.1s">
       <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1"><span><AttitudeIcon :attitude="4" size="text-xl" class="mr-1" /></span> 核心需求 / Must Haves</div>
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4" v-auto-animate>
         <div v-for="group in goldGroups" :key="group.id" class="card bg-warning text-warning-content shadow-lg">
           <div class="card-body p-4">
             <h3 class="card-title text-sm opacity-80 border-b border-black/10 pb-2 mb-2 text-black">{{ group.name }}</h3>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2" v-auto-animate>
               <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" class="flex">
                 <OptionPopover 
                   :question="q.items[0]?.originalQuestion" 
@@ -308,11 +308,11 @@ onMounted(() => {
 
     <div v-if="yellowGroups.length > 0" class="mb-8 animate-fade-in-up" style="animation-delay: 0.2s">
       <div class="flex items-center gap-2 mb-4 text-warning font-bold text-lg uppercase tracking-wider border-b-2 border-warning/20 pb-1"><span><AttitudeIcon :attitude="2" size="text-xl" class="mr-1" /></span> 待商议 / Soft Limits</div>
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4" v-auto-animate>
         <div v-for="group in yellowGroups" :key="group.id" class="card bg-base-100 border-2 border-base-300 shadow-sm">
           <div class="card-body p-4">
             <h3 class="card-title text-sm opacity-60 border-b border-base-content/10 pb-2 mb-2">{{ group.name }}</h3>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2" v-auto-animate>
               <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" class="flex">
                 <OptionPopover 
                   :question="q.items[0]?.originalQuestion" 
