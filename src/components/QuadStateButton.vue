@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { } from 'vue';
 import confetti from 'canvas-confetti'
 import type { Attitude } from '../types';
 
@@ -38,38 +37,38 @@ function triggerConfetti(event: MouseEvent) {
 </script>
 
 <template>
-  <div class="flex w-full h-9 rounded-md overflow-hidden border border-base-content/10 shadow-sm select-none">
+  <div class="flex w-full h-10 rounded-lg overflow-hidden border border-base-content/10 shadow-sm select-none">
     
     <button 
       class="flex-1 flex items-center justify-center transition-all active:scale-95"
-      :class="modelValue === 1 ? 'bg-error text-error-content font-bold' : 'bg-base-200 hover:bg-base-300 opacity-60'"
+      :class="modelValue === 1 ? 'bg-error text-error-content' : 'bg-base-200 hover:bg-base-300 opacity-60 hover:opacity-100'"
       @click="handleClick(1)"
     >
-      <span class="text-sm">⛔</span>
+      <icon-ph-prohibit-inset-fill class="text-xl" />
     </button>
 
     <button 
       class="flex-1 flex items-center justify-center border-l border-base-100 transition-all active:scale-95"
-      :class="modelValue === 2 ? 'bg-warning text-warning-content font-bold' : 'bg-base-200 hover:bg-base-300 opacity-60'"
+      :class="modelValue === 2 ? 'bg-warning text-warning-content' : 'bg-base-200 hover:bg-base-300 opacity-60 hover:opacity-100'"
       @click="handleClick(2)"
     >
-      <span class="text-sm">❔</span>
+      <icon-ph-question-fill class="text-xl" />
     </button>
 
     <button 
       class="flex-1 flex items-center justify-center border-l border-base-100 transition-all active:scale-95"
-      :class="modelValue === 3 ? 'bg-success text-success-content font-bold' : 'bg-base-200 hover:bg-base-300 opacity-60'"
+      :class="modelValue === 3 ? 'bg-success text-success-content' : 'bg-base-200 hover:bg-base-300 opacity-60 hover:opacity-100'"
       @click="handleClick(3)"
     >
-      <span class="text-sm">👌</span>
+      <icon-ph-check-circle-fill class="text-xl" />
     </button>
 
     <button 
       class="flex-1 flex items-center justify-center border-l border-base-100 transition-all active:scale-95"
-      :class="modelValue === 4 ? 'bg-accent text-accent-content font-bold' : 'bg-base-200 hover:bg-base-300 opacity-60'"
+      :class="modelValue === 4 ? 'bg-accent text-accent-content' : 'bg-base-200 hover:bg-base-300 opacity-60 hover:opacity-100'"
       @click="handleClick(4, $event)"
     >
-      <span class="text-sm">⭐</span>
+      <icon-ph-star-fill class="text-xl" />
     </button>
 
   </div>
