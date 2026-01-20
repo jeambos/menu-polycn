@@ -48,32 +48,36 @@ const progress = computed(() => {
 const pendingUpdate = ref<{ qId: string, optIndex: number, val: number } | null>(null);
 const hasWarnedMap = ref<Record<string, boolean>>({}); 
 
+// 🟢 新代码 (基于单题统计 - 完美符合“下一页从头开始”)
 const currentCoreCount = computed(() => {
-  if (!currentModule.value) return 0;
-  let count = 0;
-  currentModule.value.questions.forEach(q => {
-    const userAnswers = store.answers[q.id]; 
-    if (userAnswers) {
-      count += userAnswers.filter(a => a === 4).length;
-    }
-  });
-  return count;
+  if (!currentQuestion.value) return 0;
+  
+  // 获取当前这道题的答案数组
+  const qId = currentQuestion.value.id;
+  const userAnswers = store.answers[qId];
+  
+  if (!userAnswers) return 0;
+  
+  // 统计当前这道题里有几个 4 (星星)
+  return userAnswers.filter(a => a === 4).length;
 });
 
 function handleAnswerRequest(optIndex: number, newVal: number) {
   if (!currentQuestion.value) return;
   
   const qId = currentQuestion.value.id;
-  const modId = currentModule.value?.id || 'default';
-  
-  if (newVal === 4 && currentCoreCount.value >= 2 && !hasWarnedMap.value[modId]) {
+  // 🟢 新逻辑: 使用 qId 作为锁的 key
+  // 触发条件：
+  // 1. 动作是点亮星星 (4)
+  // 2. 当前这道题已经有 >= 2 个星星了 (点击后就是第3个)
+  // 3. 当前这道题(qId) 还没弹过窗
+  if (newVal === 4 && currentCoreCount.value >= 2 && !hasWarnedMap.value[qId]) {
     pendingUpdate.value = { qId, optIndex, val: newVal };
     const modal = document.getElementById('greedy_modal') as HTMLDialogElement;
     modal?.showModal();
     return;
   }
 
-  // 🔍 修复：添加 'as Attitude' 类型断言，告诉 TS 这个数字是合法的态度值
   store.setOptionAttitude(qId, optIndex, newVal as Attitude);
 }
 
@@ -84,8 +88,8 @@ function executePendingUpdate() {
     // 🔍 修复：这里也添加 'as Attitude'
     store.setOptionAttitude(qId, optIndex, val as Attitude);
     
-    const modId = currentModule.value?.id || 'default';
-    hasWarnedMap.value[modId] = true;
+    // const modId = currentModule.value?.id || 'default';
+    hasWarnedMap.value[qId] = true;
     
     pendingUpdate.value = null;
   }
