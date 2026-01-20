@@ -224,9 +224,9 @@ onMounted(() => {
                       <OptionPopover 
                         :question="item.originalQuestion" 
                         :selections="[
-                          { avatar: myAvatar, index: item.myOptionIndex },
-                          { avatar: partnerAvatar, index: item.partnerOptionIndex }
-                        ]"
+  { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+  { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+]"
                         :is-open="activePopoverId === item.id"
                         @toggle="togglePopover(item.id)"
                         @close="activePopoverId = null"
@@ -269,9 +269,9 @@ onMounted(() => {
                        <OptionPopover 
                         :question="item.originalQuestion" 
                         :selections="[
-                          { avatar: myAvatar, index: item.myOptionIndex },
-                          { avatar: partnerAvatar, index: item.partnerOptionIndex }
-                        ]"
+  { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+  { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+]"
                         :is-open="activePopoverId === item.id"
                         @toggle="togglePopover(item.id)"
                         @close="activePopoverId = null"
@@ -310,9 +310,9 @@ onMounted(() => {
                        <OptionPopover 
                         :question="item.originalQuestion" 
                         :selections="[
-                          { avatar: myAvatar, index: item.myOptionIndex },
-                          { avatar: partnerAvatar, index: item.partnerOptionIndex }
-                        ]"
+  { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+  { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+]"
                         :is-open="activePopoverId === item.id"
                         @toggle="togglePopover(item.id)"
                         @close="activePopoverId = null"
@@ -351,9 +351,9 @@ onMounted(() => {
                         <OptionPopover 
                           :question="item.originalQuestion" 
                           :selections="[
-                            { avatar: myAvatar, index: item.myOptionIndex },
-                            { avatar: partnerAvatar, index: item.partnerOptionIndex }
-                          ]"
+                              { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+                              { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+]"
                           :is-open="activePopoverId === item.id"
                           @toggle="togglePopover(item.id)"
                           @close="activePopoverId = null"

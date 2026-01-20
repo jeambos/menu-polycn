@@ -257,7 +257,7 @@ onMounted(() => {
               <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" class="flex">
                 <OptionPopover 
                   :question="q.items[0]?.originalQuestion" 
-                  :selections="q.items.map(i => ({ avatar: resultAvatar, index: i.optionIndex }))"
+                  :selections="q.items.map(i => ({ avatar: resultAvatar, index: i.optionIndex, attitude: i.attitude }))"
                   :is-open="activePopoverId === q.questionId"
                   @toggle="togglePopover(q.questionId)"
                   @close="activePopoverId = null"
@@ -286,7 +286,7 @@ onMounted(() => {
               <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" class="flex">
                 <OptionPopover 
                   :question="q.items[0]?.originalQuestion" 
-                  :selections="q.items.map(i => ({ avatar: resultAvatar, index: i.optionIndex }))"
+                  :selections="q.items.map(i => ({ avatar: resultAvatar, index: i.optionIndex, attitude: i.attitude }))"
                   :is-open="activePopoverId === q.questionId"
                   @toggle="togglePopover(q.questionId)"
                   @close="activePopoverId = null"
@@ -315,7 +315,7 @@ onMounted(() => {
               <div v-for="q in getQuestionGroups(group.items)" :key="q.questionId" class="flex">
                 <OptionPopover 
                   :question="q.items[0]?.originalQuestion" 
-                  :selections="q.items.map(i => ({ avatar: resultAvatar, index: i.optionIndex }))"
+                  :selections="q.items.map(i => ({ avatar: resultAvatar, index: i.optionIndex, attitude: i.attitude }))"
                   :is-open="activePopoverId === q.questionId"
                   @toggle="togglePopover(q.questionId)"
                   @close="activePopoverId = null"
@@ -340,7 +340,7 @@ onMounted(() => {
         <div v-for="q in getQuestionGroups(greenItems)" :key="q.questionId" class="flex">
           <OptionPopover 
             :question="q.items[0]?.originalQuestion" 
-            :selections="q.items.map(i => ({ avatar: resultAvatar, index: i.optionIndex }))"
+            :selections="q.items.map(i => ({ avatar: resultAvatar, index: i.optionIndex, attitude: i.attitude }))"
             :is-open="activePopoverId === q.questionId"
             @toggle="togglePopover(q.questionId)"
             @close="activePopoverId = null"
