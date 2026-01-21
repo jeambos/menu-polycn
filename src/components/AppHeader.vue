@@ -156,8 +156,8 @@ function handleSaveAndFinish() {
 
         <ul tabindex="0" class="mt-3 z-[1] p-2 shadow-2xl menu menu-sm dropdown-content bg-base-100 rounded-box w-72 border border-base-content/10 max-h-[85vh] overflow-y-auto block">
           
-          <li class="menu-title flex flex-row justify-between items-center px-4 py-2 bg-base-200/50 rounded-t-box">
-            <span>控制台: {{ store.targetAvatar }}</span>
+          <li class="menu-title flex flex-row justify-between items-center px-4 py-2 text-base-content rounded-t-box">
+            <span>控制台 | 当前在为 {{ store.targetAvatar }} 填写问卷</span>
           </li>
           
           
@@ -215,7 +215,7 @@ function handleSaveAndFinish() {
 
           <div class="divider my-1"></div>
 
-          <div class="px-2 py-1 text-xs opacity-50 font-bold">档案切换 / Profiles</div>
+          <div class="px-2 py-1 text-xs opacity-50 font-bold">假想对象切换 / Profiles</div>
           
           <li v-for="(_, avatar) in store.profiles" :key="avatar">
             <div class="flex justify-between items-center py-2">
