@@ -23,7 +23,10 @@ function rotateLayer() {
   // 随机顺时针或逆时针
   const direction = Math.random() > 0.5 ? 90 : -90;
   
-  layerRotations.value[layerIndex] += direction;
+  // ✅ 修复：先判断该索引处的值是否存在，再进行累加
+  if (layerRotations.value[layerIndex] !== undefined) {
+    layerRotations.value[layerIndex] += direction;
+  }
 }
 
 onMounted(() => {
@@ -99,7 +102,7 @@ onUnmounted(() => {
   width: 140px;  /* 容器宽度 */
   height: 140px; /* 容器高度 */
   perspective: 1000px; /* 透视深度 */
-  margin-bottom: 20px;
+  margin-bottom: 100px;
 }
 
 .cube-wrapper {
