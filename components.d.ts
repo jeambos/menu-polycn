@@ -15,6 +15,7 @@ declare module 'vue' {
     AttitudeIcon: typeof import('./src/components/AttitudeIcon.vue')['default']
     BaseModal: typeof import('./src/components/BaseModal.vue')['default']
     CompareDashboard: typeof import('./src/components/CompareDashboard.vue')['default']
+    DocArticle: typeof import('./src/components/DocArticle.vue')['default']
     IconPhArrowLeft: typeof import('~icons/ph/arrow-left')['default']
     IconPhArrowRight: typeof import('~icons/ph/arrow-right')['default']
     IconPhCaretDown: typeof import('~icons/ph/caret-down')['default']

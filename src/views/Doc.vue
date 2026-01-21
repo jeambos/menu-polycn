@@ -5,6 +5,7 @@ import { useClipboard } from '@vueuse/core';
 import { useConfigStore } from '../stores/useConfigStore';
 import { decode } from '../logic/codec';
 import type { Attitude } from '../types'; // ✅ 引入类型
+import DocArticle from '../components/DocArticle.vue';
 
 const router = useRouter();
 const store = useConfigStore();
@@ -131,6 +132,10 @@ function handleCompare() {
             探索自身需求 / 理解彼此偏好
           </p>
         </div>
+      </div>
+
+      <div class="w-full animate-fade">
+        <DocArticle />
       </div>
 
       <div class="w-full space-y-10">
