@@ -141,12 +141,12 @@ function handleCompare() {
       <div class="w-full space-y-10">
         
         <button 
-          @click="goSystem"
-          class="group w-full h-16 bg-black text-white rounded-2xl text-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-black/10"
-        >
-          <span>进入系统</span>
-          <icon-ph-arrow-right class="text-2xl group-hover:translate-x-1 transition-transform" />
-        </button>
+  @click="goSystem"
+  class="group w-full h-16 bg-primary text-primary-content rounded-2xl text-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+>
+  <span>进入系统</span>
+  <i-ph-arrow-right-bold class="text-2xl group-hover:translate-x-1 transition-transform" />
+</button>
 
         <div class="relative flex items-center py-2">
           <div class="flex-grow border-t border-slate-100"></div>
@@ -155,22 +155,22 @@ function handleCompare() {
         </div>
 
         <div class="w-full">
-          <div class="grid grid-cols-2 p-1.5 bg-slate-50 rounded-2xl mb-6">
-            <button 
-              class="py-3 text-base font-bold rounded-xl transition-all duration-200"
-              :class="activeTab === 'single' ? 'bg-white text-black shadow-sm' : 'text-slate-400 hover:text-slate-600'"
-              @click="activeTab = 'single'"
-            >
-              单人导入
-            </button>
-            <button 
-              class="py-3 text-base font-bold rounded-xl transition-all duration-200"
-              :class="activeTab === 'dual' ? 'bg-white text-black shadow-sm' : 'text-slate-400 hover:text-slate-600'"
-              @click="activeTab = 'dual'"
-            >
-              双人对比
-            </button>
-          </div>
+          <div class="grid grid-cols-2 p-1.5 bg-base-200 rounded-2xl mb-6 border border-base-content/5">
+  <button 
+    class="py-3 text-base font-bold rounded-xl transition-all duration-200"
+    :class="activeTab === 'single' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/40 hover:text-base-content/70'"
+    @click="activeTab = 'single'"
+  >
+    单人导入
+  </button>
+  <button 
+    class="py-3 text-base font-bold rounded-xl transition-all duration-200"
+    :class="activeTab === 'dual' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/40 hover:text-base-content/70'"
+    @click="activeTab = 'dual'"
+  >
+    双人对比
+  </button>
+</div>
 
           <div class="relative min-h-[160px]">
             <div v-if="activeTab === 'single'" class="space-y-4 animate-fade">
@@ -179,7 +179,7 @@ function handleCompare() {
                   v-model="singleCode" 
                   type="text" 
                   placeholder="粘贴结果代码...(一串Emoji)" 
-                  class="w-full h-14 bg-white border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300"
+                  class="w-full h-14 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300"
                   :class="{ 'border-red-500 text-red-500': errorMsg }"
                 />
                 <button @click="handlePaste('single')" class="absolute right-3 top-3 p-2 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-base-content transition-colors">
@@ -199,11 +199,11 @@ function handleCompare() {
 
             <div v-if="activeTab === 'dual'" class="space-y-4 animate-fade">
               <div class="relative">
-                <input v-model="myCode" placeholder="你的结果代码" class="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
+                <input v-model="myCode" placeholder="你的结果代码" class="w-full h-12 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
                 <button @click="handlePaste('my')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><icon-ph-clipboard-text class="text-xl"/></button>
               </div>
               <div class="relative">
-                <input v-model="partnerCode" placeholder="另一位的代码" class="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
+                <input v-model="partnerCode" placeholder="另一位的代码" class="w-full h-12 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
                 <button @click="handlePaste('partner')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><icon-ph-clipboard-text class="text-xl"/></button>
               </div>
               <button @click="handleCompare" class="w-full h-12 mt-2 bg-slate-900 text-white rounded-xl text-base font-bold hover:bg-black transition-colors">
