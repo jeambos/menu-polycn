@@ -58,8 +58,15 @@ function handleClose() {
         <slot></slot>
       </div>
 
-      <div v-if="$slots.actions" class="p-4 bg-base-content/[0.02] border-t border-base-content/5 flex gap-3 justify-end items-center flex-wrap pb-safe">
-        <slot name="actions"></slot>
+      <div 
+        v-if="$slots.actions" 
+        class="px-6 py-5 sm:py-4 bg-base-content/[0.02] border-t border-base-content/5 flex gap-3 justify-end items-center flex-wrap"
+      >
+        <div class="flex gap-3 justify-end items-center w-full mb-safe-offset-4"> 
+          <div class="flex gap-3 justify-end items-center w-full pb-4 sm:pb-0">
+            <slot name="actions"></slot>
+          </div>
+        </div>
       </div>
     </div>
 
