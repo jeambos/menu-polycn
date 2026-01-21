@@ -126,7 +126,7 @@ function handleCompare() {
 </div>
         
         <div class="space-y-3">
-          <h1 class="text-4xl font-black tracking-tighter text-black flex items-center justify-center gap-1">
+          <h1 class="text-4xl font-black tracking-tighter text-base-content flex items-center justify-center gap-1">
   关系配置单
   <sup class="text-[12px] font-bold tracking-normal opacity-30 px-1 py-0.5 border border-black/10 rounded ml-1 bg-slate-50 uppercase leading-none">
     v0.6 
@@ -182,16 +182,16 @@ function handleCompare() {
                   class="w-full h-14 bg-white border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300"
                   :class="{ 'border-red-500 text-red-500': errorMsg }"
                 />
-                <button @click="handlePaste('single')" class="absolute right-3 top-3 p-2 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-black transition-colors">
+                <button @click="handlePaste('single')" class="absolute right-3 top-3 p-2 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-base-content transition-colors">
                   <icon-ph-clipboard-text class="text-xl"/>
                 </button>
               </div>
               
               <div class="grid grid-cols-2 gap-4">
-                <button @click="handleSingleView" class="h-12 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-black hover:border-slate-300 transition-all">
+                <button @click="handleSingleView" class="h-12 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
                   仅解读
                 </button>
-                <button @click="handleSingleContinue" class="h-12 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-black hover:border-slate-300 transition-all">
+                <button @click="handleSingleContinue" class="h-12 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
                   继续答题
                 </button>
               </div>
@@ -200,11 +200,11 @@ function handleCompare() {
             <div v-if="activeTab === 'dual'" class="space-y-4 animate-fade">
               <div class="relative">
                 <input v-model="myCode" placeholder="你的结果代码" class="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
-                <button @click="handlePaste('my')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-black"><icon-ph-clipboard-text class="text-xl"/></button>
+                <button @click="handlePaste('my')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><icon-ph-clipboard-text class="text-xl"/></button>
               </div>
               <div class="relative">
                 <input v-model="partnerCode" placeholder="另一位的代码" class="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
-                <button @click="handlePaste('partner')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-black"><icon-ph-clipboard-text class="text-xl"/></button>
+                <button @click="handlePaste('partner')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><icon-ph-clipboard-text class="text-xl"/></button>
               </div>
               <button @click="handleCompare" class="w-full h-12 mt-2 bg-slate-900 text-white rounded-xl text-base font-bold hover:bg-black transition-colors">
                 开始对比分析
@@ -220,7 +220,7 @@ function handleCompare() {
         <div class="w-full flex justify-center">
   <div 
     @click="router.push('/doc')"
-    class="mt-12 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-400 hover:text-black cursor-pointer transition-all duration-300 group"
+    class="mt-12 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-400 hover:text-base-content cursor-pointer transition-all duration-300 group"
   >
     <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
       <i-ph-read-cv-logo-bold class="text-lg" />
