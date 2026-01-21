@@ -119,8 +119,74 @@ function handleCompare() {
     <div class="flex-1 flex flex-col items-center justify-center px-6 w-full max-w-md mx-auto space-y-12">
       
       <div class="text-center space-y-6">
-        <div class="inline-flex items-center justify-center w-24 h-24 border border-slate-100 rounded-[2rem] shadow-sm mb-2">
-          <span class="text-5xl">🧬</span>
+        <div class="inline-flex items-center justify-center w-auto h-auto mb-6 opacity-90 hover:opacity-100 transition-opacity duration-500">
+          <svg width="480" height="360" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="fader-shadow" x="-50%" y="-20%" width="200%" height="150%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.1"/>
+              </filter>
+            </defs>
+
+            <path d="M0 40H320 M0 100H320 M0 160H320" stroke="#F1F5F9" stroke-width="1" stroke-dasharray="4 4"/>
+
+            <g id="tracks">
+              <line x1="60" y1="30" x2="60" y2="170" stroke="#E2E8F0" stroke-width="4" stroke-linecap="round"/>
+              <g fill="#94A3B8">
+                 <rect x="45" y="40" width="6" height="1"/>
+                 <rect x="45" y="70" width="6" height="1"/>
+                 <rect x="45" y="100" width="10" height="1"/> <rect x="45" y="130" width="6" height="1"/>
+                 <rect x="45" y="160" width="6" height="1"/>
+              </g>
+
+              <line x1="130" y1="30" x2="130" y2="170" stroke="#E2E8F0" stroke-width="4" stroke-linecap="round"/>
+              <g fill="#94A3B8">
+                 <rect x="115" y="40" width="6" height="1"/>
+                 <rect x="115" y="70" width="6" height="1"/>
+                 <rect x="115" y="100" width="10" height="1"/>
+                 <rect x="115" y="130" width="6" height="1"/>
+                 <rect x="115" y="160" width="6" height="1"/>
+              </g>
+
+              <line x1="200" y1="30" x2="200" y2="170" stroke="#E2E8F0" stroke-width="4" stroke-linecap="round"/>
+              <g fill="#94A3B8">
+                 <rect x="185" y="40" width="6" height="1"/>
+                 <rect x="185" y="70" width="6" height="1"/>
+                 <rect x="185" y="100" width="10" height="1"/>
+                 <rect x="185" y="130" width="6" height="1"/>
+                 <rect x="185" y="160" width="6" height="1"/>
+              </g>
+
+              <line x1="270" y1="30" x2="270" y2="170" stroke="#E2E8F0" stroke-width="4" stroke-linecap="round"/>
+              <g fill="#94A3B8">
+                 <rect x="255" y="40" width="6" height="1"/>
+                 <rect x="255" y="70" width="6" height="1"/>
+                 <rect x="255" y="100" width="10" height="1"/>
+                 <rect x="255" y="130" width="6" height="1"/>
+                 <rect x="255" y="160" width="6" height="1"/>
+              </g>
+            </g>
+
+            <g transform="translate(60, 140)" filter="url(#fader-shadow)">
+              <rect x="-14" y="-8" width="28" height="16" rx="4" fill="white" stroke="#1E293B" stroke-width="2"/>
+              <line x1="-6" y1="0" x2="6" y2="0" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
+            </g>
+
+            <g transform="translate(130, 60)" filter="url(#fader-shadow)">
+              <rect x="-14" y="-8" width="28" height="16" rx="4" fill="#1E293B" stroke="#1E293B" stroke-width="2"/>
+              <line x1="-6" y1="0" x2="6" y2="0" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </g>
+
+            <g transform="translate(200, 100)" filter="url(#fader-shadow)">
+               <rect x="-14" y="-8" width="28" height="16" rx="4" fill="white" stroke="#1E293B" stroke-width="2"/>
+               <line x1="-6" y1="0" x2="6" y2="0" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
+            </g>
+
+            <g transform="translate(270, 50)" filter="url(#fader-shadow)">
+               <rect x="-14" y="-8" width="28" height="16" rx="4" fill="white" stroke="#1E293B" stroke-width="2"/>
+               <line x1="-6" y1="0" x2="6" y2="0" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            
+          </svg>
         </div>
         
         <div class="space-y-3">
