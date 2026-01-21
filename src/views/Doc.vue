@@ -118,7 +118,7 @@ function handleCompare() {
 <template>
   <div class="min-h-screen bg-base-100 text-base-content flex flex-col font-sans selection:bg-primary selection:text-primary-content transition-colors duration-300">
 
-    <div class="flex-1 flex flex-col items-center justify-center px-6 w-full max-w-md mx-auto mt-6 space-y-12">
+    <div class="flex-1 flex flex-col items-center justify-center px-6 w-full max-w-2xl mx-auto mt-6 space-y-12">
       
       <div class="text-center space-y-6">
         
@@ -144,30 +144,30 @@ function handleCompare() {
         
         <button 
   @click="goSystem"
-  class="group w-full h-16 bg-primary text-primary-content rounded-2xl text-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+  class="group w-full max-w-sm mx-auto h-16 bg-primary text-primary-content rounded-2xl text-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
 >
   <span>进入系统</span>
   <i-ph-arrow-right-bold class="text-2xl group-hover:translate-x-1 transition-transform" />
 </button>
 
-        <div class="relative flex items-center py-2">
+        <div class="relative flex items-center py-2 max-w-sm mx-auto ">
           <div class="flex-grow border-t border-slate-100"></div>
           <span class="flex-shrink-0 mx-4 text-xs font-bold text-slate-300 uppercase tracking-widest">Import</span>
           <div class="flex-grow border-t border-slate-100"></div>
         </div>
 
-        <div class="w-full">
+        <div class="w-full max-w-sm mx-auto ">
           <div class="grid grid-cols-2 p-1.5 bg-base-200 rounded-2xl mb-6 border border-base-content/5">
   <button 
     class="py-3 text-base font-bold rounded-xl transition-all duration-200"
-    :class="activeTab === 'single' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/40 hover:text-base-content/70'"
+    :class="activeTab === 'single' ? 'bg-base-100 text-base-content shadow-md' : 'text-base-content/40 hover:text-base-content/70'"
     @click="activeTab = 'single'"
   >
     单人导入
   </button>
   <button 
     class="py-3 text-base font-bold rounded-xl transition-all duration-200"
-    :class="activeTab === 'dual' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/40 hover:text-base-content/70'"
+    :class="activeTab === 'dual' ? 'bg-base-100 text-base-content shadow-md' : 'text-base-content/40 hover:text-base-content/70'"
     @click="activeTab = 'dual'"
   >
     双人对比

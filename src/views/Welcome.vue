@@ -158,14 +158,14 @@ function handleCompare() {
           <div class="grid grid-cols-2 p-1.5 bg-base-200 rounded-2xl mb-6 border border-base-content/5">
   <button 
     class="py-3 text-base font-bold rounded-xl transition-all duration-200"
-    :class="activeTab === 'single' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/40 hover:text-base-content/70'"
+    :class="activeTab === 'single' ? 'bg-base-100 text-base-content shadow-md' : 'text-base-content/40 hover:text-base-content/70'"
     @click="activeTab = 'single'"
   >
     单人导入
   </button>
   <button 
     class="py-3 text-base font-bold rounded-xl transition-all duration-200"
-    :class="activeTab === 'dual' ? 'bg-base-100 text-primary shadow-md' : 'text-base-content/40 hover:text-base-content/70'"
+    :class="activeTab === 'dual' ? 'bg-base-100 text-base-content shadow-md' : 'text-base-content/40 hover:text-base-content/70'"
     @click="activeTab = 'dual'"
   >
     双人对比
