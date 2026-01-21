@@ -89,11 +89,24 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
       if (!myStates || !partnerStates) return;
       
       q.options.forEach((opt, index) => {
-        // ⚠️ 核心修复：强制转换为 Number，防止字符串比较导致图标不显示
+        // ⚠️ 强制转换为 Number，确保 0 (未表态) 能被正确处理
         const a = Number(myStates[index] || 0) as Attitude;
         const b = Number(partnerStates[index] || 0) as Attitude;
         
-        if (a === 0 || b === 0) return;
+        // ❌ 删除旧逻辑：不再过滤 0
+        // if (a === 0 || b === 0) return;
+
+        // 如果两人都是 0，且该选项没人选，通常不需要展示（视具体需求而定）
+        // 但如果您的数据结构是稀疏的，0可能意味着“未选”。
+        // 这里假设只要有一方不是0，或者是某些特定情况，我们都要展示。
+        // 为了避免展示过多无效信息，如果双方都是0，我们仅当这是“显式跳过”时才展示。
+        // 但根据您的要求：“所有的0都是未表态，是5个态度之一”，我们全部纳入考量。
+        // 不过为了页面干净，如果两个都是0，通常意味着这个选项无关紧要，可以考虑过滤。
+        // 但既然您说“0是态度之一”，那我们先不过滤，看看效果。
+        // *修正*：通常如果两个人都没选这个选项（都是0），展示出来没有意义（满屏都是未选）。
+        // 我们可以只展示“至少有一方选了非0” 或者 “双方明确选了0(如果0代表某种显性态度)”的情况。
+        // 鉴于0通常是默认值，如果双方都是0，我们暂时忽略，避免列表爆炸。
+        if (a === 0 && b === 0) return; 
 
         const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
 
@@ -110,11 +123,29 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
           partnerOptionIndex: index
         };
 
-        // 逻辑分类
-        if (a === 2 || b === 2) dList.push(item); // 任意一方是"?" -> 待厘清
-        else if ((a === 4 && b === 1) || (a === 1 && b === 4)) nList.push(item); // 金星撞红线 -> 核心冲突
-        else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) rList.push(item); // 都是接受或都是拒绝 -> 共振
-        else hList.push(item); // 其他 -> 协商
+        // --- 核心分类逻辑更新 ---
+
+        // 1. 待厘清 (Discuss): 
+        //    - 任意一方是 "?" (2)
+        //    - 或者：一方已表态(非0)，另一方未表态(0) -> 需要沟通
+        if (a === 2 || b === 2 || (a === 0 && b !== 0) || (a !== 0 && b === 0)) {
+           dList.push(item);
+        }
+        // 2. 核心冲突 (Critical): 金星(4) 撞 红线(1)
+        else if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
+           nList.push(item);
+        }
+        // 3. 默契共振 (Resonance): 
+        //    - 都是接受(3)或金星(4)
+        //    - 都是红线(1)
+        //    - *注*：双方都是0的情况已在上面过滤，如果不过滤，也应放这里
+        else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) {
+           rList.push(item);
+        }
+        // 4. 协商让步 (Negotiate): 其他情况 (如 1 vs 3, 3 vs 4 等)
+        else {
+           hList.push(item);
+        }
       });
     });
   });
@@ -255,6 +286,9 @@ onMounted(() => {
                         <div class="flex items-center gap-1" title="我方态度">
                           <i-ph-star-fill v-if="item.myAttitude === 4" class="text-amber-400 drop-shadow-sm" />
                           <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
+                          <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success" />
+                          <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
+                          <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
                           <span class="text-xs">{{ myAvatar }}</span>
                         </div>
 
@@ -264,6 +298,9 @@ onMounted(() => {
                           <span class="text-xs">{{ partnerAvatar }}</span>
                           <i-ph-star-fill v-if="item.partnerAttitude === 4" class="text-amber-400 drop-shadow-sm" />
                           <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
+                          <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success" />
+                          <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
+                          <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
                         </div>
                       </div>
                     </div>
@@ -272,10 +309,6 @@ onMounted(() => {
               </div>
             </div>
           </div>
-        </div>
-        <div v-else class="text-center py-8 opacity-30 border-2 border-dashed border-base-content/10 rounded-xl">
-          <i-ph-check-bold class="text-3xl mx-auto mb-2 text-success" />
-          <p class="text-xs font-bold">完美！无核心冲突</p>
         </div>
       </div>
 
@@ -317,8 +350,10 @@ onMounted(() => {
                         <div class="flex items-center gap-1">
                           <span class="text-xs">{{ myAvatar }}</span>
                           <i-ph-star-fill v-if="item.myAttitude === 4" class="text-amber-400" />
-                          <i-ph-check-circle-fill v-else-if="item.myAttitude === 3" class="text-success" />
+                          <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success" />
                           <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
+                          <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
+                          <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
                         </div>
 
                         <span class="text-success/40 text-xs font-normal">&</span>
@@ -326,8 +361,10 @@ onMounted(() => {
                         <div class="flex items-center gap-1">
                           <span class="text-xs">{{ partnerAvatar }}</span>
                           <i-ph-star-fill v-if="item.partnerAttitude === 4" class="text-amber-400" />
-                          <i-ph-check-circle-fill v-else-if="item.partnerAttitude === 3" class="text-success" />
+                          <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success" />
                           <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
+                          <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
+                          <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
                         </div>
                         
                         <span class="ml-1 opacity-90">{{ item.choice }}</span>
@@ -379,9 +416,10 @@ onMounted(() => {
                         <div class="flex items-center gap-1">
                           <span class="text-xs">{{ myAvatar }}</span>
                           <i-ph-question-bold v-if="item.myAttitude === 2" class="text-warning" />
-                          <i-ph-check-circle-fill v-else-if="item.myAttitude === 3" class="text-success/70" />
+                          <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success/70" />
                           <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error/70" />
                           <i-ph-star-fill v-else-if="item.myAttitude === 4" class="text-amber-400/80" />
+                          <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
                         </div>
 
                         <span class="text-warning/40 text-xs font-normal">?</span>
@@ -389,9 +427,10 @@ onMounted(() => {
                         <div class="flex items-center gap-1">
                           <span class="text-xs">{{ partnerAvatar }}</span>
                           <i-ph-question-bold v-if="item.partnerAttitude === 2" class="text-warning" />
-                          <i-ph-check-circle-fill v-else-if="item.partnerAttitude === 3" class="text-success/70" />
+                          <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success/70" />
                           <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error/70" />
                           <i-ph-star-fill v-else-if="item.partnerAttitude === 4" class="text-amber-400/80" />
+                          <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
                         </div>
                         
                         <span class="ml-1 opacity-90">{{ item.choice }}</span>
@@ -442,20 +481,22 @@ onMounted(() => {
                       <div class="flex items-center gap-2 text-sm font-bold">
                         <div class="flex items-center gap-1">
                           <span class="text-xs">{{ myAvatar }}</span>
-                          <i-ph-check-circle-fill v-if="item.myAttitude === 3" class="text-success" />
+                          <i-ph-check-bold v-if="item.myAttitude === 3" class="text-success" />
                           <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
                           <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
                           <i-ph-star-fill v-else-if="item.myAttitude === 4" class="text-amber-400" />
+                          <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
                         </div>
 
                         <span class="opacity-30 text-xs font-normal">/</span>
 
                         <div class="flex items-center gap-1">
                           <span class="text-xs">{{ partnerAvatar }}</span>
-                          <i-ph-check-circle-fill v-if="item.partnerAttitude === 3" class="text-success" />
+                          <i-ph-check-bold v-if="item.partnerAttitude === 3" class="text-success" />
                           <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
                           <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
                           <i-ph-star-fill v-else-if="item.partnerAttitude === 4" class="text-amber-400" />
+                          <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
                         </div>
                         
                         <span class="ml-1 opacity-90">{{ item.choice }}</span>
