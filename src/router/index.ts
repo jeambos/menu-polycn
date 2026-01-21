@@ -38,6 +38,11 @@ const router = createRouter({
       path: '/import',
       name: 'import',
       component: Import
+    },
+    {
+      path: '/doc',
+      name: 'doc',
+      component: () => import('../views/Doc.vue') // 路由懒加载写法
     }
   ]
 })
