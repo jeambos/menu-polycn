@@ -90,12 +90,27 @@ function handleSingleContinue() {
 }
 
 function handleCompare() {
-  if (!isValid(myCode.value) || !isValid(partnerCode.value)) return triggerError('需填入双方代码');
-  router.push({
-    path: '/compare',
-    query: { my: myCode.value, partner: partnerCode.value }
-  });
+  const hasMy = isValid(myCode.value);
+  const hasPartner = isValid(partnerCode.value);
+
+  if (hasMy && hasPartner) {
+    // 两个都有：进入双人对比
+    router.push({
+      path: '/compare',
+      query: { my: myCode.value, partner: partnerCode.value }
+    });
+  } else if (hasMy || hasPartner) {
+    // 只有一个：进入单人结果页
+    router.push({
+      path: '/result',
+      query: { code: hasMy ? myCode.value : partnerCode.value }
+    });
+  } else {
+    // 都没有
+    triggerError('需填入代码');
+  }
 }
+
 </script>
 
 <template>
