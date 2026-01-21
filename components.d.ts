@@ -48,6 +48,7 @@ declare module 'vue' {
     IPhHardDrivesBold: typeof import('~icons/ph/hard-drives-bold')['default']
     IPhInfoBold: typeof import('~icons/ph/info-bold')['default']
     IPhLightningFill: typeof import('~icons/ph/lightning-fill')['default']
+    IPhListBold: typeof import('~icons/ph/list-bold')['default']
     IPhMagnifyingGlassBold: typeof import('~icons/ph/magnifying-glass-bold')['default']
     IPhMoonBold: typeof import('~icons/ph/moon-bold')['default']
     IPhProhibit: typeof import('~icons/ph/prohibit')['default']

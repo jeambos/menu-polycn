@@ -3,18 +3,19 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useClipboard } from '@vueuse/core';
 import { useConfigStore } from '../stores/useConfigStore';
-import { encode, decode } from '../logic/codec';
-import type { Attitude } from '../types';
+import { encode } from '../logic/codec';
+import BaseModal from './BaseModal.vue';
 
 const router = useRouter();
 const route = useRoute();
 const store = useConfigStore();
 const { copy, copied } = useClipboard();
 
-// --- 状态 ---
+// --- 弹窗状态 ---
 const showCodeModal = ref(false);
-const showImportModal = ref(false);
-const importCodeInput = ref('');
+const showClearModal = ref(false);
+
+// --- 数据状态 ---
 const currentCode = ref('');
 const codeTitle = ref('');
 
@@ -75,14 +76,17 @@ onMounted(() => {
 function handleExportAll() {
   const lines: string[] = [];
   
+  // 遍历已有存档
   Object.entries(store.profiles).forEach(([avatar, answers]) => {
     lines.push(encode(answers, avatar));
   });
 
+  // 如果当前正在编辑的数据还没存入 profiles，也加上
   if (store.targetAvatar && !store.profiles[store.targetAvatar]) {
     lines.push(encode(store.answers, store.targetAvatar));
   }
 
+  // 去重并拼接
   currentCode.value = [...new Set(lines)].join('\n');
   codeTitle.value = '全量备份 (Full Backup)';
   showCodeModal.value = true;
@@ -113,52 +117,21 @@ function deleteProfile(avatar: string) {
   }
 }
 
+// 清空逻辑：先备份，再弹窗
 function handleClearCurrent() {
-  if (confirm(`确定要清空 [${store.targetAvatar}] 的所有配置吗？`)) {
-    store.resetCurrentProfile();
-    window.location.reload();
-  }
+  // 预先生成备份代码
+  currentCode.value = encode(store.answers, store.targetAvatar);
+  showClearModal.value = true;
+}
+
+function confirmClear() {
+  store.resetCurrentProfile();
+  showClearModal.value = false;
+  window.location.reload();
 }
 
 function handleSaveAndFinish() {
   router.push('/result');
-}
-
-function handleImport() {
-  try {
-    const rawInput = importCodeInput.value.trim();
-    if (!rawInput) return;
-
-    const lines = rawInput.split(/\r?\n/).filter(line => line.trim().length > 0);
-    let successCount = 0;
-
-    lines.forEach(line => {
-      try {
-        const data = decode(line.trim());
-        if (data) {
-          if (!store.profiles[data.avatar]) store.profiles[data.avatar] = {};
-          store.profiles[data.avatar] = data.answers as Record<string, Attitude[]>;
-          
-          store.answers = data.answers as Record<string, Attitude[]>;
-          store.targetAvatar = data.avatar;
-          
-          successCount++;
-        }
-      } catch (e) { /* ignore */ }
-    });
-
-    if (successCount > 0) {
-      showImportModal.value = false;
-      alert(`已读取 ${successCount} 个方案`);
-      importCodeInput.value = '';
-      if (route.path === '/') router.push('/result');
-      else window.location.reload();
-    } else {
-      alert('未识别到有效代码');
-    }
-  } catch (e) {
-    alert('解析错误');
-  }
 }
 </script>
 
@@ -175,10 +148,8 @@ function handleImport() {
     <div class="flex-none">
       
       <div class="dropdown dropdown-end">
-        <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar placeholder transition-transform active:scale-95 border border-base-content/10">
-          <div class="bg-neutral text-neutral-content rounded-full w-9 h-9">
-            <span class="text-xl">{{ store.targetAvatar }}</span>
-          </div>
+        <div tabindex="0" role="button" class="btn btn-ghost btn-circle transition-transform active:scale-95">
+          <i-ph-list-bold class="text-xl" />
         </div>
 
         <ul tabindex="0" class="mt-3 z-[1] p-2 shadow-2xl menu menu-sm dropdown-content bg-base-100 rounded-box w-72 border border-base-content/10 max-h-[85vh] overflow-y-auto block">
@@ -256,7 +227,7 @@ function handleImport() {
 
           <div class="divider my-1"></div>
 
-          <div class="px-2 py-1 text-xs opacity-50 font-bold">数据 / Data</div>
+          <div class="px-2 py-1 text-xs opacity-50 font-bold">数据备份 / Backup</div>
           
           <li>
             <a @click="handleExportCurrent">
@@ -268,12 +239,6 @@ function handleImport() {
             <a @click="handleExportAll">
               <i-ph-hard-drives-bold class="text-base" />
               <span>全量备份 (Backup)</span>
-            </a>
-          </li>
-          <li>
-            <a @click="showImportModal = true">
-              <i-ph-download-simple-bold class="text-base" />
-              <span>读取/恢复 (Import)</span>
             </a>
           </li>
           
@@ -303,52 +268,57 @@ function handleImport() {
       </div>
     </div>
 
-    <dialog class="modal" :class="{ 'modal-open': showCodeModal }">
-      <div class="modal-box">
-        <h3 class="font-bold text-lg flex items-center gap-2">
-          <i-ph-code-bold />
-          {{ codeTitle }}
-        </h3>
-        <p class="py-4 text-xs opacity-70">
-          {{ codeTitle.includes('全量') ? '所有存档已用换行符分隔。请复制全文保存到记事本。' : '复制下方代码以分享当前方案。' }}
-        </p>
-        <div class="bg-base-200 p-3 rounded-lg font-mono text-xs break-all mb-4 select-all border border-base-content/10 max-h-60 overflow-y-auto whitespace-pre-wrap">
+    <BaseModal v-model="showCodeModal" :title="codeTitle">
+      <div class="flex items-center gap-2 mb-3 text-xs opacity-60">
+        <i-ph-info-bold />
+        <span>{{ codeTitle.includes('全量') ? '所有存档已换行分隔，请全选复制保存。' : '复制下方代码以分享当前方案。' }}</span>
+      </div>
+      <div class="bg-base-200 p-3 rounded-lg font-mono text-xs break-all mb-4 select-all border border-base-content/10 max-h-60 overflow-y-auto whitespace-pre-wrap">
 {{ currentCode }}
-        </div>
-        <div class="modal-action">
-          <button @click="copy(currentCode)" class="btn btn-success btn-sm text-white gap-2">
-            <i-ph-check-bold v-if="copied" />
-            <i-ph-copy-bold v-else />
-            {{ copied ? '已复制' : '复制' }}
-          </button>
-          <button class="btn btn-ghost btn-sm" @click="showCodeModal = false">关闭</button>
-        </div>
       </div>
-      <form method="dialog" class="modal-backdrop"><button @click="showCodeModal = false">close</button></form>
-    </dialog>
+      <template #actions>
+        <button @click="copy(currentCode)" class="btn btn-success btn-sm text-white gap-2">
+          <i-ph-check-bold v-if="copied" />
+          <i-ph-copy-bold v-else />
+          {{ copied ? '已复制' : '复制' }}
+        </button>
+        <button class="btn btn-ghost btn-sm" @click="showCodeModal = false">关闭</button>
+      </template>
+    </BaseModal>
 
-    <dialog class="modal" :class="{ 'modal-open': showImportModal }">
-      <div class="modal-box">
-        <h3 class="font-bold text-lg flex items-center gap-2">
-          <i-ph-download-simple-bold />
-          恢复/导入数据
-        </h3>
-        <p class="text-xs opacity-60 mt-2">支持粘贴单个方案代码，或包含多个方案的全量备份文本。</p>
-        <textarea 
-          v-model="importCodeInput" 
-          placeholder="在此粘贴 Emoji 代码..." 
-          class="textarea textarea-bordered w-full mt-4 font-mono text-xs h-32 whitespace-pre" 
-        ></textarea>
-        <div class="modal-action">
-          <button @click="handleImport" class="btn btn-primary btn-sm gap-2">
-            <i-ph-check-bold />
-            确认导入
-          </button>
-          <button class="btn btn-ghost btn-sm" @click="showImportModal = false">取消</button>
+    <BaseModal v-model="showClearModal" title="⚠️ 危险操作">
+      <div class="space-y-4">
+        <div class="p-4 bg-base-100 border border-base-content/10 rounded-xl relative">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-base-content/40 uppercase tracking-wider">最后备份机会</span>
+            <button 
+              @click="copy(currentCode)"
+              class="btn btn-xs btn-ghost text-base-content/40 hover:text-base-content"
+            >
+              <i-ph-copy-bold v-if="!copied"/>
+              <i-ph-check-bold v-else class="text-success"/>
+              <span class="ml-1">{{ copied ? '已复制' : '复制' }}</span>
+            </button>
+          </div>
+          <div class="w-full bg-base-200 text-xs p-2 rounded border-none font-mono opacity-60 max-h-24 overflow-y-auto break-all">
+            {{ currentCode }}
+          </div>
+        </div>
+
+        <div class="p-3 bg-error/10 text-error text-xs rounded-lg flex items-start gap-2">
+          <i-ph-warning-circle-bold class="text-lg shrink-0" />
+          <span>确认清空当前方案 [{{ store.targetAvatar }}] 的所有数据？此操作不可撤销。</span>
         </div>
       </div>
-      <form method="dialog" class="modal-backdrop"><button @click="showImportModal = false">close</button></form>
-    </dialog>
+      <template #actions>
+        <button class="btn btn-error btn-sm text-white" @click="confirmClear">
+          确认清空
+        </button>
+        <button class="btn btn-ghost btn-sm" @click="showClearModal = false">
+          取消
+        </button>
+      </template>
+    </BaseModal>
 
   </div>
 </template>
