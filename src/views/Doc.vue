@@ -6,7 +6,6 @@ import { useConfigStore } from '../stores/useConfigStore';
 import { decode } from '../logic/codec';
 import type { Attitude } from '../types'; // ✅ 引入类型
 import DocArticle from '../components/DocArticle.vue';
-import RubiksCube from '../components/RubiksCube.vue';
 
 const router = useRouter();
 const store = useConfigStore();
