@@ -6,6 +6,7 @@ import { useConfigStore } from '../stores/useConfigStore';
 import { decode } from '../logic/codec';
 import type { Attitude } from '../types'; // ✅ 引入类型
 import DocArticle from '../components/DocArticle.vue';
+import RubiksCube from '../components/RubiksCube.vue';
 
 const router = useRouter();
 const store = useConfigStore();
@@ -120,9 +121,9 @@ function handleCompare() {
     <div class="flex-1 flex flex-col items-center justify-center px-6 w-full max-w-md mx-auto space-y-12">
       
       <div class="text-center space-y-6">
-        <div class="inline-flex items-center justify-center w-24 h-24 border border-slate-100 rounded-[2rem] shadow-sm mb-2">
-          <span class="text-5xl">🧬</span>
-        </div>
+        <div class="flex items-center justify-center w-full h-32 mb-4 overflow-visible">
+   <RubiksCube />
+</div>
         
         <div class="space-y-3">
           <h1 class="text-4xl font-black tracking-tighter text-black">

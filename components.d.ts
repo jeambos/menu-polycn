@@ -77,5 +77,6 @@ declare module 'vue' {
     QuestionCard: typeof import('./src/components/QuestionCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    RubiksCube: typeof import('./src/components/RubiksCube.vue')['default']
   }
 }
