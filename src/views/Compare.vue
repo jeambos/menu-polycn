@@ -89,8 +89,9 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
       if (!myStates || !partnerStates) return;
       
       q.options.forEach((opt, index) => {
-        const a = (myStates[index] || 0) as Attitude;
-        const b = (partnerStates[index] || 0) as Attitude;
+        // ⚠️ 核心修复：强制转换为 Number，防止字符串比较导致图标不显示
+        const a = Number(myStates[index] || 0) as Attitude;
+        const b = Number(partnerStates[index] || 0) as Attitude;
         
         if (a === 0 || b === 0) return;
 
@@ -257,7 +258,7 @@ onMounted(() => {
                           <span class="text-xs">{{ myAvatar }}</span>
                         </div>
 
-                        <i-ph-lightning-fill class="text-xs text-error opacity-40 mx-0.5" />
+                        <i-ph-lightning-fill class="text-xs text-error opacity-40 mx-0.5 animate-pulse" />
 
                         <div class="flex items-center gap-1" title="对方态度">
                           <span class="text-xs">{{ partnerAvatar }}</span>
@@ -307,22 +308,29 @@ onMounted(() => {
                     @toggle="togglePopover(item.id)"
                     @close="activePopoverId = null"
                   >
-                    <div class="badge badge-lg h-auto py-2 px-3 gap-2 bg-success/5 border border-success/20 text-base-content/80 cursor-pointer hover:bg-success/10 transition-colors rounded-lg">
+                    <div class="badge badge-lg h-auto py-2 px-3 gap-3 bg-success/5 border border-success/20 text-base-content/80 cursor-pointer hover:bg-success/10 transition-colors rounded-lg group">
                       <span class="text-xs opacity-60 border-r border-success/20 pr-2 mr-1">
                         {{ item.title }}
                       </span>
                       
-                      <div class="flex items-center gap-1.5 font-bold">
-                        <i-ph-check-bold v-if="item.myAttitude === 3" class="text-success" />
-                        <i-ph-star-fill v-else-if="item.myAttitude === 4" class="text-amber-400" />
-                        <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
-                        
-                        <span class="text-sm">{{ item.choice }}</span>
-                        
-                        <div class="flex -space-x-1 ml-1 opacity-70 scale-90">
-                          <span>{{ myAvatar }}</span>
-                          <span>{{ partnerAvatar }}</span>
+                      <div class="flex items-center gap-2 text-sm font-bold">
+                        <div class="flex items-center gap-1">
+                          <span class="text-xs">{{ myAvatar }}</span>
+                          <i-ph-star-fill v-if="item.myAttitude === 4" class="text-amber-400" />
+                          <i-ph-check-circle-fill v-else-if="item.myAttitude === 3" class="text-success" />
+                          <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
                         </div>
+
+                        <span class="text-success/40 text-xs font-normal">&</span>
+
+                        <div class="flex items-center gap-1">
+                          <span class="text-xs">{{ partnerAvatar }}</span>
+                          <i-ph-star-fill v-if="item.partnerAttitude === 4" class="text-amber-400" />
+                          <i-ph-check-circle-fill v-else-if="item.partnerAttitude === 3" class="text-success" />
+                          <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
+                        </div>
+                        
+                        <span class="ml-1 opacity-90">{{ item.choice }}</span>
                       </div>
                     </div>
                   </OptionPopover>
@@ -362,18 +370,31 @@ onMounted(() => {
                     @toggle="togglePopover(item.id)"
                     @close="activePopoverId = null"
                   >
-                    <div class="badge badge-lg h-auto py-2 px-3 gap-2 bg-warning/5 border border-warning/20 text-base-content/80 cursor-pointer hover:bg-warning/10 transition-colors rounded-lg">
-                      <span class="text-xs opacity-50 border-r border-warning/20 pr-2 mr-1">
+                    <div class="badge badge-lg h-auto py-2 px-3 gap-3 bg-warning/5 border border-warning/20 text-base-content/80 cursor-pointer hover:bg-warning/10 transition-colors rounded-lg group">
+                      <span class="text-xs opacity-50 border-r border-warning/20 pr-2 mr-1 group-hover:border-warning/40 transition-colors">
                         {{ item.title }}
                       </span>
                       
-                      <div class="flex items-center gap-2">
+                      <div class="flex items-center gap-2 text-sm font-bold">
                         <div class="flex items-center gap-1">
-                          <span v-if="item.myAttitude === 2">{{ myAvatar }}</span>
-                          <span v-if="item.partnerAttitude === 2">{{ partnerAvatar }}</span>
-                          <i-ph-question-bold class="text-warning text-sm" />
+                          <span class="text-xs">{{ myAvatar }}</span>
+                          <i-ph-question-bold v-if="item.myAttitude === 2" class="text-warning" />
+                          <i-ph-check-circle-fill v-else-if="item.myAttitude === 3" class="text-success/70" />
+                          <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error/70" />
+                          <i-ph-star-fill v-else-if="item.myAttitude === 4" class="text-amber-400/80" />
                         </div>
-                        <span class="font-medium text-sm">{{ item.choice }}</span>
+
+                        <span class="text-warning/40 text-xs font-normal">?</span>
+
+                        <div class="flex items-center gap-1">
+                          <span class="text-xs">{{ partnerAvatar }}</span>
+                          <i-ph-question-bold v-if="item.partnerAttitude === 2" class="text-warning" />
+                          <i-ph-check-circle-fill v-else-if="item.partnerAttitude === 3" class="text-success/70" />
+                          <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error/70" />
+                          <i-ph-star-fill v-else-if="item.partnerAttitude === 4" class="text-amber-400/80" />
+                        </div>
+                        
+                        <span class="ml-1 opacity-90">{{ item.choice }}</span>
                       </div>
                     </div>
                   </OptionPopover>
@@ -413,15 +434,31 @@ onMounted(() => {
                     @toggle="togglePopover(item.id)"
                     @close="activePopoverId = null"
                   >
-                    <div class="badge badge-lg badge-ghost h-auto py-2 px-3 gap-2 bg-base-200/50 border border-base-content/5 text-base-content/60 cursor-pointer hover:bg-base-200 transition-colors rounded-lg">
-                      <span class="text-xs opacity-50 border-r border-base-content/10 pr-2 mr-1">
+                    <div class="badge badge-lg badge-ghost h-auto py-2 px-3 gap-3 bg-base-200/50 border border-base-content/10 text-base-content/60 cursor-pointer hover:bg-base-200 transition-colors rounded-lg group">
+                      <span class="text-xs opacity-50 border-r border-base-content/10 pr-2 mr-1 group-hover:border-base-content/20 transition-colors">
                         {{ item.title }}
                       </span>
-                      <div class="flex items-center gap-1 text-sm">
-                        <span class="text-xs">{{ myAvatar }}</span>
-                        <span class="text-xs">/</span>
-                        <span class="text-xs">{{ partnerAvatar }}</span>
-                        <span class="font-medium ml-1">{{ item.choice }}</span>
+                      
+                      <div class="flex items-center gap-2 text-sm font-bold">
+                        <div class="flex items-center gap-1">
+                          <span class="text-xs">{{ myAvatar }}</span>
+                          <i-ph-check-circle-fill v-if="item.myAttitude === 3" class="text-success" />
+                          <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
+                          <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
+                          <i-ph-star-fill v-else-if="item.myAttitude === 4" class="text-amber-400" />
+                        </div>
+
+                        <span class="opacity-30 text-xs font-normal">/</span>
+
+                        <div class="flex items-center gap-1">
+                          <span class="text-xs">{{ partnerAvatar }}</span>
+                          <i-ph-check-circle-fill v-if="item.partnerAttitude === 3" class="text-success" />
+                          <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
+                          <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
+                          <i-ph-star-fill v-else-if="item.partnerAttitude === 4" class="text-amber-400" />
+                        </div>
+                        
+                        <span class="ml-1 opacity-90">{{ item.choice }}</span>
                       </div>
                     </div>
                   </OptionPopover>
