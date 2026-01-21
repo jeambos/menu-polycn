@@ -232,16 +232,21 @@ function cheatFill() {
 
     <BaseModal 
       v-model="showEntryModal" 
-      :title="entryType === 'newbie' ? '欢迎开始配置' : '检测到历史进度'" 
+      :title="entryType === 'newbie' ? '欢迎使用关系配置单' : '检测到历史进度'" 
       :persistent="true" 
       :show-close="false"
     >
       <div v-if="entryType === 'newbie'" class="space-y-4">
-        <p>👋 欢迎使用 <strong>PolyCN 关系配置单</strong>。</p>
-        <p>您将通过一系列场景选择，描绘出您对这段关系的理想图谱。</p>
-        <ul class="list-disc list-inside opacity-80 space-y-1 pl-2 text-xs bg-base-200/50 p-3 rounded-lg">
-          <li>诚实面对：没有标准答案，请遵从内心。</li>
-          <li>隐私安全：数据仅保存在您的设备上，不会上传。</li>
+        <p>您只需要标记自己的态度。</p>
+        <ul class="list-disc list-inside opacity-80 space-y-1 pl-2 text-sm bg-base-200/50 p-3 rounded-lg">
+          <p>每一个场景下有若干小项，您可以对每一个小项表态：</p>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-primary/75">不表态（跳过不选）</strong>：无所谓/没感觉/暂时不考虑这件事</li>
+      <li><strong class="text-primary/75">硬性边界</strong>：绝对不行/分手警告</li>
+      <li><strong class="text-primary/75">不确定 /看条件</strong>：可能行，也可能不行，具体情况双方对话沟通</li>
+      <li><strong class="text-primary/75">同意/接受</strong>：接受/可以，具体程度可商量</li>
+      <li><strong class="text-primary/75">核心需求</strong>：必需品/快乐源泉</li>
+    </ul>
         </ul>
       </div>
 
