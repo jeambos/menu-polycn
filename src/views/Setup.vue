@@ -149,7 +149,7 @@ function confirmDeleteAll() {
     <div class="absolute top-4 right-4 z-20 w-auto h-auto">
       <button 
         @click.stop="showManageModal = true"
-        class="btn btn-sm btn-ghost text-base-content/40 hover:text-base-content hover:bg-base-200"
+        class="btn btn-sm btn-primary text-base-content/40 hover:text-base-content hover:bg-base-200"
       >
         <span class="text-xs">🗑️ 数据管理</span>
       </button>
@@ -305,7 +305,7 @@ function confirmDeleteAll() {
           </div>
           <div class="flex gap-2">
             <input type="text" :value="currentBackupCode" readonly class="input input-sm input-bordered w-full font-mono text-xs bg-base-100" />
-            <button @click="copy(currentBackupCode)" class="btn btn-sm btn-neutral">
+            <button @click="copy(currentBackupCode)" class="btn btn-sm btn-primary">
               {{ copied ? '已复制' : '复制' }}
             </button>
           </div>
@@ -315,7 +315,7 @@ function confirmDeleteAll() {
           <button class="btn btn-outline btn-error w-full" @click="handleDeleteCurrent">
             🗑️ 清空当前对象 ({{ currentAvatar }}) 数据
           </button>
-          <button class="btn btn-ghost text-error/60 btn-sm hover:bg-error/10" @click="handleDeleteAll">
+          <button class="btn btn-primary text-error/60 btn-sm hover:bg-error/10" @click="handleDeleteAll">
             ⚠️ 删除所有缓存数据
           </button>
         </div>
@@ -324,13 +324,13 @@ function confirmDeleteAll() {
           <h4 class="text-error font-bold text-xl mb-2">⚠️ 最终确认</h4>
           <p class="text-sm opacity-70 mb-6 max-w-xs">这将彻底清除浏览器内保存的所有对象进度，且无法恢复。</p>
           <div class="flex gap-4 w-full">
-            <button class="btn btn-ghost flex-1" @click="showDeleteAllConfirm = false">取消</button>
+            <button class="btn btn-primary flex-1" @click="showDeleteAllConfirm = false">取消</button>
             <button class="btn btn-error flex-1 text-white" @click="confirmDeleteAll">确认删除</button>
           </div>
         </div>
 
         <form method="dialog" class="modal-backdrop mt-4">
-           <button class="btn btn-ghost w-full" @click="showManageModal = false">关闭</button>
+           <button class="btn btn-primary w-full" @click="showManageModal = false">关闭</button>
         </form>
       </div>
       <form method="dialog" class="modal-backdrop">
