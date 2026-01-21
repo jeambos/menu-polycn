@@ -4,9 +4,9 @@ import { onMounted } from 'vue';
 
 // --- 强制注入主题 ---
 onMounted(() => {
-  // 强制给 html 标签加上 data-theme="vitality"
-  document.documentElement.setAttribute('data-theme', 'vitality');
-  console.log('主题已强制设置为 vitality (活力橙)');
+  // 强制给 html 标签加上 data-theme="light"
+  document.documentElement.setAttribute('data-theme', 'light');
+  console.log('主题已强制设置为 light (浅色)');
 });
 
 </script>
