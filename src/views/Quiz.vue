@@ -234,7 +234,7 @@ function cheatFill() {
             <p class="py-4 text-sm opacity-80 leading-relaxed">
               建议您在本模块中保留 <strong>1~2 个</strong> 最关键的金星。<br/>
               如果一切都是重点，那么就没有重点了。<br/><br/>
-              其他的偏好，建议改为 <span class="text-[#0EA5E9] font-bold">同意 (蓝色)</span> 哦。
+              其他的偏好，建议改为 <span class="text-[#0EA5E9] font-bold">同意 (绿色)</span> 哦。
             </p>
             <div class="modal-action">
               <form method="dialog">
