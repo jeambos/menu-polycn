@@ -96,6 +96,12 @@
 
     <p>本站建立于2025年12月，还很年轻，非常需要大家的支持！资料不全还请大家海涵！</p>
 
+    <p>本配置单系统由 Jeambo 原创，并首发于 PolyCN。</p>
+
+    <p>本站内容采用 CC BY-NC-SA 4.0 协议。您可以自由复制、发性本作品，可以修改、转换或以本作品为基础进行创作，但是不得用于商业目的，必须署名（PolyCN），且不得更改许可协议（这意味着您的衍生作品也必须允许他人复制和修改）</p>
+
+    <p>本站代码开源在 <a href="https://github.com/jeambos/menu-polycn" target="_blank" >github.com/jeambos/menu-polycn</a>，采用 MIT 许可证。</p>
+
     <p>关于配置单系统，有任何修改意见，请通过以下渠道反馈，谢谢！</p>
 
     <div class="flex flex-wrap gap-4 mt-6 mb-6">
