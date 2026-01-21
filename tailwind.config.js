@@ -88,7 +88,7 @@ export default {
       {
         // --- 🌚 深色主题 (Dark: Black Gold Warmth) ---
         dark: {
-          "primary": "#ff7300",   // 保持活力橙
+          "primary": "#c96f24",   // 🔥 暖金橙
           "primary-content": "#ffffff",
           
           "secondary": "#ffbf00", 

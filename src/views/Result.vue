@@ -286,14 +286,14 @@ function handleClearData() {
         </div>
 
         <div class="relative">
-          <input v-model="inputMyCode" placeholder="粘贴你的代码 / Code A" class="w-full h-12 bg-white border border-base-content/20 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-base-content/30" />
+          <input v-model="inputMyCode" placeholder="粘贴你的代码 / Code A" class="w-full h-12 bg-base-100 border border-base-content/20 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-base-content/30" />
           <button @click="handlePaste('my')" class="absolute right-2 top-2 p-2 text-base-content/30 hover:text-black transition-colors">
             <i-ph-clipboard-text-bold class="text-xl"/>
           </button>
         </div>
 
         <div class="relative">
-          <input v-model="inputPartnerCode" placeholder="粘贴伴侣的代码 / Code B (可选)" class="w-full h-12 bg-white border border-base-content/20 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-base-content/30" />
+          <input v-model="inputPartnerCode" placeholder="粘贴伴侣的代码 / Code B (可选)" class="w-full h-12 bg-base-100 border border-base-content/20 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-base-content/30" />
           <button @click="handlePaste('partner')" class="absolute right-2 top-2 p-2 text-base-content/30 hover:text-black transition-colors">
             <i-ph-clipboard-text-bold class="text-xl"/>
           </button>
