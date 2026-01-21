@@ -14,7 +14,7 @@ export default defineConfig({
       resolvers: [
         // 自动解析图标组件
         IconsResolver({
-          prefix: 'icon', // 使用前缀，例如 <icon-ph-user />
+          prefix: 'i', // 使用前缀，例如 <i-ph-user />
           enabledCollections: ['ph', 'lucide'], // 启用 phosphor 和 lucide 图标集
         }),
       ],

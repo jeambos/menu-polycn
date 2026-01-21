@@ -60,8 +60,8 @@ function triggerStarConfetti(element: HTMLElement) {
       ></div>
 
       <div class="relative z-10">
-        <icon-ph-prohibit-inset-fill v-if="modelValue === 1" class="text-xl text-white drop-shadow-md animate-bounce-short" />
-        <icon-ph-prohibit v-else class="text-xl opacity-30 group-hover:opacity-100 text-red-500 transition-opacity" />
+        <i-ph-prohibit-inset-fill v-if="modelValue === 1" class="text-xl text-white drop-shadow-md animate-bounce-short" />
+        <i-ph-prohibit v-else class="text-xl opacity-30 group-hover:opacity-100 text-red-500 transition-opacity" />
       </div>
     </button>
 
@@ -75,8 +75,8 @@ function triggerStarConfetti(element: HTMLElement) {
       ></div>
 
       <div class="relative z-10">
-        <icon-ph-question-fill v-if="modelValue === 2" class="text-xl text-white drop-shadow-md animate-bounce-short" />
-        <icon-ph-question v-else class="text-xl opacity-30 group-hover:opacity-100 text-amber-500 transition-opacity" />
+        <i-ph-question-fill v-if="modelValue === 2" class="text-xl text-white drop-shadow-md animate-bounce-short" />
+        <i-ph-question v-else class="text-xl opacity-30 group-hover:opacity-100 text-amber-500 transition-opacity" />
       </div>
     </button>
 
@@ -90,8 +90,8 @@ function triggerStarConfetti(element: HTMLElement) {
       ></div>
 
       <div class="relative z-10">
-        <icon-ph-check-circle-fill v-if="modelValue === 3" class="text-xl text-white drop-shadow-md animate-bounce-short" />
-        <icon-ph-check-circle v-else class="text-xl opacity-30 group-hover:opacity-100 text-emerald-500 transition-opacity" />
+        <i-ph-check-circle-fill v-if="modelValue === 3" class="text-xl text-white drop-shadow-md animate-bounce-short" />
+        <i-ph-check-circle v-else class="text-xl opacity-30 group-hover:opacity-100 text-emerald-500 transition-opacity" />
       </div>
     </button>
 
@@ -106,8 +106,8 @@ function triggerStarConfetti(element: HTMLElement) {
       ></div>
 
       <div class="relative z-10">
-        <icon-ph-star-fill v-if="modelValue === 4" class="text-xl text-white drop-shadow-md animate-bounce-short" />
-        <icon-ph-star v-else class="text-xl opacity-30 group-hover:opacity-100 text-[#D97706] transition-opacity" />
+        <i-ph-star-fill v-if="modelValue === 4" class="text-xl text-white drop-shadow-md animate-bounce-short" />
+        <i-ph-star v-else class="text-xl opacity-30 group-hover:opacity-100 text-[#D97706] transition-opacity" />
       </div>
     </button>
 
