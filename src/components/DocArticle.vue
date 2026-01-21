@@ -69,13 +69,14 @@
     </ul>
 
     <h4 class="text-primary/80 text-lg font-bold mt-6 mb-2">右上角菜单</h4>
-    <p>这里是一个简陋的控制中心，您可以在这里</p>
+    <p>这里是一个简单的控制中心，您可以在这里</p>
     <ul class="list-disc pl-5 space-y-1">
       <li>切换夜间模式</li>
       <li>切换字号</li>
       <li>查看 / 删除浏览器缓存中的问卷信息</li>
       <li>备份数据</li>
       <li>清空数据</li>
+      <li>返回首页</li>
     </ul>
 
     <h2 class="text-primary border-b border-primary/10 pb-2">目前不考虑做的功能</h2>
