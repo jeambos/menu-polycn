@@ -209,6 +209,22 @@ function handleCompare() {
             <div v-if="errorMsg" class="absolute -bottom-10 left-0 right-0 text-center text-red-500 text-sm font-bold animate-shake">
               {{ errorMsg }}
             </div>
+
+           
+
+        <div class="w-full flex justify-center">
+  <div 
+    @click="router.push('/doc')"
+    class="mt-12 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-400 hover:text-black cursor-pointer transition-all duration-300 group"
+  >
+    <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+      <i-ph-read-cv-logo-bold class="text-lg" />
+    </div>
+    <span class="border-b border-transparent group-hover:border-black pb-0.5">帮助 / 关于</span>
+  </div>
+</div>
+
+
           </div>
         </div>
       </div>

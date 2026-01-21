@@ -58,6 +58,7 @@ declare module 'vue' {
     IPhQuestion: typeof import('~icons/ph/question')['default']
     IPhQuestionBold: typeof import('~icons/ph/question-bold')['default']
     IPhQuestionFill: typeof import('~icons/ph/question-fill')['default']
+    IPhReadCvLogoBold: typeof import('~icons/ph/read-cv-logo-bold')['default']
     IPhShareFatBold: typeof import('~icons/ph/share-fat-bold')['default']
     IPhShareNetworkBold: typeof import('~icons/ph/share-network-bold')['default']
     IPhStar: typeof import('~icons/ph/star')['default']
