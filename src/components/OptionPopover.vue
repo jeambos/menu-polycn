@@ -3,11 +3,12 @@ import { ref, computed } from 'vue';
 import { useFloating, autoUpdate, offset, flip, shift, arrow } from '@floating-ui/vue';
 import { onClickOutside } from '@vueuse/core';
 import type { Question, Attitude } from '../types';
-import AttitudeIcon from './AttitudeIcon.vue';
+
+// ❌ 移除 AttitudeIcon 引用，减少依赖
+// import AttitudeIcon from './AttitudeIcon.vue';
 
 const props = defineProps<{
   question: Question;
-  // ✅ 核心修改：增加 attitude 字段
   selections: { avatar: string; index: number; attitude: Attitude }[]; 
   isOpen: boolean;
 }>();
@@ -48,6 +49,10 @@ const arrowStyle = computed(() => {
   };
 });
 
+// 辅助函数：判断某选项是否有被选
+function hasSelection(idx: number) {
+  return props.selections.some(s => s.index === idx);
+}
 </script>
 
 <template>
@@ -64,7 +69,7 @@ const arrowStyle = computed(() => {
       v-if="isOpen"
       ref="floatingRef"
       :style="floatingStyles"
-      class="z-[9999] w-64 text-sm font-sans"
+      class="z-[9999] w-72 text-sm font-sans"
     >
       <div class="bg-neutral text-neutral-content rounded-xl shadow-xl p-3 relative animate-in fade-in zoom-in-95 duration-200 border border-white/10">
         
@@ -74,31 +79,49 @@ const arrowStyle = computed(() => {
           :style="arrowStyle"
         ></div>
 
-        <div class="font-bold opacity-60 text-xs mb-2 border-b border-white/10 pb-1">
+        <div class="font-bold opacity-60 text-xs mb-3 border-b border-white/10 pb-2">
           {{ question.title }}
         </div>
 
-        <div class="flex flex-col gap-1.5">
+        <div class="flex flex-col gap-2">
           <div 
             v-for="(opt, idx) in question.options" 
             :key="idx"
-            class="relative pl-2 py-1.5 rounded transition-colors"
-            :class="{ 'bg-white/10': selections.some(s => s.index === idx) }"
+            class="relative p-2 rounded transition-colors flex flex-col gap-1.5"
+            :class="{ 'bg-white/5': hasSelection(idx) }"
           >
-            <div class="text-xs leading-tight pr-10 opacity-90">
+            <div 
+              class="text-xs leading-relaxed"
+              :class="hasSelection(idx) ? 'opacity-100 font-bold text-white' : 'opacity-50'"
+            >
               {{ typeof opt === 'string' ? opt : opt.long }}
             </div>
 
-            <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col items-end gap-0.5">
+            <div v-if="hasSelection(idx)" class="flex flex-wrap gap-2 mt-0.5">
               <div 
-                v-for="sel in selections.filter(s => s.index === idx)" 
-                :key="sel.avatar"
-                class="flex items-center gap-1 bg-black/20 px-1.5 py-0.5 rounded text-[10px]"
+                v-for="(sel, sIdx) in selections.filter(s => s.index === idx)" 
+                :key="sIdx"
+                class="flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-bold border border-white/5"
+                :class="[
+                  // 🎨 诊断染色法：根据 attitude 强制变色
+                  Number(sel.attitude) === 4 ? 'bg-warning/20 text-amber-300' :
+                  Number(sel.attitude) === 1 ? 'bg-error/20 text-red-300' :
+                  Number(sel.attitude) === 3 ? 'bg-success/20 text-green-300' :
+                  Number(sel.attitude) === 2 ? 'bg-info/20 text-blue-300' : 
+                  'bg-white/10 text-gray-300'
+                ]"
               >
-                <span><AttitudeIcon :attitude="sel.attitude" size="text-xs" /></span>
-                <span class="opacity-80">{{ sel.avatar }}</span>
+                <span class="opacity-90">{{ sel.avatar }}</span>
+                
+                <i-ph-star-fill      v-if="Number(sel.attitude) === 4" class="text-xs" />
+                <i-ph-x-bold         v-else-if="Number(sel.attitude) === 1" class="text-xs" />
+                <i-ph-check-bold     v-else-if="Number(sel.attitude) === 3" class="text-xs" />
+                <i-ph-question-bold  v-else-if="Number(sel.attitude) === 2" class="text-xs" />
+                
+                <span v-else class="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>
               </div>
             </div>
+            
           </div>
         </div>
 
