@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 
-// --- 低饱和度配色方案 (Morandi Palette) ---
-// F(前): 玫瑰粉, B(后): 蜜桃橘, R(右): 雾霾蓝, L(左): 鼠尾草绿, U(上): 奶油白, D(下): 高级灰
+// --- 低饱和度莫兰迪配色 ---
 const colors = {
   F: '#E5989B', // Muted Pink
   B: '#F4A261', // Muted Orange
@@ -13,45 +12,44 @@ const colors = {
 };
 
 // --- 状态管理 ---
-const rotations = ref([0, 0, 0]); // 存储三层 (上中下) 的旋转角度 [y1, y2, y3]
-let intervalId: number | null = null;
+// 仅控制三层 (上中下) 的水平旋转
+const layerRotations = ref([0, 0, 0]); 
+let layerInterval: number | null = null;
 
 // --- 动画逻辑 ---
-function randomRotate() {
-  // 1. 随机选择一层 (0: Top, 1: Mid, 2: Bot)
+function rotateLayer() {
+  // 随机选择一层 (0, 1, 2)
   const layerIndex = Math.floor(Math.random() * 3);
-  
-  // 2. 随机决定顺时针还是逆时针 (90度 或 -90度)
+  // 随机顺时针或逆时针
   const direction = Math.random() > 0.5 ? 90 : -90;
   
-  // 3. 更新该层的角度
-  rotations.value[layerIndex] += direction;
+  layerRotations.value[layerIndex] += direction;
 }
 
 onMounted(() => {
-  // 启动随机旋转循环 (每2.5秒转一次，慢一点更优雅)
-  intervalId = window.setInterval(randomRotate, 2500);
-  
-  // 初始化先转一下，避免太死板
-  setTimeout(randomRotate, 500);
+  // 每 2.5 秒转动一次内部，慢一点显得优雅
+  layerInterval = window.setInterval(rotateLayer, 2500);
+  setTimeout(rotateLayer, 500);
 });
 
 onUnmounted(() => {
-  if (intervalId) clearInterval(intervalId);
+  if (layerInterval) clearInterval(layerInterval);
 });
 </script>
 
 <template>
-  <div class="cube-container">
+  <div class="cube-scene">
     <div class="cube-wrapper">
       
       <div 
-        v-for="(angle, index) in rotations" 
+        v-for="(angle, index) in layerRotations" 
         :key="index"
         class="cube-layer"
         :style="{ 
-          transform: `translateY(${(index - 1) * 22}px) rotateY(${angle}deg)`,
-          zIndex: 2 - index 
+          // 36px 是单层高度 + 间隙
+          transform: `translateY(${(index - 1) * 36}px) rotateY(${angle}deg)`,
+          // 关键修复：给中间层更低的 z-index，防止透视 Bug
+          zIndex: index === 1 ? 1 : 2 
         }"
       >
         <div class="face front" :style="{ '--c': colors.F }">
@@ -79,8 +77,8 @@ onUnmounted(() => {
           <div class="sticker"></div><div class="sticker"></div><div class="sticker"></div>
         </div>
         
-        <div v-if="index !== 0" class="face inner-top"></div>
-        <div v-if="index !== 2" class="face inner-bottom"></div>
+        <div v-if="index !== 0" class="face inner-cap top-cap"></div>
+        <div v-if="index !== 2" class="face inner-cap bottom-cap"></div>
 
       </div>
     </div>
@@ -88,12 +86,19 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* --- 容器与透视 --- */
-.cube-container {
-  width: 100px;
-  height: 100px;
-  perspective: 800px;
-  /* 整体微调位置 */
+/* --- 配置参数 --- */
+/* 魔方整体大小由此控制 */
+:root {
+  --cube-size: 100px; /* 单个面的宽度 */
+  --layer-h: 34px;    /* 单层高度 */
+  --gap: 2px;         /* 贴纸间隙 */
+}
+
+/* --- 场景容器 --- */
+.cube-scene {
+  width: 140px;  /* 容器宽度 */
+  height: 140px; /* 容器高度 */
+  perspective: 1000px; /* 透视深度 */
   margin-bottom: 20px;
 }
 
@@ -102,84 +107,86 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  /* 整体自带一个优雅的倾斜角度，展示立体感 */
-  transform: rotateX(-25deg) rotateY(-30deg);
-  animation: float-rotate 20s infinite linear;
+  /* 这里的动画让魔方整体在空间中缓慢翻滚 */
+  animation: auto-tumble 12s infinite linear;
 }
 
-/* 整体缓慢自转，展示所有面 */
-@keyframes float-rotate {
-  0% { transform: rotateX(-25deg) rotateY(-30deg); }
-  50% { transform: rotateX(-25deg) rotateY(-50deg); }
-  100% { transform: rotateX(-25deg) rotateY(-30deg); }
+/* 优雅的整体翻滚动画：绕X轴和Y轴同时旋转 */
+@keyframes auto-tumble {
+  0% { transform: rotateX(-20deg) rotateY(0deg); }
+  25% { transform: rotateX(-35deg) rotateY(90deg); }
+  50% { transform: rotateX(-20deg) rotateY(180deg); }
+  75% { transform: rotateX(-5deg) rotateY(270deg); }
+  100% { transform: rotateX(-20deg) rotateY(360deg); }
 }
 
-/* --- 切片层 (Layers) --- */
+/* --- 切片层 --- */
 .cube-layer {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 60px; /* 魔方宽度 */
-  height: 20px; /* 单层高度 */
-  margin-left: -30px;
-  margin-top: -10px;
+  width: 100px; /* 宽度加大 */
+  height: 34px; /* 高度加大 */
+  margin-left: -50px;
+  margin-top: -17px;
   transform-style: preserve-3d;
-  transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1); /* 丝滑转动 */
+  transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
 /* --- 面 (Faces) --- */
 .face {
   position: absolute;
   display: grid;
-  gap: 2px;
-  background: #1e1e1e; /* 黑色塑料基底 */
-  border: 1px solid #1e1e1e;
-  /* 默认背面不可见，防止视觉干扰 */
-  backface-visibility: hidden; 
+  gap: 3px;
+  background: #18181b; /* Zinc-900 黑色基底 */
+  border: 1px solid #18181b;
+  backface-visibility: hidden; /* 关键：防止背面闪烁 */
 }
 
-/* 侧面贴纸布局: 1行3列 */
+/* 侧面布局 */
 .face.front, .face.back, .face.right, .face.left {
-  width: 60px;
-  height: 20px;
+  width: 100px;
+  height: 34px;
   grid-template-columns: repeat(3, 1fr);
-  padding: 1px;
+  padding: 2px;
 }
 
-/* 顶面底面贴纸布局: 3行3列 */
+/* 顶面底面布局 */
 .face.top, .face.bottom {
-  width: 60px;
-  height: 60px;
+  width: 100px;
+  height: 100px;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  padding: 1px;
+  padding: 2px;
 }
 
-/* --- 面的位置变换 --- */
-.front  { transform: translateZ(30px); }
-.back   { transform: rotateY(180deg) translateZ(30px); }
-.right  { transform: rotateY(90deg) translateZ(30px); }
-.left   { transform: rotateY(-90deg) translateZ(30px); }
-.top    { transform: rotateX(90deg) translateZ(30px); }
-.bottom { transform: rotateX(-90deg) translateZ(30px); }
-
-/* 内部补肉层 */
-.inner-top { 
-  width: 60px; height: 60px; background: #000; 
-  transform: rotateX(90deg) translateZ(10px); 
-}
-.inner-bottom { 
-  width: 60px; height: 60px; background: #000; 
-  transform: rotateX(-90deg) translateZ(10px); 
+/* 内部盖板 (纯黑) */
+.face.inner-cap {
+  width: 100px;
+  height: 100px;
+  background: #000;
+  padding: 0;
 }
 
-/* --- 贴纸 (Stickers) --- */
+/* --- 面的 3D 位置变换 (基于宽100px -> 半径50px) --- */
+.front  { transform: translateZ(50px); }
+.back   { transform: rotateY(180deg) translateZ(50px); }
+.right  { transform: rotateY(90deg) translateZ(50px); }
+.left   { transform: rotateY(-90deg) translateZ(50px); }
+.top    { transform: rotateX(90deg) translateZ(50px); }
+.bottom { transform: rotateX(-90deg) translateZ(50px); }
+
+/* 内部盖板位置 (稍微向内收一点点 16px，避免接触) */
+.top-cap    { transform: rotateX(90deg) translateZ(16px); }
+.bottom-cap { transform: rotateX(-90deg) translateZ(16px); }
+
+/* --- 贴纸 --- */
 .sticker {
   width: 100%;
   height: 100%;
   background-color: var(--c);
-  border-radius: 2px; /* 小圆角，增加精致感 */
-  /* 给贴纸加一点内阴影，增加质感 */
-  box-shadow: inset 0 0 2px rgba(0,0,0,0.2); 
+  border-radius: 4px; /* 更圆润一点 */
+  /* 内发光增加质感 */
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.1); 
 }
 </style>
