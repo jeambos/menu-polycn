@@ -1,397 +1,406 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useClipboard } from '@vueuse/core';
-import { useConfigStore } from '../stores/useConfigStore';
-import { encode, decode } from '../logic/codec';
+import { decode } from '../logic/codec';
 import questionsData from '../data/questions.json';
 import type { Attitude, Module } from '../types';
+import CompareDashboard from '../components/CompareDashboard.vue'; 
 import OptionPopover from '../components/OptionPopover.vue';
-import BaseModal from '../components/BaseModal.vue';
 
-// 🌟 图标引入
-import IconXBold from '~icons/ph/x-bold';
-import IconCopy from '~icons/ph/copy-bold';
-import IconCheck from '~icons/ph/check-bold';
+// 🌟 引入 Phosphor 图标
+import IconSwords from '~icons/ph/sword-bold';             // 冲突
+import IconHandshake from '~icons/ph/handshake-bold';       // 共振
+import IconChatsCircle from '~icons/ph/chats-circle-bold';  // 沟通
+import IconArrowsLeftRight from '~icons/ph/arrows-left-right-bold'; // 协商
+import IconFunnel from '~icons/ph/funnel-bold';             // 筛选漏斗
+import IconCheck from '~icons/ph/check-bold';               // 选中对勾
+import IconLightning from '~icons/ph/lightning-fill';       // 强调
+
+// 引入态度图标用于 Badge 内部微缩显示 (可选，增强信息密度)
 import IconStarFill from '~icons/ph/star-fill';
-import IconWarningCircle from '~icons/ph/warning-circle-bold';
-import IconShareFat from '~icons/ph/share-fat-bold';
-import IconArrowCounterClockwise from '~icons/ph/arrow-counter-clockwise-bold';
-import IconFunnel from '~icons/ph/funnel-bold';
+import IconXBold from '~icons/ph/x-bold';
+import IconCheckBold from '~icons/ph/check-bold';
+import IconQuestionBold from '~icons/ph/question-bold';
 
 const route = useRoute();
 const router = useRouter();
-const store = useConfigStore();
-const { copy, copied } = useClipboard();
 
 // --- 类型定义 ---
-interface ResultItem { 
+interface CompareItem { 
   id: string; 
   title: string; 
   choice: string; 
-  attitude: Attitude; 
   moduleId: string; 
   moduleName: string; 
-  questionId: string;
+  myAttitude: Attitude; 
+  partnerAttitude: Attitude; 
   originalQuestion: any;
-  optionIndex: number;
+  myOptionIndex: number;
+  partnerOptionIndex: number;
 }
-interface ModuleGroup { id: string; name: string; items: ResultItem[]; }
+interface ModuleGroup { id: string; name: string; items: CompareItem[]; }
 
-// --- 状态变量 ---
-const isPreviewMode = ref(false);
-const displayAnswers = ref<Record<string, Attitude[]>>({});
-const resultAvatar = ref('🌏');
-
-// 筛选相关
 const allModules = (questionsData.modules as unknown) as Module[];
-const activeModuleIds = ref<string[]>([]);
+const selectedModuleIds = ref<string[]>(allModules.map(m => m.id));
 
-// 结果分组
-const redGroups = ref<ModuleGroup[]>([]);    
-const goldGroups = ref<ModuleGroup[]>([]);   
-const yellowGroups = ref<ModuleGroup[]>([]); 
-const greenItems = ref<ResultItem[]>([]);    
+const listResonance = ref<CompareItem[]>([]); 
+const listCritical = ref<CompareItem[]>([]);  
+const listDiscuss = ref<CompareItem[]>([]);   
+const listNegotiate = ref<CompareItem[]>([]); 
 
-// 弹窗与卡片控制
-const showClearModal = ref(false);
-const showCodeHintModal = ref(false); 
-const showCodeCard = ref(true); 
-const hasClosedCodeCard = ref(false); 
+const myAvatar = ref('😎');
+const partnerAvatar = ref('😎');
 
+// Popover 状态
 const activePopoverId = ref<string | null>(null);
-
 function togglePopover(id: string) {
   activePopoverId.value = activePopoverId.value === id ? null : id;
 }
 
-// --- 计算属性 ---
-const pageTitle = computed(() => {
-  if (resultAvatar.value === '🌏') return '关系配置单';
-  return `我和 ${resultAvatar.value} 的配置单`;
+const hasData = computed(() => {
+  return listResonance.value.length + listCritical.value.length + listDiscuss.value.length + listNegotiate.value.length > 0;
 });
 
-const availableModules = computed(() => {
-  if (isPreviewMode.value) {
-    return allModules.filter(m => 
-      m.questions.some(q => displayAnswers.value[q.id] !== undefined)
-    );
-  } else {
-    return allModules.filter(m => store.isModuleEnabled(m.id));
-  }
-});
-
-const fullCode = computed(() => {
-  if (isPreviewMode.value) return route.query.code as string || '';
-  return encode(store.answers, resultAvatar.value);
-});
-
-// --- 核心逻辑 ---
-
-function toggleModuleFilter(moduleId: string) {
-  if (moduleId === 'A') return; 
-  const idx = activeModuleIds.value.indexOf(moduleId);
-  if (idx > -1) activeModuleIds.value.splice(idx, 1);
-  else activeModuleIds.value.push(moduleId);
-}
-
-function groupItemsByModule(items: ResultItem[]): ModuleGroup[] {
+// 分组与筛选逻辑
+function groupAndFilter(items: CompareItem[]): ModuleGroup[] {
+  const filtered = items.filter(i => selectedModuleIds.value.includes(i.moduleId));
   const map = new Map<string, ModuleGroup>();
-  items.forEach(item => {
+  filtered.forEach(item => {
     if (!map.has(item.moduleId)) map.set(item.moduleId, { id: item.moduleId, name: item.moduleName, items: [] });
     map.get(item.moduleId)!.items.push(item);
   });
   return Array.from(map.values());
 }
 
-function processZoneData(answers: Record<string, Attitude[]>) {
-  const rList: ResultItem[] = [], gCoreList: ResultItem[] = [], yList: ResultItem[] = [], greenList: ResultItem[] = [];
-  const targetModules = allModules.filter(m => activeModuleIds.value.includes(m.id));
+const groupsResonance = computed(() => groupAndFilter(listResonance.value));
+const groupsCritical = computed(() => groupAndFilter(listCritical.value));
+const groupsDiscuss = computed(() => groupAndFilter(listDiscuss.value));
+const groupsNegotiate = computed(() => groupAndFilter(listNegotiate.value));
 
-  targetModules.forEach(m => {
+// 滚动定位
+function scrollToZone(elementId: string) {
+  const el = document.getElementById(elementId);
+  if (el) {
+    const offset = 100; 
+    const elementPosition = el.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - offset;
+    window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+    // 闪烁高亮动画
+    el.classList.add('animate-flash');
+    setTimeout(() => el.classList.remove('animate-flash'), 1000);
+  }
+}
+
+// 核心比对逻辑
+function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, Attitude[]>) {
+  const nList: CompareItem[] = [], hList: CompareItem[] = [], rList: CompareItem[] = [], dList: CompareItem[] = [];
+  
+  allModules.forEach(m => {
     const cleanModuleName = m.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '');
 
     m.questions.forEach(q => {
-      const states = answers[q.id];
-      if (!states) return;
+      const myStates = myMap[q.id]; 
+      const partnerStates = partnerMap[q.id];
+      
+      if (!myStates || !partnerStates) return;
+      
+      q.options.forEach((opt, index) => {
+        const a = (myStates[index] || 0) as Attitude;
+        const b = (partnerStates[index] || 0) as Attitude;
+        
+        if (a === 0 || b === 0) return;
 
-      states.forEach((att, optIndex) => {
-        if (att === 0) return;
-        const opt = q.options[optIndex];
         const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
 
-        const item: ResultItem = {
-          id: q.id + '_' + optIndex,
-          questionId: q.id, 
+        const item: CompareItem = {
+          id: q.id + '_' + index, 
           title: q.title_short || q.title, 
-          choice: choiceText,
-          attitude: att,
-          moduleId: m.id,
+          choice: choiceText,             
+          moduleId: m.id, 
           moduleName: cleanModuleName,
+          myAttitude: a, 
+          partnerAttitude: b,
           originalQuestion: q, 
-          optionIndex: optIndex 
+          myOptionIndex: index, 
+          partnerOptionIndex: index
         };
 
-        if (att === 1) rList.push(item);
-        else if (att === 4) gCoreList.push(item);
-        else if (att === 2) yList.push(item);
-        else if (att === 3) greenList.push(item);
+        // 逻辑分类
+        if (a === 2 || b === 2) dList.push(item); // 任意一方是"?" -> 待厘清
+        else if ((a === 4 && b === 1) || (a === 1 && b === 4)) nList.push(item); // 金星撞红线 -> 核心冲突
+        else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) rList.push(item); // 都是接受或都是拒绝 -> 共振
+        else hList.push(item); // 其他 -> 协商
       });
     });
   });
 
-  redGroups.value = groupItemsByModule(rList);
-  goldGroups.value = groupItemsByModule(gCoreList);
-  yellowGroups.value = groupItemsByModule(yList);
-  greenItems.value = greenList;
+  listResonance.value = rList;
+  listCritical.value = nList;
+  listDiscuss.value = dList;
+  listNegotiate.value = hList;
 }
 
-function handleCloseCodeCard() {
-  showCodeCard.value = false;
-  if (!hasClosedCodeCard.value) {
-    showCodeHintModal.value = true;
-    hasClosedCodeCard.value = true;
-  }
+// 筛选控制
+function toggleFilter(modId: string) {
+  if (selectedModuleIds.value.includes(modId)) {
+    if (selectedModuleIds.value.length > 1) selectedModuleIds.value = selectedModuleIds.value.filter(id => id !== modId);
+  } else selectedModuleIds.value.push(modId);
 }
-
-function handleReopenCodeCard() {
-  showCodeCard.value = true;
-  hasClosedCodeCard.value = true;
-  setTimeout(() => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-  }, 100);
+function toggleAllFilters() {
+  selectedModuleIds.value.length === allModules.length ? selectedModuleIds.value = ['A'] : selectedModuleIds.value = allModules.map(m => m.id);
 }
-
-function handleClearData() {
-  store.resetAll();
-  localStorage.removeItem('config_store');
-  localStorage.removeItem('quiz_index');
-  showClearModal.value = false;
-  router.push('/');
-}
-
-watch(activeModuleIds, () => {
-  processZoneData(displayAnswers.value);
-}, { deep: true });
 
 onMounted(() => {
-  const codeParam = route.query.code as string;
-  if (codeParam) {
-    isPreviewMode.value = true;
+  const myCode = route.query.my as string;
+  const partnerCode = route.query.partner as string;
+  if (myCode && partnerCode) {
     try {
-      const res = decode(codeParam);
-      displayAnswers.value = res.answers as Record<string, Attitude[]>;
-      resultAvatar.value = res.avatar; 
+      const res1 = decode(myCode);
+      const res2 = decode(partnerCode);
+      
+      myAvatar.value = res2.avatar; // 注意：解码逻辑可能因版本不同而异，这里保持原逻辑
+      partnerAvatar.value = res1.avatar;
+
+      const myAnswers = res1.answers as Record<string, Attitude[]>;
+      const partnerAnswers = res2.answers as Record<string, Attitude[]>;
+      
+      analyze(myAnswers, partnerAnswers);
     } catch (e) { console.error(e); }
   } else {
-    displayAnswers.value = store.answers;
-    if (store.targetAvatar) resultAvatar.value = store.targetAvatar;
+    router.push('/');
   }
-  activeModuleIds.value = availableModules.value.map(m => m.id);
-  processZoneData(displayAnswers.value);
 });
 </script>
 
 <template>
-  <div class="pb-32 pt-10 px-6 max-w-3xl mx-auto min-h-screen font-sans text-base">
+  <div class="pb-32 pt-6 px-6 max-w-3xl mx-auto min-h-screen font-sans text-base">
     
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-bold text-base-content tracking-tight mb-2">
-        {{ pageTitle }}
-      </h2>
-      <p class="text-sm text-base-content/40 uppercase tracking-widest font-medium">Manifesto Generated</p>
-    </div>
-
-    <div class="mb-10">
-      <div class="flex items-center justify-center gap-2 mb-3 opacity-40">
-        <IconFunnel />
-        <span class="text-xs font-bold uppercase tracking-wider">显示模块 / Filter Modules</span>
-      </div>
-      <div class="flex flex-wrap gap-3 justify-center">
-        <button 
-          v-for="mod in availableModules" 
-          :key="mod.id"
-          @click="toggleModuleFilter(mod.id)"
-          class="btn btn-sm h-9 px-4 rounded-full transition-all border shadow-sm"
-          :class="[
-            activeModuleIds.includes(mod.id) 
-              ? 'bg-base-content text-base-100 border-base-content hover:bg-base-content/80' 
-              : 'bg-base-100 text-base-content/60 border-base-content/10 hover:border-base-content/30 hover:bg-base-200',
-            mod.id === 'A' ? 'cursor-not-allowed opacity-80' : ''
-          ]"
-        >
-          {{ mod.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '') }}
-        </button>
-      </div>
-    </div>
-
-    <Transition name="fade">
-      <div v-if="showCodeCard && !hasClosedCodeCard" class="mb-12 relative group animate-fade-in-up">
-        <div class="bg-base-100 border border-base-content/10 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <button 
-            @click="handleCloseCodeCard"
-            class="absolute top-3 right-3 btn btn-xs btn-circle btn-ghost text-base-content/30 hover:text-base-content z-10"
-            title="关闭卡片"
-          >
-            <IconXBold />
+    <div class="sticky top-4 z-40 mb-8">
+      <div class="bg-base-100/80 backdrop-blur-md shadow-sm border border-base-content/5 rounded-2xl p-3 flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2 opacity-60">
+            <IconFunnel class="text-sm" />
+            <span class="text-xs font-bold uppercase tracking-wider">Filter / 筛选模块</span>
+          </div>
+          <button @click="toggleAllFilters" class="btn btn-xs btn-ghost text-xs h-auto py-1">
+            {{ selectedModuleIds.length === allModules.length ? '取消全选' : '全选' }}
           </button>
+        </div>
+        
+        <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto no-scrollbar">
+          <button 
+            v-for="mod in allModules" :key="mod.id" @click="toggleFilter(mod.id)"
+            class="btn btn-xs h-7 px-3 rounded-full transition-all border"
+            :class="selectedModuleIds.includes(mod.id) 
+              ? 'bg-base-content text-base-100 border-base-content' 
+              : 'bg-transparent text-base-content/50 border-base-content/10 hover:bg-base-200'"
+          >
+            {{ mod.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '') }}
+          </button>
+        </div>
+      </div>
+    </div>
 
-          <div class="flex flex-col gap-4">
-            <div class="flex items-center gap-2 text-xs font-bold text-base-content/40 uppercase tracking-wider">
-              <IconShareFat class="text-sm" />
-              <span>Result Code</span>
-            </div>
-            
-            <div class="bg-base-200/50 rounded-lg p-4 font-mono text-sm break-all text-base-content/70 leading-relaxed border border-base-content/5 selection:bg-primary/20">
-              {{ fullCode }}
-            </div>
+    <div v-if="hasData" class="mb-12 animate-fade-in-up">
+      <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-2 inline-block">
+          关系对照协议
+        </h2>
+        <div class="flex justify-center items-center gap-4 text-sm font-bold opacity-60 mt-2">
+          <span class="px-2 py-1 bg-base-200 rounded-lg">{{ myAvatar }} 我方</span>
+          <span class="text-xs">VS</span>
+          <span class="px-2 py-1 bg-base-200 rounded-lg">{{ partnerAvatar }} 对方</span>
+        </div>
+      </div>
+      
+      <div class="flex justify-center">
+        <CompareDashboard 
+          :counts="{
+            resonance: listResonance.length,
+            critical: listCritical.length,
+            discuss: listDiscuss.length,
+            negotiate: listNegotiate.length
+          }"
+          @scroll-to="scrollToZone"
+        />
+      </div>
+    </div>
 
-            <button 
-              @click="copy(fullCode)" 
-              class="btn btn-md w-full btn-neutral gap-2 rounded-lg text-white"
+    <div class="flex flex-col gap-10">
+
+      <div id="zone-critical" class="scroll-mt-32">
+        <div v-if="groupsCritical.length > 0" class="animate-fade-in-up">
+          <div class="flex items-center gap-2 mb-4 px-1 text-error">
+            <IconSwords class="text-2xl drop-shadow-sm" />
+            <div>
+              <h3 class="text-lg font-bold uppercase tracking-wider leading-none">Critical Conflict</h3>
+              <p class="text-xs opacity-60 font-bold mt-1">核心关注 / 需优先解决的硬伤</p>
+            </div>
+          </div>
+          
+          <div class="flex flex-col gap-6">
+            <div 
+              v-for="group in groupsCritical" 
+              :key="group.id" 
+              class="bg-base-100 border-l-4 border-error rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
             >
-              <IconCheck v-if="copied" />
-              <IconCopy v-else />
-              <span v-if="copied">已复制</span>
-              <span v-else>复制配置代码</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <div class="space-y-10">
-
-      <div v-if="goldGroups.length > 0" class="animate-fade-in-up">
-        <div class="flex items-center gap-2 mb-4 px-1">
-          <IconStarFill class="text-amber-500 text-xl" />
-          <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Must Haves / 核心需求</span>
-        </div>
-        
-        <div class="flex flex-col gap-6">
-          <div 
-            v-for="group in goldGroups" 
-            :key="group.id" 
-            class="bg-base-100 border-l-4 border-amber-500 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
-          >
-            <h3 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest">{{ group.name }}</h3>
-            <div class="flex flex-wrap gap-3">
-              <div v-for="item in group.items" :key="item.id">
-                <OptionPopover 
-                  :question="item.originalQuestion" 
-                  :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]"
-                  :is-open="activePopoverId === item.id"
-                  @toggle="togglePopover(item.id)"
-                  @close="activePopoverId = null"
-                >
-                  <div class="badge h-auto py-2.5 px-4 gap-2 cursor-pointer hover:scale-105 transition-transform bg-gradient-to-br from-neutral to-black border border-white/10 shadow-sm rounded-lg">
-                    <span class="text-white/60 text-sm font-normal border-r border-white/10 pr-2 mr-0.5">
-                      {{ item.title }}
-                    </span>
-                    <span class="text-amber-400 font-bold text-sm flex items-center gap-1">
-                      {{ item.choice }}
-                    </span>
-                  </div>
-                </OptionPopover>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="redGroups.length > 0" class="animate-fade-in-up delay-100">
-        <div class="flex items-center gap-2 mb-4 px-1">
-          <IconXBold class="text-error text-xl" />
-          <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Deal Breakers / 硬边界</span>
-        </div>
-        
-        <div class="flex flex-col gap-6">
-          <div 
-            v-for="group in redGroups" 
-            :key="group.id" 
-            class="bg-base-100 border-l-4 border-error rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
-          >
-            <h3 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest">{{ group.name }}</h3>
-            <div class="flex flex-wrap gap-3">
-              <div v-for="item in group.items" :key="item.id">
-                <OptionPopover 
-                  :question="item.originalQuestion" 
-                  :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]"
-                  :is-open="activePopoverId === item.id"
-                  @toggle="togglePopover(item.id)"
-                  @close="activePopoverId = null"
-                >
-                  <div class="badge badge-outline border-error/50 text-error h-auto py-2.5 px-4 gap-2 cursor-pointer hover:bg-error/5 transition-colors bg-base-100 rounded-lg">
-                    <span class="opacity-70 text-sm font-normal border-r border-error/20 pr-2 mr-0.5">
-                      {{ item.title }}
-                    </span>
-                    <span class="font-bold text-sm">{{ item.choice }}</span>
-                  </div>
-                </OptionPopover>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="yellowGroups.length > 0" class="animate-fade-in-up delay-200">
-        <div class="flex items-center gap-2 mb-4 px-1">
-          <span class="text-warning text-xl font-bold">?</span>
-          <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Soft Limits / 待商议</span>
-        </div>
-        
-        <div class="flex flex-col gap-6">
-          <div 
-            v-for="group in yellowGroups" 
-            :key="group.id" 
-            class="bg-base-100 border-l-4 border-warning/50 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
-          >
-            <h3 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest">{{ group.name }}</h3>
-            <div class="flex flex-wrap gap-3">
-              <div v-for="item in group.items" :key="item.id">
-                <OptionPopover 
-                  :question="item.originalQuestion" 
-                  :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]"
-                  :is-open="activePopoverId === item.id"
-                  @toggle="togglePopover(item.id)"
-                  @close="activePopoverId = null"
-                >
-                  <div class="badge border-none text-base-content/80 h-auto py-2.5 px-4 gap-2 bg-warning/20 cursor-pointer hover:bg-warning/30 transition-colors rounded-lg">
-                    <span class="opacity-50 text-sm font-normal border-r border-base-content/10 pr-2 mr-0.5">
-                      {{ item.title }}
-                    </span>
-                    <span class="font-medium text-sm">{{ item.choice }}</span>
-                  </div>
-                </OptionPopover>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="greenItems.length > 0" class="animate-fade-in-up delay-300">
-        <div class="flex items-center gap-2 mb-4 px-1">
-          <IconCheck class="text-success text-xl" />
-          <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Nice to Have / 可接受</span>
-        </div>
-        
-        <div class="bg-base-100 border border-base-content/10 rounded-xl p-6 shadow-sm">
-          <div class="flex flex-wrap gap-3">
-            <div v-for="item in greenItems" :key="item.id">
-              <OptionPopover 
-                :question="item.originalQuestion" 
-                :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]"
-                :is-open="activePopoverId === item.id"
-                @toggle="togglePopover(item.id)"
-                @close="activePopoverId = null"
-              >
-                <div class="badge badge-ghost h-auto py-2 px-3 gap-2 text-base-content/60 bg-base-200 hover:bg-base-300 cursor-pointer rounded-lg">
-                  <span class="opacity-50 text-xs font-normal border-r border-base-content/10 pr-2 mr-0.5">
-                    {{ item.title }}
-                  </span>
-                  <span class="text-sm">{{ item.choice }}</span>
+              <h4 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest text-error">{{ group.name }}</h4>
+              <div class="flex flex-wrap gap-3">
+                <div v-for="item in group.items" :key="item.id">
+                  <OptionPopover 
+                    :question="item.originalQuestion" 
+                    :selections="[
+                      { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+                      { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+                    ]"
+                    :is-open="activePopoverId === item.id"
+                    @toggle="togglePopover(item.id)"
+                    @close="activePopoverId = null"
+                  >
+                    <div class="badge badge-lg h-auto py-2 px-3 gap-2 bg-error/5 border border-error/20 text-error-content cursor-pointer hover:bg-error/10 hover:scale-105 transition-all rounded-lg shadow-sm">
+                      <span class="text-xs font-bold opacity-70 border-r border-error/20 pr-2 mr-1">{{ item.title }}</span>
+                      
+                      <div class="flex items-center gap-2 text-sm font-bold">
+                        <component :is="item.myAttitude === 4 ? IconStarFill : IconXBold" class="text-error" />
+                        <span class="opacity-80">{{ item.choice }}</span>
+                        
+                        <IconLightning class="text-xs opacity-40 mx-1 animate-pulse" />
+                        
+                        <component :is="item.partnerAttitude === 4 ? IconStarFill : IconXBold" class="text-error" />
+                      </div>
+                    </div>
+                  </OptionPopover>
                 </div>
-              </OptionPopover>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-center py-8 opacity-30 border-2 border-dashed border-base-content/10 rounded-xl">
+          <IconCheckBold class="text-3xl mx-auto mb-2" />
+          <p class="text-xs font-bold">无核心冲突</p>
+        </div>
+      </div>
+
+      <div id="zone-resonance" class="scroll-mt-32">
+        <div v-if="groupsResonance.length > 0" class="animate-fade-in-up">
+          <div class="flex items-center gap-2 mb-4 px-1 text-success">
+            <IconHandshake class="text-2xl drop-shadow-sm" />
+            <div>
+              <h3 class="text-lg font-bold uppercase tracking-wider leading-none">Resonance</h3>
+              <p class="text-xs opacity-60 font-bold mt-1">默契共振 / 双方高度一致</p>
+            </div>
+          </div>
+          
+          <div class="flex flex-col gap-6">
+            <div 
+              v-for="group in groupsResonance" 
+              :key="group.id" 
+              class="bg-base-100 border-l-4 border-success rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
+            >
+              <h4 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest text-success">{{ group.name }}</h4>
+              <div class="flex flex-wrap gap-3">
+                <div v-for="item in group.items" :key="item.id">
+                  <OptionPopover 
+                    :question="item.originalQuestion" 
+                    :selections="[
+                      { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+                      { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+                    ]"
+                    :is-open="activePopoverId === item.id"
+                    @toggle="togglePopover(item.id)"
+                    @close="activePopoverId = null"
+                  >
+                    <div class="badge badge-lg h-auto py-2 px-3 gap-2 bg-success/5 border border-success/20 text-base-content/80 cursor-pointer hover:bg-success/10 transition-colors rounded-lg">
+                      <span class="text-xs opacity-60 border-r border-success/20 pr-2 mr-1">{{ item.title }}</span>
+                      <IconCheckBold class="text-success text-sm" />
+                      <span class="font-bold text-sm">{{ item.choice }}</span>
+                    </div>
+                  </OptionPopover>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="zone-discuss" class="scroll-mt-32">
+        <div v-if="groupsDiscuss.length > 0" class="animate-fade-in-up">
+          <div class="flex items-center gap-2 mb-4 px-1 text-warning">
+            <IconChatsCircle class="text-2xl drop-shadow-sm" />
+            <div>
+              <h3 class="text-lg font-bold uppercase tracking-wider leading-none">To Discuss</h3>
+              <p class="text-xs opacity-60 font-bold mt-1">待厘清 / 需要进一步沟通</p>
+            </div>
+          </div>
+          
+          <div class="flex flex-col gap-6">
+            <div 
+              v-for="group in groupsDiscuss" 
+              :key="group.id" 
+              class="bg-base-100 border-l-4 border-warning rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
+            >
+              <h4 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest text-warning">{{ group.name }}</h4>
+              <div class="flex flex-wrap gap-3">
+                <div v-for="item in group.items" :key="item.id">
+                  <OptionPopover 
+                    :question="item.originalQuestion" 
+                    :selections="[
+                      { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+                      { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+                    ]"
+                    :is-open="activePopoverId === item.id"
+                    @toggle="togglePopover(item.id)"
+                    @close="activePopoverId = null"
+                  >
+                    <div class="badge badge-lg h-auto py-2 px-3 gap-2 bg-warning/5 border border-warning/20 text-base-content/80 cursor-pointer hover:bg-warning/10 transition-colors rounded-lg">
+                      <span class="text-xs opacity-50 border-r border-warning/20 pr-2 mr-1">{{ item.title }}</span>
+                      <IconQuestionBold class="text-warning text-sm" />
+                      <span class="font-medium text-sm">{{ item.choice }}</span>
+                    </div>
+                  </OptionPopover>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="zone-negotiate" class="scroll-mt-32">
+        <div v-if="groupsNegotiate.length > 0" class="animate-fade-in-up">
+          <div class="flex items-center gap-2 mb-4 px-1 text-base-content/60">
+            <IconArrowsLeftRight class="text-2xl" />
+            <div>
+              <h3 class="text-lg font-bold uppercase tracking-wider leading-none">Negotiate</h3>
+              <p class="text-xs opacity-60 font-bold mt-1">协商让步 / 寻找中间地带</p>
+            </div>
+          </div>
+          
+          <div class="flex flex-col gap-6">
+            <div 
+              v-for="group in groupsNegotiate" 
+              :key="group.id" 
+              class="bg-base-100 border-l-4 border-base-content/20 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
+            >
+              <h4 class="text-xs font-bold opacity-30 uppercase mb-4 tracking-widest">{{ group.name }}</h4>
+              <div class="flex flex-wrap gap-3">
+                <div v-for="item in group.items" :key="item.id">
+                  <OptionPopover 
+                    :question="item.originalQuestion" 
+                    :selections="[
+                      { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
+                      { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
+                    ]"
+                    :is-open="activePopoverId === item.id"
+                    @toggle="togglePopover(item.id)"
+                    @close="activePopoverId = null"
+                  >
+                    <div class="badge badge-lg badge-ghost h-auto py-2 px-3 gap-2 bg-base-200/50 border border-base-content/5 text-base-content/60 cursor-pointer hover:bg-base-200 transition-colors rounded-lg">
+                      <span class="text-xs opacity-50 border-r border-base-content/10 pr-2 mr-1">{{ item.title }}</span>
+                      <span class="text-sm">{{ item.choice }}</span>
+                    </div>
+                  </OptionPopover>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -399,100 +408,30 @@ onMounted(() => {
 
     </div>
 
-    <div class="flex flex-col gap-8 mt-20 text-center border-t border-base-content/5 pt-10">
-      
-      <div v-if="showCodeCard && hasClosedCodeCard" class="animate-fade-in-up">
-        <div class="bg-base-100 border border-base-content/10 rounded-xl p-5 shadow-sm text-left relative">
-          <button 
-            @click="showCodeCard = false"
-            class="absolute top-3 right-3 btn btn-xs btn-circle btn-ghost text-base-content/30 hover:text-base-content"
-          >
-            <IconXBold />
-          </button>
-          <div class="flex items-center gap-2 text-xs font-bold text-base-content/40 uppercase tracking-wider mb-3">
-            <IconShareFat class="text-sm" />
-            <span>Result Code</span>
-          </div>
-          <div class="bg-base-200/50 rounded-lg p-3 font-mono text-sm break-all text-base-content/70 border border-base-content/5 mb-3">
-            {{ fullCode }}
-          </div>
-          <button @click="copy(fullCode)" class="btn btn-sm w-full btn-neutral gap-2 text-white">
-            <IconCopy /> {{ copied ? '已复制' : '复制配置代码' }}
-          </button>
-        </div>
-      </div>
-
-      <button 
-        v-if="!showCodeCard"
-        @click="handleReopenCodeCard"
-        class="text-sm font-bold text-primary hover:underline flex items-center justify-center gap-2 py-2"
-      >
-        <IconShareFat />
-        <span>显示配置代码卡片</span>
+    <div class="mt-16 text-center border-t border-base-content/5 pt-8">
+      <button @click="router.push('/')" class="btn btn-ghost btn-sm opacity-60 hover:opacity-100">
+        返回首页
       </button>
-
-      <div class="flex justify-center gap-8 text-base font-bold text-base-content/60">
-        <a @click="router.push('/')" class="cursor-pointer hover:text-primary transition-colors">返回首页</a>
-        <a @click="router.push('/setup')" class="cursor-pointer hover:text-primary transition-colors flex items-center gap-1">
-          <IconArrowCounterClockwise />
-          继续配置
-        </a>
-      </div>
-      
-      <a @click="showClearModal = true" class="text-xs text-error/40 hover:text-error cursor-pointer transition-colors mt-2">
-        🗑️ 清除所有数据
-      </a>
     </div>
-
-    <BaseModal v-model="showClearModal" title="⚠️ 危险操作">
-      <div class="space-y-4">
-        <div class="p-3 bg-warning/10 text-warning text-xs rounded-lg">
-          一旦删除无法找回。建议先备份上方代码。
-        </div>
-        <p class="text-xs opacity-60">
-          隐私提示：您的测试内容仅保存在浏览器缓存，不会上传到任何服务器。
-        </p>
-      </div>
-      <template #actions>
-        <button class="btn btn-error btn-sm text-white" @click="handleClearData">
-          确认清除
-        </button>
-        <button class="btn btn-ghost btn-sm" @click="showClearModal = false">
-          取消
-        </button>
-      </template>
-    </BaseModal>
-
-    <BaseModal v-model="showCodeHintModal">
-      <div class="flex flex-col items-center text-center py-2">
-        <IconWarningCircle class="text-3xl text-info mb-2" />
-        <h3 class="font-bold text-lg mb-2">代码已收起</h3>
-        <p class="text-sm opacity-70">
-          为了方便阅读，代码卡片已折叠。<br/>
-          您随时可以在<strong>页面底部</strong>点击按钮重新展开。
-        </p>
-      </div>
-      <template #actions>
-        <button class="btn btn-primary btn-sm w-full" @click="showCodeHintModal = false">
-          知道了
-        </button>
-      </template>
-    </BaseModal>
 
   </div>
 </template>
 
 <style scoped>
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-
-.animate-fade-in-up { animation: fadeInUp 0.5s ease-out backwards; }
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
-
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out backwards;
+}
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(15px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.animate-flash { animation: flashHighlight 1s ease-out; }
+@keyframes flashHighlight {
+  0%, 100% { background-color: transparent; }
+  20%, 50% { background-color: rgba(var(--p), 0.1); } 
 }
 </style>
