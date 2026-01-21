@@ -26,11 +26,13 @@ const fontSizePercent = ref(Number(localStorage.getItem('polycn_fontsize')) || 1
 
 // --- 页面标题逻辑 ---
 const pageTitle = computed(() => {
-  if (route.path === '/') return 'Relationship Configuration';
+  if (route.path === '/') return 'DIY 关系配置单';
   if (route.path === '/quiz') return '配置中...';
-  if (route.path === '/result') return '分析面板';
-  if (route.path === '/compare') return '关系对照';
-  return 'PolyCN';
+  if (route.path === '/result') return '结果展示';
+  if (route.path === '/compare') return '双人对照';
+  if (route.path === '/setup') return '准备中...';
+  if (route.path === '/doc') return '使用文档';
+  return 'DIY 关系配置单';
 });
 
 // --- 显示设置逻辑 ---
