@@ -35,42 +35,39 @@ function handleClose() {
 <template>
   <dialog 
     ref="dialogRef" 
-    class="modal modal-bottom sm:modal-middle backdrop-blur-sm transition-all duration-200"
+    class="modal modal-bottom sm:modal-middle backdrop-blur-md transition-all duration-300"
     @close="handleClose"
     @cancel.prevent="handleClose"
   >
-    <div class="modal-box shadow-none border border-base-content/5 relative overflow-hidden bg-base-100 p-0">
+    <div class="modal-box shadow-2xl border border-base-content/10 relative overflow-hidden bg-base-100 p-0 rounded-2xl sm:max-w-md">
       
-      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-base-content/10 to-transparent opacity-50"></div>
-
-      <div v-if="title || showClose" class="px-6 pt-5 pb-2 flex justify-between items-start">
-        <h3 v-if="title" class="font-bold text-lg text-base-content tracking-tight">
+      <div v-if="title || showClose" class="px-6 pt-6 pb-4 flex justify-between items-center">
+        <h3 v-if="title" class="font-black text-xl text-base-content tracking-tighter">
           {{ title }}
         </h3>
         <button 
           v-if="showClose" 
           @click="handleClose" 
-          class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 text-base-content/40 hover:text-base-content"
+          class="btn btn-sm btn-circle btn-ghost text-base-content/40 hover:bg-base-content/10 hover:text-base-content transition-all"
         >
-          ✕
+          <i-ph-x-bold class="text-lg" />
         </button>
       </div>
 
-      <div class="px-6 py-4 text-base-content/80 text-sm leading-relaxed">
+      <div class="px-6 pb-6 text-base-content/70 text-base leading-relaxed font-medium">
         <slot></slot>
       </div>
 
-      <div v-if="$slots.actions" class="p-4 bg-base-200/50 border-t border-base-content/5 flex gap-3 justify-end items-center flex-wrap pb-safe">
+      <div v-if="$slots.actions" class="p-4 bg-base-content/[0.02] border-t border-base-content/5 flex gap-3 justify-end items-center flex-wrap pb-safe">
         <slot name="actions"></slot>
       </div>
     </div>
 
-    <form method="dialog" class="modal-backdrop" v-if="!persistent">
+    <form method="dialog" class="modal-backdrop bg-black/20" v-if="!persistent">
       <button @click="handleClose">close</button>
     </form>
   </dialog>
 </template>
-
 <style scoped>
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 20px);
