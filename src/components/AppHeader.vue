@@ -141,7 +141,7 @@ function handleSaveAndFinish() {
   <div class="navbar bg-base-100/95 backdrop-blur-md sticky top-0 z-50 border-b border-base-content/5 px-4 h-16">
     
     <div class="flex-1">
-      <div class="flex items-center gap-2 cursor-pointer select-none group" @click="router.push('/')">
+      <div class="flex items-center gap-2select-none group">
         <i-ph-puzzle-piece-bold class="text-2xl group-active:scale-90 transition-transform text-primary" />
         <span class="font-bold text-lg tracking-tight hidden sm:inline-block">{{ pageTitle }}</span>
       </div>
@@ -159,6 +159,12 @@ function handleSaveAndFinish() {
           <li class="menu-title flex flex-row justify-between items-center px-4 py-2 bg-base-200/50 rounded-t-box">
             <span>控制台: {{ store.targetAvatar }}</span>
           </li>
+          
+          
+          <div class="divider my-1 opacity-50"></div>
+
+          <li v-if="route.path === '/quiz'">
+            </li>
 
           <div class="px-2 py-2">
             <div class="grid grid-cols-3 gap-1 bg-base-200 rounded-lg p-1 mb-3">
@@ -202,6 +208,10 @@ function handleSaveAndFinish() {
               <i-ph-text-t-bold class="text-lg opacity-80" />
             </div>
           </div>
+
+           
+
+         
 
           <div class="divider my-1"></div>
 
@@ -265,7 +275,16 @@ function handleSaveAndFinish() {
               <span>关于 / 帮助</span>
             </a>
           </li>
-          
+
+           <div class="divider my-1"></div>
+           <li v-if="route.path !== '/'">
+            <a @click="router.push('/')" class="hover:bg-primary/10 transition-colors">
+              <i-ph-house-line-bold class="text-base text-primary" />
+              <span class="font-medium">返回首页</span>
+            </a>
+          </li>
+
+         
         </ul>
       </div>
     </div>

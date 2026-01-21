@@ -47,6 +47,7 @@ declare module 'vue' {
     IPhFunnelBold: typeof import('~icons/ph/funnel-bold')['default']
     IPhHandshakeBold: typeof import('~icons/ph/handshake-bold')['default']
     IPhHardDrivesBold: typeof import('~icons/ph/hard-drives-bold')['default']
+    IPhHouseLineBold: typeof import('~icons/ph/house-line-bold')['default']
     IPhInfoBold: typeof import('~icons/ph/info-bold')['default']
     IPhLightningFill: typeof import('~icons/ph/lightning-fill')['default']
     IPhListBold: typeof import('~icons/ph/list-bold')['default']
