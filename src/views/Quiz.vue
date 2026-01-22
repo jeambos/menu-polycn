@@ -12,6 +12,7 @@ import type { Module, Question, Attitude } from '../types';
 const router = useRouter();
 const store = useConfigStore();
 const { copy, copied } = useClipboard();
+const showHelpModal = ref(false);
 
 // --- 1. 数据准备 ---
 const allModules = ((questionsData as any).modules || []) as Module[];
@@ -198,13 +199,22 @@ function cheatFill() {
         <span>上一页</span>
       </button>
 
-      <button 
-        @click="handleManualSave" 
-        class="btn btn-ghost h-14 text-sm text-primary font-bold gap-2"
-      >
-        <i-ph-floppy-disk-bold class="text-xl" />
-        
-      </button>
+      <div class="flex items-center gap-1">
+        <button 
+          @click="handleManualSave" 
+          class="btn btn-ghost h-14 w-12 text-base-content/30 hover:text-primary px-0"
+          title="手动存盘"
+        >
+          <i-ph-floppy-disk-bold class="text-xl" />
+        </button>
+
+        <button 
+          @click="showHelpModal = true" 
+          class="btn btn-ghost h-14 w-12 text-base-content/30 hover:text-primary px-0"
+        >
+          <i-ph-info-bold class="text-xl" />
+        </button>
+      </div>
 
       <button 
         @click="goNext" 
@@ -297,6 +307,26 @@ function cheatFill() {
       <template #actions>
         <button class="btn btn-warning text-white w-full" @click="executePendingUpdate">
           我已了解，继续选择
+        </button>
+      </template>
+    </BaseModal>
+
+    <BaseModal 
+      v-model="showHelpModal" 
+      title="" 
+      :show-close="true"
+    >
+      <div class="rounded-xl overflow-hidden border border-base-content/5">
+        <img 
+          src="/guide.png" 
+          alt="操作指南" 
+          class="w-full h-auto display-block"
+        />
+      </div>
+
+      <template #actions>
+        <button class="btn btn-primary w-full" @click="showHelpModal = false">
+          我知道了
         </button>
       </template>
     </BaseModal>
