@@ -89,9 +89,9 @@ function handleCopyAndLink(url: string) {
             v-for="tool in AI_TOOLS" 
             :key="tool.name"
             @click="handleCopyAndLink(tool.url)"
-            class="btn btn-outline btn-sm h-auto py-3 justify-start px-4 gap-3 border-base-content/10 hover:bg-base-content hover:text-base-100 hover:border-transparent group transition-all"
+            class="btn btn-outline btn-sm h-auto py-3 justify-center px-4 gap-2 border-base-content/10 hover:bg-base-content hover:text-base-100 hover:border-transparent group transition-all"
           >
-            <component :is="tool.icon" class="text-xl opacity-80 group-hover:opacity-100 shrink-0" />
+            <span :class="tool.icon" class="text-xl opacity-80 group-hover:opacity-100 shrink-0"></span>
             <span class="text-sm font-medium opacity-80 group-hover:opacity-100 truncate">{{ tool.name }}</span>
           </button>
         </div>

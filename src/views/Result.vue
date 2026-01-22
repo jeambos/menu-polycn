@@ -380,7 +380,7 @@ function handleClearData() {
       @click="showAIModal = true" 
       class="btn btn-md flex-1 btn-outline gap-2 rounded-lg border-base-content/10 hover:bg-base-content hover:text-base-100 hover:border-transparent transition-all group"
     >
-      <i-ph-robot-bold class="text-xl group-hover:scale-110 transition-transform" />
+      <i-ph-sparkle-bold class="text-xl group-hover:scale-110 transition-transform" />
       <span>AI 分析</span>
     </button>
     
