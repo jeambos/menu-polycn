@@ -6,6 +6,8 @@ import questionsData from '../data/questions.json';
 import type { Attitude, Module } from '../types';
 import CompareDashboard from '../components/CompareDashboard.vue'; 
 import OptionPopover from '../components/OptionPopover.vue';
+import AIAnalysisModal from '../components/AIAnalysisModal.vue';
+const showAIModal = ref(false);
 
 
 
@@ -244,6 +246,7 @@ onMounted(() => {
             negotiate: listNegotiate.length
           }"
           @scroll-to="scrollToZone"
+          @open-ai="showAIModal = true"
         />
       </div>
     </div>
@@ -520,7 +523,25 @@ onMounted(() => {
       </button>
     </div>
 
+<div class="mt-16 text-center border-t border-base-content/5 pt-8">
+      <button @click="router.push('/')" class="btn btn-ghost btn-sm opacity-60 hover:opacity-100">
+        返回首页
+      </button>
+    </div>
+
+    <AIAnalysisModal 
+      v-model="showAIModal" 
+      :code-a="route.query.my as string" 
+      :code-b="route.query.partner as string"
+    />
+
+
+
+
   </div>
+
+  
+
 </template>
 
 <style scoped>
