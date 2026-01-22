@@ -237,7 +237,7 @@ function cheatFill() {
       :show-close="false"
     >
       <div v-if="entryType === 'newbie'" class="space-y-4">
-        <p>您只需要标记自己的态度。</p>
+        <p>操作简单，您只需要标记自己的态度。</p>
         <ul class="list-disc list-inside opacity-80 space-y-1 pl-2 text-sm bg-base-200/50 p-3 rounded-lg">
           <p>每一个场景下有若干小项，您可以对每一个小项表态：</p>
     <ul class="list-disc pl-5 space-y-1">
