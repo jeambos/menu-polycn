@@ -35,11 +35,11 @@ function handleClose() {
 <template>
   <dialog 
     ref="dialogRef" 
-    class="modal modal-bottom sm:modal-middle backdrop-blur-md transition-all duration-300"
+    class="modal modal-middle backdrop-blur-md transition-all duration-300"
     @close="handleClose"
     @cancel.prevent="handleClose"
   >
-    <div class="modal-box shadow-2xl border border-base-content/10 relative overflow-hidden bg-base-100 p-0 rounded-2xl sm:max-w-md">
+    <div class="modal-box w-[92%] max-w-md shadow-2xl border border-base-content/10 relative overflow-hidden bg-base-100 p-0 rounded-[2rem]">
       
       <div v-if="title || showClose" class="px-6 pt-6 pb-4 flex justify-between items-center">
         <h3 v-if="title" class="font-black text-xl text-base-content tracking-tighter">
@@ -54,7 +54,7 @@ function handleClose() {
         </button>
       </div>
 
-      <div class="px-6 pb-6 text-base-content/70 text-base leading-relaxed font-medium">
+      <div class="px-6 pb-6 text-base-content/70 text-base leading-relaxed font-medium break-words">
         <slot></slot>
       </div>
 
