@@ -195,7 +195,7 @@ function cheatFill() {
         class="btn btn-ghost h-14 text-lg text-base-content/50 hover:text-base-content gap-2"
       >
         <i-ph-arrow-left-bold class="text-xl" />
-        <span>上一场景</span>
+        <span>上一页</span>
       </button>
 
       <button 
@@ -203,7 +203,7 @@ function cheatFill() {
         class="btn btn-ghost h-14 text-sm text-primary font-bold gap-2"
       >
         <i-ph-floppy-disk-bold class="text-xl" />
-        <span>暂存结果</span>
+        
       </button>
 
       <button 
@@ -211,11 +211,11 @@ function cheatFill() {
         class="btn btn-primary h-14 text-lg px-10 rounded-full shadow-lg shadow-primary/20 gap-3"
       >
         <template v-if="currentIndex === playlist.length - 1">
-          <span>完成配置</span>
+          <span>完成</span>
           <i-ph-flag-checkered-bold class="text-2xl" />
         </template>
         <template v-else>
-          <span>下一场景</span>
+          <span>继续</span>
           <i-ph-arrow-right-bold class="text-2xl" />
         </template>
       </button>
