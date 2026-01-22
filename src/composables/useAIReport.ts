@@ -85,6 +85,8 @@ const SINGLE_TEMPLATE = `
 
 # User Data
 
+{{CONTENT}}
+
 `;
 
 const COMPARE_TEMPLATE = `
@@ -132,6 +134,8 @@ const COMPARE_TEMPLATE = `
 👉 更多多元关系探索，请访问 polycn.org
 
 # Data Input
+
+{{CONTENT}}
 
 `;
 
