@@ -168,6 +168,7 @@ export function useAIReport() {
   }
 
   // --- ✅ 修改：生成对比报告数据 (合并同场景) ---
+  // --- 逻辑顺序已与 Compare.vue 完全对齐 ---
   function generateCompareContent(myMap: Record<string, Attitude[]>, partnerMap: Record<string, Attitude[]>) {
     let critical = "", resonance = "", discuss = "", negotiate = "";
 
@@ -177,7 +178,6 @@ export function useAIReport() {
         const bList = partnerMap[q.id];
         if (!aList || !bList) return;
 
-        // 收集该问题下的所有有效条目
         const entries: { text: string, type: 'critical' | 'resonance' | 'discuss' | 'negotiate' }[] = [];
 
         q.options.forEach((_opt, idx) => {
@@ -188,28 +188,33 @@ export function useAIReport() {
           const optText = getOptionText(q, idx);
           const line = `    项目：${optText} | 我：${ATTITUDE_MAP[a]} VS 对方：${ATTITUDE_MAP[b]}\n`;
 
-          if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
-            entries.push({ text: line, type: 'critical' });
-          } else if (a === 2 || b === 2 || (a === 0 && b !== 0) || (a !== 0 && b === 0)) {
+          // 1. 优先判断：待厘清 (Discuss) - 只要有2或0vs非0
+          if (a === 2 || b === 2 || (a === 0 && b !== 0) || (a !== 0 && b === 0)) {
             entries.push({ text: line, type: 'discuss' });
-          } else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) {
+          } 
+          // 2. 其次判断：核心冲突 (Critical) - 4 vs 1
+          else if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
+            entries.push({ text: line, type: 'critical' });
+          } 
+          // 3. 再次判断：默契共振 (Resonance) - 3+ vs 3+ 或 1 vs 1
+          else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) {
             entries.push({ text: line, type: 'resonance' });
-          } else {
+          } 
+          // 4. 最后：协商让步 (Negotiate)
+          else {
             entries.push({ text: line, type: 'negotiate' });
           }
         });
 
-        // --- ✅ 优化点：按类型聚合，避免标题重复 ---
+        // 聚合输出... (保持不变)
         if (entries.length > 0) {
            const titleLine = `  - 场景：${q.title}\n`;
            
-           // 分别筛选出各类型的条目
            const cItems = entries.filter(e => e.type === 'critical');
            const dItems = entries.filter(e => e.type === 'discuss');
            const nItems = entries.filter(e => e.type === 'negotiate');
            const rItems = entries.filter(e => e.type === 'resonance');
 
-           // 如果该类型下有条目，则：一次标题 + 所有条目内容
            if (cItems.length > 0) critical += (titleLine + cItems.map(e => e.text).join(''));
            if (dItems.length > 0) discuss += (titleLine + dItems.map(e => e.text).join(''));
            if (nItems.length > 0) negotiate += (titleLine + nItems.map(e => e.text).join(''));
@@ -222,14 +227,14 @@ export function useAIReport() {
 ### ⚠️ 核心冲突 (Critical Conflict)
 ${critical || "（无核心冲突）"}
 
-### 💬 需要沟通 (To Discuss)
-${discuss || "（无沟通项）"}
-
-### ⚖️ 协商让步 (Negotiate)
-${negotiate || "（无协商项）"}
+### 💬 需要沟通 (Need Discussion)
+${discuss || "（无待沟通项）"}
 
 ### 🤝 默契共振 (Resonance)
 ${resonance || "（无共振项）"}
+
+### ⚖️ 协商让步 (Negotiate)
+${negotiate || "（无协商项）"}
 `;
   }
 
