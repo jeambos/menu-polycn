@@ -108,10 +108,10 @@ const COMPARE_TEMPLATE = `
 3. **重要：** 如果检测到双方在非主流价值观（如多边恋、BDSM、丁克等）上有高度共识，请在此处重点指出并肯定这种难得的缘分；反之，如果大方向（如婚育观）背道而驰，也请在此处直接点明。
 
 ## 🚨 风险与挑战 (高能预警)
-请优先分析“致命冲突”（A的 Core 撞上 B的 Limit）。如果有此类情况，请用严肃直接的语言指出这可能导致的具体后果。如果没有致命冲突，则分析双方观念差异最大的领域（协商区），并指出未来可能爆发争吵的场景。请用段落形式表述。
+用3-5个自然段分析“致命冲突”（A的 Core 撞上 B的 Limit）。如果有此类情况，请用严肃直接的语言指出这可能导致的具体后果。如果没有致命冲突，则分析双方观念差异最大的领域（协商区），并指出未来可能爆发争吵的场景。每段字数不要太长，控制在100-150字之间。
 
 ## ✨ 共鸣与优势 (甜蜜点)
-请分析双方共同的 ⭐Core 或高度一致的 ✅Yes 领域。请用温暖的笔触描述这些共性将如何成为这段关系的稳定器和快乐源泉。请用段落形式表述。
+用3-5个自然段分析双方共同的 ⭐Core 或高度一致的 ✅Yes 领域。请用温暖的笔触描述这些共性将如何成为这段关系的稳定器和快乐源泉。每段字数不要太长，控制在100-150字之间。
 
 ## 💡 相处建议
 此处请使用简洁的列表形式：
@@ -169,6 +169,7 @@ export function useAIReport() {
 
   // --- ✅ 修改：生成对比报告数据 (合并同场景) ---
   // --- 逻辑顺序已与 Compare.vue 完全对齐 ---
+  // --- 生成对比报告数据 (修复版：增加防爆与调试) ---
   function generateCompareContent(myMap: Record<string, Attitude[]>, partnerMap: Record<string, Attitude[]>) {
     let critical = "", resonance = "", discuss = "", negotiate = "";
 
@@ -181,32 +182,46 @@ export function useAIReport() {
         const entries: { text: string, type: 'critical' | 'resonance' | 'discuss' | 'negotiate' }[] = [];
 
         q.options.forEach((_opt, idx) => {
-          const a = Number(aList[idx] || 0) as Attitude;
-          const b = Number(bList[idx] || 0) as Attitude;
+          // 1. 获取原始数值
+          let rawA = aList[idx];
+          let rawB = bList[idx];
+
+          // 2. 数据清洗：如果不是有效数字 (0-4)，强制视为 0 (未表态)
+          // 这一步能彻底防止 undefined 出现在文本中
+          const safeA = (typeof rawA === 'number' && rawA >= 0 && rawA <= 4) ? rawA : 0;
+          const safeB = (typeof rawB === 'number' && rawB >= 0 && rawB <= 4) ? rawB : 0;
+          
+          // 3. 调试日志：如果发现清洗了数据，说明版本确实不兼容
+          if (rawA !== safeA) console.warn(`[数据清洗] 题目:${q.title} 选项:${idx} | 原始值A:`, rawA, '-> 重置为0');
+          if (rawB !== safeB) console.warn(`[数据清洗] 题目:${q.title} 选项:${idx} | 原始值B:`, rawB, '-> 重置为0');
+
+          const a = safeA as Attitude;
+          const b = safeB as Attitude;
+
+          // 双方均为 0 则跳过
           if (a === 0 && b === 0) return;
 
           const optText = getOptionText(q, idx);
-          const line = `    项目：${optText} | 我：${ATTITUDE_MAP[a]} VS 对方：${ATTITUDE_MAP[b]}\n`;
+          
+          // 4. 安全映射：绝对不会出现 undefined
+          const textA = ATTITUDE_MAP[a] ? ATTITUDE_MAP[a] : '未表态';
+          const textB = ATTITUDE_MAP[b] ? ATTITUDE_MAP[b] : '未表态';
 
-          // 1. 优先判断：待厘清 (Discuss) - 只要有2或0vs非0
+          const line = `    项目：${optText} | 我：${textA} VS 对方：${textB}\n`;
+
+          // 5. 分类逻辑 (逻辑顺序已对齐 Compare.vue)
           if (a === 2 || b === 2 || (a === 0 && b !== 0) || (a !== 0 && b === 0)) {
             entries.push({ text: line, type: 'discuss' });
-          } 
-          // 2. 其次判断：核心冲突 (Critical) - 4 vs 1
-          else if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
+          } else if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
             entries.push({ text: line, type: 'critical' });
-          } 
-          // 3. 再次判断：默契共振 (Resonance) - 3+ vs 3+ 或 1 vs 1
-          else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) {
+          } else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) {
             entries.push({ text: line, type: 'resonance' });
-          } 
-          // 4. 最后：协商让步 (Negotiate)
-          else {
+          } else {
             entries.push({ text: line, type: 'negotiate' });
           }
         });
 
-        // 聚合输出... (保持不变)
+        // 聚合输出
         if (entries.length > 0) {
            const titleLine = `  - 场景：${q.title}\n`;
            
