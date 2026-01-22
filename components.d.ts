@@ -40,6 +40,7 @@ declare module 'vue' {
     IPhClipboardTextBold: typeof import('~icons/ph/clipboard-text-bold')['default']
     IPhCodeBold: typeof import('~icons/ph/code-bold')['default']
     IPhCopyBold: typeof import('~icons/ph/copy-bold')['default']
+    IPhCubeDuotone: typeof import('~icons/ph/cube-duotone')['default']
     IPhDesktopBold: typeof import('~icons/ph/desktop-bold')['default']
     IPhDownloadSimpleBold: typeof import('~icons/ph/download-simple-bold')['default']
     IPhFlagCheckeredBold: typeof import('~icons/ph/flag-checkered-bold')['default']

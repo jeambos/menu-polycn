@@ -6,6 +6,7 @@ import { useConfigStore } from '../stores/useConfigStore';
 import { encode } from '../logic/codec';
 import BaseModal from './BaseModal.vue';
 
+
 const router = useRouter();
 const route = useRoute();
 const store = useConfigStore();
@@ -14,6 +15,7 @@ const { copy, copied } = useClipboard();
 // --- 弹窗状态 ---
 const showCodeModal = ref(false);
 const showClearModal = ref(false);
+const showHomeConfirm = ref(false); // 控制确认弹窗
 
 // --- 数据状态 ---
 const currentCode = ref('');
@@ -141,11 +143,35 @@ function handleSaveAndFinish() {
   <div class="navbar bg-base-100/95 backdrop-blur-md sticky top-0 z-50 border-b border-base-content/5 px-4 h-16">
     
     <div class="flex-1">
-      <div class="flex items-center gap-2select-none group">
-        <i-ph-puzzle-piece-bold class="text-2xl group-active:scale-90 transition-transform text-primary" />
-        <span class="font-bold text-lg tracking-tight hidden sm:inline-block">{{ pageTitle }}</span>
-      </div>
-    </div>
+  <div 
+    class="flex items-center gap-2 select-none group cursor-pointer" 
+    @click="showHomeConfirm = true"
+  >
+    <i-ph-cube-duotone class="text-2xl group-active:scale-90 transition-transform text-primary" />
+    <span class="font-bold text-lg tracking-tight hidden sm:inline-block">{{ pageTitle }}</span>
+  </div>
+</div>
+
+<BaseModal 
+  v-model="showHomeConfirm" 
+  title="返回首页？" 
+  :show-close="true"
+>
+  <div class="space-y-2">
+    <p>点击标题栏可以快速返回首页。</p>
+    
+    <p>确认返回首页？</p>
+  </div>
+
+  <template #actions>
+    <button class="btn btn-ghost" @click="showHomeConfirm = false">
+      关闭弹窗
+    </button>
+    <button class="btn btn-primary px-6" @click="router.push('/'); showHomeConfirm = false;">
+      返回首页
+    </button>
+  </template>
+</BaseModal>
 
     <div class="flex-none">
       
