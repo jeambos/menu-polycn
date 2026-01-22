@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AIAnalysisModal: typeof import('./src/components/AIAnalysisModal.vue')['default']
     AppHeader: typeof import('./src/components/AppHeader.vue')['default']
     AttitudeIcon: typeof import('./src/components/AttitudeIcon.vue')['default']
     BaseModal: typeof import('./src/components/BaseModal.vue')['default']
