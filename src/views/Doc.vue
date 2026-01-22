@@ -161,59 +161,73 @@ function handleCompare() {
 </div>
 
           <div class="relative min-h-[160px]">
-            <div v-if="activeTab === 'single'" class="space-y-4 animate-fade">
-              <div class="relative">
-                <input 
-                  v-model="singleCode" 
-                  type="text" 
-                  placeholder="粘贴结果代码...(一串Emoji)" 
-                  class="w-full h-14 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300"
-                  :class="{ 'border-red-500 text-red-500': errorMsg }"
-                />
-                <button @click="handlePaste('single')" class="absolute right-3 top-3 p-2 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-base-content transition-colors">
-                  <icon-ph-clipboard-text class="text-xl"/>
-                </button>
-              </div>
-              
-              <div class="grid grid-cols-2 gap-4">
-                <button @click="handleSingleView" class="h-12 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
-                  仅解读
-                </button>
-                <button @click="handleSingleContinue" class="h-12 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
-                  继续答题
-                </button>
-              </div>
-            </div>
+  <div v-if="activeTab === 'single'" class="space-y-4 animate-fade">
+    <div class="relative">
+      <input 
+        v-model="singleCode" 
+        type="text" 
+        placeholder="粘贴结果代码..." 
+        class="w-full h-14 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300"
+        :class="{ 'border-red-500 text-red-500': errorMsg }"
+      />
+      <button @click="handlePaste('single')" class="absolute right-3 top-3 p-2 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-base-content transition-colors">
+        <icon-ph-clipboard-text class="text-xl"/>
+      </button>
+    </div>
+    
+    <div class="space-y-3">
+      <button @click="handleSingleView" class="w-full h-12 rounded-xl bg-slate-900 text-white text-base font-bold hover:bg-black transition-colors shadow-sm">
+        查看结果
+      </button>
 
-            <div v-if="activeTab === 'dual'" class="space-y-4 animate-fade">
-              <div class="relative">
-                <input v-model="myCode" placeholder="你的结果代码" class="w-full h-12 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
-                <button @click="handlePaste('my')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><icon-ph-clipboard-text class="text-xl"/></button>
-              </div>
-              <div class="relative">
-                <input v-model="partnerCode" placeholder="另一位的代码" class="w-full h-12 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
-                <button @click="handlePaste('partner')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><icon-ph-clipboard-text class="text-xl"/></button>
-              </div>
-              <button @click="handleCompare" class="w-full h-12 mt-2 bg-slate-900 text-white rounded-xl text-base font-bold hover:bg-black transition-colors">
-                开始对比分析
-              </button>
-            </div>
+      <div class="grid grid-cols-2 gap-3">
+        <button @click="$emit('open-ai')" class="h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
+          <i-ph-sparkle-bold class="text-lg" />
+          AI分析报告
+        </button>
+        <button @click="handleSingleContinue" class="h-12 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
+          继续答题
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="activeTab === 'dual'" class="space-y-4 animate-fade">
+    <div class="relative">
+      <input v-model="myCode" placeholder="你的结果代码" class="w-full h-12 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
+      <button @click="handlePaste('my')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><icon-ph-clipboard-text class="text-xl"/></button>
+    </div>
+    <div class="relative">
+      <input v-model="partnerCode" placeholder="另一位的代码" class="w-full h-12 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
+      <button @click="handlePaste('partner')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><icon-ph-clipboard-text class="text-xl"/></button>
+    </div>
+    
+    <div class="space-y-3 pt-2">
+      <button @click="handleCompare" class="w-full h-12 bg-slate-900 text-white rounded-xl text-base font-bold hover:bg-black transition-colors shadow-sm">
+        对比结果
+      </button>
+      
+      <button @click="$emit('open-ai')" class="w-full h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
+        <i-ph-sparkle-bold class="text-lg" />
+        AI分析报告
+      </button>
+    </div>
+  </div>
+</div>
+
             
-            <div v-if="errorMsg" class="absolute -bottom-10 left-0 right-0 text-center text-red-500 text-sm font-bold animate-shake">
-              {{ errorMsg }}
-            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="py-8 text-center">
+    <div class="py-8 text-center mt-16">
       <p class="text-xs text-slate-400 font-mono font-medium tracking-widest uppercase">
         CC BY-NC-SA 4.0 · PolyCN
       </p>
     </div>
 
-  </div>
+
 </template>
 
 <style scoped>
