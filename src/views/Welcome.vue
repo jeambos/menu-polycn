@@ -117,7 +117,7 @@ function handleCompare() {
 <template>
   <div class="min-h-screen bg-base-100 text-base-content flex flex-col font-sans selection:bg-primary selection:text-primary-content transition-colors duration-300">
 
-    <div class="flex-1 flex flex-col items-center justify-center px-6 w-full max-w-md mx-auto space-y-12">
+    <div class="flex-1 flex flex-col items-center justify-start px-6 w-full max-w-md mx-auto space-y-12 pt-[15vh]">
       
       <div class="text-center space-y-6">
         
