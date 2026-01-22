@@ -39,9 +39,9 @@ function handleClose() {
     @close="handleClose"
     @cancel.prevent="handleClose"
   >
-    <div class="modal-box w-[92%] max-w-md shadow-2xl border border-base-content/10 relative overflow-hidden bg-base-100 p-0 rounded-[2rem]">
+    <div class="modal-box w-[92%] max-w-md shadow-2xl border border-base-content/10 relative overflow-hidden bg-base-100 p-0 rounded-[2rem] max-h-[90vh] flex flex-col">
       
-      <div v-if="title || showClose" class="px-6 pt-6 pb-4 flex justify-between items-center">
+      <div v-if="title || showClose" class="px-6 pt-6 pb-4 flex justify-between items-center shrink-0">
         <h3 v-if="title" class="font-black text-xl text-base-content tracking-tighter">
           {{ title }}
         </h3>
@@ -54,13 +54,13 @@ function handleClose() {
         </button>
       </div>
 
-      <div class="px-6 pb-6 text-base-content/70 text-base leading-relaxed font-medium break-words">
+      <div class="px-6 pb-6 text-base-content/70 text-base leading-relaxed font-medium break-words overflow-y-auto overscroll-contain">
         <slot></slot>
       </div>
 
       <div 
         v-if="$slots.actions" 
-        class="px-6 py-5 sm:py-4 bg-base-content/[0.02] border-t border-base-content/5 flex gap-3 justify-end items-center flex-wrap"
+        class="px-6 py-5 sm:py-4 bg-base-content/[0.02] border-t border-base-content/5 flex gap-3 justify-end items-center flex-wrap shrink-0"
       >
         <div class="flex gap-3 justify-end items-center w-full mb-safe-offset-4"> 
           <div class="flex gap-3 justify-end items-center w-full pb-4 sm:pb-0">
