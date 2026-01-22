@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppHeader from './components/AppHeader.vue'; // 引入组件
-import { onMounted } from 'vue';
+
 
 
 </script>
