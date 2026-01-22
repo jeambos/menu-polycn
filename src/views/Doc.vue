@@ -119,21 +119,8 @@ function handleCompare() {
 
     <div class="flex-1 flex flex-col items-center justify-center px-6 w-full max-w-2xl mx-auto mt-6 space-y-12">
       
-      <div class="text-center space-y-6">
         
-        
-        <div class="space-y-3">
-          <h1 class="text-4xl font-black tracking-tighter text-base-content flex items-center justify-center gap-1">
-  关系配置单
-  <sup class="text-[12px] font-bold tracking-normal opacity-30 px-1 py-0.5 border border-black/10 rounded ml-1 bg-slate-50 uppercase leading-none">
-    v0.6 
-  </sup>
-</h1>
-          <p class="text-slate-500 font-medium text-base tracking-wide">
-            探索自身需求 / 理解彼此偏好
-          </p>
-        </div>
-      </div>
+      
 
       <div class="w-full animate-fade">
         <DocArticle />
