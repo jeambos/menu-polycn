@@ -40,6 +40,8 @@ declare module 'vue' {
     IPhCheckBold: typeof import('~icons/ph/check-bold')['default']
     IPhCheckCircle: typeof import('~icons/ph/check-circle')['default']
     IPhCheckCircleFill: typeof import('~icons/ph/check-circle-fill')['default']
+    IPhClipboardText: typeof import('~icons/ph/clipboard-text')['default']
+    'IPhClipboardText-': typeof import('~icons/ph/clipboard-text-')['default']
     IPhClipboardTextBold: typeof import('~icons/ph/clipboard-text-bold')['default']
     IPhCodeBold: typeof import('~icons/ph/code-bold')['default']
     IPhCopyBold: typeof import('~icons/ph/copy-bold')['default']

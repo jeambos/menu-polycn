@@ -171,7 +171,7 @@ function handleCompare() {
         :class="{ 'border-red-500 text-red-500': errorMsg }"
       />
       <button @click="handlePaste('single')" class="absolute right-3 top-3 p-2 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-base-content transition-colors">
-        <icon-ph-clipboard-text class="text-xl"/>
+        <i-ph-clipboard-text class="text-xl"/>
       </button>
     </div>
     
@@ -195,11 +195,11 @@ function handleCompare() {
   <div v-if="activeTab === 'dual'" class="space-y-4 animate-fade">
     <div class="relative">
       <input v-model="myCode" placeholder="你的结果代码" class="w-full h-12 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
-      <button @click="handlePaste('my')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><icon-ph-clipboard-text class="text-xl"/></button>
+      <button @click="handlePaste('my')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><i-ph-clipboard-text class="text-xl"/></button>
     </div>
     <div class="relative">
       <input v-model="partnerCode" placeholder="另一位的代码" class="w-full h-12 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
-      <button @click="handlePaste('partner')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><icon-ph-clipboard-text class="text-xl"/></button>
+      <button @click="handlePaste('partner')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><i-ph-clipboard-text class="text-xl"/></button>
     </div>
     
     <div class="space-y-3 pt-2">

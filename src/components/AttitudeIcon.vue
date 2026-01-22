@@ -11,15 +11,15 @@ defineProps<{
 <template>
   <span :class="['inline-flex items-center justify-center align-middle', size || 'text-base']">
     
-    <icon-ph-star-fill v-if="attitude === 4" class="text-warning drop-shadow-sm" />
+    <i-ph-star-fill v-if="attitude === 4" class="text-warning drop-shadow-sm" />
     
-    <icon-ph-check-circle-fill v-if="attitude === 3" class="text-success" />
+    <i-ph-check-circle-fill v-if="attitude === 3" class="text-success" />
     
-    <icon-ph-question-fill v-if="attitude === 2" class="text-warning opacity-80" />
+    <i-ph-question-fill v-if="attitude === 2" class="text-warning opacity-80" />
     
-    <icon-ph-prohibit-inset-fill v-if="attitude === 1" class="text-error" />
+    <i-ph-prohibit-inset-fill v-if="attitude === 1" class="text-error" />
     
-    <icon-ph-circle v-if="attitude === 0" class="opacity-20" />
+    <i-ph-circle v-if="attitude === 0" class="opacity-20" />
     
   </span>
 </template>
