@@ -148,7 +148,7 @@ function handleSaveAndFinish() {
     @click="showHomeConfirm = true"
   >
     <i-ph-cube-duotone class="text-2xl group-active:scale-90 transition-transform text-primary" />
-    <span class="font-bold text-lg tracking-tight hidden sm:inline-block">{{ pageTitle }}</span>
+    <span class="font-bold text-lg tracking-tight inline-block max-w-[120px] truncate">{{ pageTitle }}</span>
   </div>
 </div>
 
