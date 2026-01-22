@@ -6,7 +6,7 @@ import type { Attitude, Module } from '../types';
 // 定义题目数据的类型映射
 const allModules = (questionsData.modules as unknown) as Module[];
 
-// 态度映射表 (用于翻译给 AI 看)
+// 态度映射表
 const ATTITUDE_MAP: Record<number, string> = {
   0: "未表态/跳过",
   1: "硬性边界(绝不)",
@@ -15,17 +15,20 @@ const ATTITUDE_MAP: Record<number, string> = {
   4: "核心需求(必须)"
 };
 
-// --- ✅ 新增：AI 工具列表 (这就是缺失的部分) ---
+// --- ✅ 更新：AI 工具列表 (按要求：一行两个，包含指定国内AI) ---
 export const AI_TOOLS = [
-  { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'i-ph-robot-bold' },
-  { name: 'Claude', url: 'https://claude.ai/new', icon: 'i-ph-brain-bold' },
+  { name: '豆包 (Doubao)', url: 'https://www.doubao.com/', icon: 'i-ph-chat-circle-dots-bold' },
   { name: 'DeepSeek', url: 'https://chat.deepseek.com/', icon: 'i-ph-magnifying-glass-bold' },
+  { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'i-ph-robot-bold' },
   { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'i-ph-sparkle-bold' },
-  { name: '豆包', url: 'https://www.doubao.com/', icon: 'i-ph-chat-circle-dots-bold' },
+  { name: 'Claude', url: 'https://claude.ai/new', icon: 'i-ph-brain-bold' },
+  { name: 'Grok', url: 'https://x.ai/', icon: 'i-ph-x-logo-bold' }, // 使用 X logo 代替 Grok
+  { name: '腾讯元宝', url: 'https://yuanbao.tencent.com/', icon: 'i-ph-chat-teardrop-text-bold' },
   { name: 'Kimi', url: 'https://kimi.moonshot.cn/', icon: 'i-ph-moon-stars-bold' },
 ];
 
-// --- Prompt 模板 (占位符) ---
+// --- Prompt 模板 ---
+// (模板内容保持不变，仅占位符等待替换)
 
 const SINGLE_TEMPLATE = `
 [角色设定]
@@ -74,13 +77,12 @@ export function useAIReport() {
   const isLoading = ref(false);
   const errorMsg = ref('');
 
-  // 辅助：获取选项文本
   function getOptionText(q: any, idx: number) {
     const opt = q.options[idx];
     return typeof opt === 'string' ? opt : (opt?.long || opt?.short || '未知选项');
   }
 
-  // --- 生成单人报告数据 ---
+  // --- ✅ 修改：生成单人报告数据 (合并同场景) ---
   function generateSingleContent(answers: Record<string, Attitude[]>) {
     let content = "";
     
@@ -90,11 +92,18 @@ export function useAIReport() {
         const states = answers[q.id];
         if (!states) return;
         
-        states.forEach((att, idx) => {
-          if (att === 0) return; // 跳过未选
-          const optText = getOptionText(q, idx);
-          moduleContent += `  - 题目：${q.title}\n    选项：${optText}\n    态度：${ATTITUDE_MAP[att]}\n`;
-        });
+        // 1. 检查该场景下有没有有效选项（非0）
+        const activeOptions = states.map((att, idx) => ({ att, idx })).filter(item => item.att !== 0);
+        
+        if (activeOptions.length > 0) {
+          // 2. 输出场景标题
+          moduleContent += `  - 场景：${q.title}\n`;
+          // 3. 循环输出该场景下的所有项目
+          activeOptions.forEach(item => {
+            const optText = getOptionText(q, item.idx);
+            moduleContent += `    项目：${optText} | 态度：${ATTITUDE_MAP[item.att]}\n`;
+          });
+        }
       });
 
       if (moduleContent) {
@@ -104,7 +113,7 @@ export function useAIReport() {
     return content;
   }
 
-  // --- 生成对比报告数据 (复用 Compare.vue 逻辑) ---
+  // --- ✅ 修改：生成对比报告数据 (合并同场景) ---
   function generateCompareContent(myMap: Record<string, Attitude[]>, partnerMap: Record<string, Attitude[]>) {
     let critical = "", resonance = "", discuss = "", negotiate = "";
 
@@ -114,25 +123,40 @@ export function useAIReport() {
         const bList = partnerMap[q.id];
         if (!aList || !bList) return;
 
-        q.options.forEach((opt, idx) => {
+        // 收集该问题下的所有有效条目
+        const entries: { text: string, type: 'critical' | 'resonance' | 'discuss' | 'negotiate' }[] = [];
+
+        q.options.forEach((_opt, idx) => {
           const a = Number(aList[idx] || 0) as Attitude;
           const b = Number(bList[idx] || 0) as Attitude;
           if (a === 0 && b === 0) return;
 
           const optText = getOptionText(q, idx);
-          const line = `  - 场景：${q.title} [${optText}]\n    我：${ATTITUDE_MAP[a]} | 对方：${ATTITUDE_MAP[b]}\n`;
+          // 生成单行描述： "    项目：xxx | 我：xxx 对方：xxx"
+          const line = `    项目：${optText} | 我：${ATTITUDE_MAP[a]} VS 对方：${ATTITUDE_MAP[b]}\n`;
 
-          // 逻辑复用 Compare.vue
           if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
-            critical += line;
+            entries.push({ text: line, type: 'critical' });
           } else if (a === 2 || b === 2 || (a === 0 && b !== 0) || (a !== 0 && b === 0)) {
-            discuss += line;
+            entries.push({ text: line, type: 'discuss' });
           } else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) {
-            resonance += line;
+            entries.push({ text: line, type: 'resonance' });
           } else {
-            negotiate += line;
+            entries.push({ text: line, type: 'negotiate' });
           }
         });
+
+        // 只有当该题目下有内容时，才追加标题和内容
+        if (entries.length > 0) {
+           const titleLine = `  - 场景：${q.title}\n`;
+           
+           entries.forEach(e => {
+             if(e.type === 'critical') critical += (titleLine + e.text);
+             if(e.type === 'discuss') discuss += (titleLine + e.text);
+             if(e.type === 'resonance') resonance += (titleLine + e.text);
+             if(e.type === 'negotiate') negotiate += (titleLine + e.text);
+           });
+        }
       });
     });
 
@@ -151,29 +175,25 @@ ${resonance || "（无共振项）"}
 `;
   }
 
-  // --- 主入口：生成 Prompt ---
+  // --- 主入口 ---
   async function generateReport(code1: string, code2?: string) {
     isLoading.value = true;
     errorMsg.value = '';
     
     try {
-      // 模拟一点延迟，让Loading展示出来，体验更好
       await new Promise(resolve => setTimeout(resolve, 500));
 
       if (!code1) throw new Error("代码为空");
 
-      // 1. 解码 Code A
       const res1 = decode(code1);
       const answers1 = res1.answers as Record<string, Attitude[]>;
 
       if (code2) {
-        // --- 双人对比模式 ---
         const res2 = decode(code2);
         const answers2 = res2.answers as Record<string, Attitude[]>;
         const content = generateCompareContent(answers1, answers2);
         return COMPARE_TEMPLATE.replace('{{CONTENT}}', content);
       } else {
-        // --- 单人分析模式 ---
         const content = generateSingleContent(answers1);
         return SINGLE_TEMPLATE.replace('{{CONTENT}}', content);
       }

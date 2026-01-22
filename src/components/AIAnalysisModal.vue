@@ -4,11 +4,10 @@ import { useClipboard } from '@vueuse/core';
 import BaseModal from './BaseModal.vue';
 import { useAIReport, AI_TOOLS } from '../composables/useAIReport';
 
-// 定义接口，支持单人或双人模式
 const props = defineProps<{
   modelValue: boolean;
-  codeA: string;      // 必传：第一个人的代码
-  codeB?: string;     // 可选：第二个人的代码（对比模式）
+  codeA: string;
+  codeB?: string;
 }>();
 
 const emit = defineEmits<{
@@ -17,21 +16,16 @@ const emit = defineEmits<{
 
 const { copy, copied } = useClipboard();
 const { generateReport, isLoading, errorMsg } = useAIReport();
-
 const promptResult = ref('');
 
-// 监听弹窗打开状态
 watch(() => props.modelValue, async (isOpen) => {
   if (isOpen && props.codeA) {
-    // 每次打开时重新生成，确保数据最新
-    // 如果想要缓存，可以加个判断：if (!promptResult.value)
     promptResult.value = await generateReport(props.codeA, props.codeB);
   }
 });
 
 function handleCopyAndLink(url: string) {
   copy(promptResult.value);
-  // 给予用户微小的反馈延迟，体验更顺滑
   setTimeout(() => {
     window.open(url, '_blank');
   }, 300);
@@ -42,24 +36,25 @@ function handleCopyAndLink(url: string) {
   <BaseModal
     :model-value="modelValue"
     @update:model-value="emit('update:modelValue', $event)"
-    title="🤖 AI 深度分析报告"
+    title="复制提示词"
     :show-close="true"
   >
-    <div class="space-y-5">
-      <p class="text-sm opacity-60 leading-relaxed">
-        请复制下方提示词，发送给 AI 助手（如 ChatGPT/DeepSeek），获取基于心理学数据的专业分析报告。
+    <div class="space-y-6">
+      
+      <p class="text-sm opacity-70 leading-relaxed font-medium">
+        请复制以下提示词（包含您的测试结果信息）到您常用的 AI，开启一个新对话，粘贴给它，您将获得一份完整的分析报告。
       </p>
 
       <div class="relative group">
         
-        <div v-if="isLoading" class="h-60 w-full bg-base-content/5 rounded-xl animate-pulse p-4 space-y-3 border border-transparent">
-          <div class="h-3 bg-base-content/10 rounded w-1/4"></div>
+        <div v-if="isLoading" class="h-48 w-full bg-base-content/5 rounded-xl animate-pulse p-4 space-y-3">
+          <div class="h-3 bg-base-content/10 rounded w-1/3"></div>
           <div class="h-3 bg-base-content/10 rounded w-full"></div>
           <div class="h-3 bg-base-content/10 rounded w-5/6"></div>
-          <div class="h-3 bg-base-content/10 rounded w-3/4"></div>
+          <div class="h-3 bg-base-content/10 rounded w-4/5"></div>
         </div>
 
-        <div v-else-if="errorMsg" class="h-60 flex flex-col items-center justify-center text-error bg-error/5 rounded-xl border border-error/10 p-4 text-center">
+        <div v-else-if="errorMsg" class="h-48 flex flex-col items-center justify-center text-error bg-error/5 rounded-xl border border-error/10 p-4 text-center">
           <i-ph-warning-circle-bold class="text-2xl mb-2" />
           <span class="text-sm font-bold">{{ errorMsg }}</span>
         </div>
@@ -68,38 +63,42 @@ function handleCopyAndLink(url: string) {
           v-else
           :value="promptResult"
           readonly
-          class="textarea w-full h-60 text-xs font-mono leading-relaxed p-3 bg-base-content/5 focus:outline-none resize-none rounded-xl border border-transparent focus:bg-base-content/10 transition-colors selection:bg-primary/20"
+          class="textarea w-full h-48 text-xs font-mono leading-relaxed p-3 bg-base-200/50 border border-base-content/10 focus:outline-none resize-none rounded-xl selection:bg-primary/20 text-base-content/60"
         ></textarea>
-        
-        <div v-if="!isLoading && !errorMsg" class="absolute bottom-3 right-3">
-           <button 
-             @click="copy(promptResult)" 
-             class="btn btn-xs btn-neutral shadow-sm gap-1"
-           >
-             <i-ph-check-bold v-if="copied" class="text-success" />
-             <i-ph-copy-bold v-else />
-             {{ copied ? '已复制' : '复制' }}
-           </button>
-        </div>
       </div>
 
-      <div v-if="!isLoading && !errorMsg" class="animate-fade-in-up">
-        <div class="flex items-center gap-2 mb-3 opacity-50">
+      <div v-if="!isLoading && !errorMsg">
+        <button 
+          @click="copy(promptResult)" 
+          class="btn btn-neutral w-full shadow-md gap-2 rounded-xl"
+        >
+          <i-ph-check-bold v-if="copied" class="text-success text-lg" />
+          <i-ph-copy-bold v-else class="text-lg" />
+          <span class="font-bold">{{ copied ? '已复制成功' : '一键复制提示词与结果数据' }}</span>
+        </button>
+      </div>
+
+      <div v-if="!isLoading && !errorMsg" class="animate-fade-in-up border-t border-base-content/5 pt-6">
+        <div class="flex items-center gap-2 mb-4 opacity-50">
           <i-ph-arrow-square-out-bold />
-          <span class="text-xs font-bold uppercase tracking-wider">复制提示词并跳转</span>
+          <span class="text-xs font-bold uppercase tracking-wider">再点此跳转 / Copy & Go</span>
         </div>
         
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-2 gap-3">
           <button 
             v-for="tool in AI_TOOLS" 
             :key="tool.name"
             @click="handleCopyAndLink(tool.url)"
-            class="btn btn-outline btn-xs h-auto py-2.5 flex-col gap-1 border-base-content/10 hover:bg-base-content hover:text-base-100 hover:border-transparent group transition-all"
+            class="btn btn-outline btn-sm h-auto py-3 justify-start px-4 gap-3 border-base-content/10 hover:bg-base-content hover:text-base-100 hover:border-transparent group transition-all"
           >
-            <component :is="tool.icon" class="text-lg opacity-80 group-hover:opacity-100" />
-            <span class="scale-90 font-normal opacity-80 group-hover:opacity-100">{{ tool.name }}</span>
+            <component :is="tool.icon" class="text-xl opacity-80 group-hover:opacity-100 shrink-0" />
+            <span class="text-sm font-medium opacity-80 group-hover:opacity-100 truncate">{{ tool.name }}</span>
           </button>
         </div>
+
+        <p class="text-xs text-center mt-4 opacity-40">
+          您也可以自行跳转自己常用的 AI 工具。
+        </p>
       </div>
     </div>
 
