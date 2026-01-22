@@ -96,7 +96,7 @@ function handleCopyAndLink(url: string) {
           </button>
         </div>
 
-        <p class="text-xs text-center mt-4 opacity-40">
+        <p class="text-sm text-center mt-4 opacity-100">
           您也可以自行跳转自己常用的 AI 工具。
         </p>
       </div>
