@@ -8,6 +8,9 @@ import questionsData from '../data/questions.json';
 import type { Attitude, Module } from '../types';
 import OptionPopover from '../components/OptionPopover.vue';
 
+import AIAnalysisModal from '../components/AIAnalysisModal.vue';
+const showAIModal = ref(false);
+
 const route = useRoute();
 const router = useRouter();
 const store = useConfigStore();
@@ -352,25 +355,37 @@ function handleClearData() {
             </button>
 
             <div class="flex flex-col gap-4">
-              <div class="flex items-center gap-2 text-xs font-bold text-base-content/40 uppercase tracking-wider">
-                <i-ph-share-fat-bold class="text-sm" />
-                <span>Result Code</span>
-              </div>
-              
-              <div class="bg-base-200/50 rounded-lg p-4 font-mono text-sm break-all text-base-content/70 leading-relaxed border border-base-content/5 selection:bg-primary/20">
-                {{ fullCode }}
-              </div>
+  <div class="flex items-center gap-2 text-xs font-bold text-base-content/40 uppercase tracking-wider">
+    <i-ph-share-fat-bold class="text-sm" />
+    <span>Result Code</span>
+  </div>
+  
+  <div class="bg-base-200/50 rounded-lg p-4 font-mono text-sm break-all text-base-content/70 leading-relaxed border border-base-content/5 selection:bg-primary/20">
+    {{ fullCode }}
+  </div>
 
-              <button 
-                @click="copy(fullCode)" 
-                class="btn btn-md w-full btn-neutral gap-2 rounded-lg text-white"
-              >
-                <i-ph-check-bold v-if="copied" />
-                <i-ph-copy-bold v-else />
-                <span v-if="copied">已复制</span>
-                <span v-else>复制配置代码</span>
-              </button>
-            </div>
+  <div class="flex gap-3">
+    
+    <button 
+      @click="copy(fullCode)" 
+      class="btn btn-md flex-1 btn-neutral gap-2 rounded-lg text-white shadow-sm"
+    >
+      <i-ph-check-bold v-if="copied" />
+      <i-ph-copy-bold v-else />
+      <span v-if="copied">已复制</span>
+      <span v-else>复制代码</span>
+    </button>
+
+    <button 
+      @click="showAIModal = true" 
+      class="btn btn-md flex-1 btn-outline gap-2 rounded-lg border-base-content/10 hover:bg-base-content hover:text-base-100 hover:border-transparent transition-all group"
+    >
+      <i-ph-robot-bold class="text-xl group-hover:scale-110 transition-transform" />
+      <span>AI 分析</span>
+    </button>
+    
+  </div>
+</div>
           </div>
         </div>
       </Transition>
@@ -613,6 +628,11 @@ function handleClearData() {
         </button>
       </template>
     </BaseModal>
+
+    <AIAnalysisModal 
+      v-model="showAIModal" 
+      :code-a="fullCode" 
+    />
 
   </div>
 </template>

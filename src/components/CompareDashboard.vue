@@ -92,7 +92,7 @@ function handleClick(params: any) {
   <div class="card bg-base-200 shadow-xl mb-8 w-full">
     <div class="card-body p-4 items-center">
       <h3 class="card-title text-sm opacity-60 uppercase tracking-widest mb-2">
-        关系构成图谱
+        对比结果概览
       </h3>
       
       <div class="w-full h-[250px] relative">

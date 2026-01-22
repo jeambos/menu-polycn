@@ -7,6 +7,8 @@ import type { Attitude, Module } from '../types';
 import CompareDashboard from '../components/CompareDashboard.vue'; 
 import OptionPopover from '../components/OptionPopover.vue';
 
+
+
 const route = useRoute();
 const router = useRouter();
 
@@ -220,7 +222,7 @@ onMounted(() => {
     <div v-if="hasData" class="mb-12 animate-fade-in-up">
       <div class="text-center mb-8">
         <h2 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-2 inline-block">
-          关系对照协议
+          双人结果对比
         </h2>
         <div class="flex justify-center items-center gap-4 text-sm font-bold opacity-60 mt-2">
           <span class="px-2 py-1 bg-base-200 rounded-lg flex items-center gap-1">

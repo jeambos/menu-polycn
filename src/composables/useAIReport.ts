@@ -15,6 +15,16 @@ const ATTITUDE_MAP: Record<number, string> = {
   4: "核心需求(必须)"
 };
 
+// --- ✅ 新增：AI 工具列表 (这就是缺失的部分) ---
+export const AI_TOOLS = [
+  { name: 'ChatGPT', url: 'https://chat.openai.com/', icon: 'i-ph-robot-bold' },
+  { name: 'Claude', url: 'https://claude.ai/new', icon: 'i-ph-brain-bold' },
+  { name: 'DeepSeek', url: 'https://chat.deepseek.com/', icon: 'i-ph-magnifying-glass-bold' },
+  { name: 'Gemini', url: 'https://gemini.google.com/', icon: 'i-ph-sparkle-bold' },
+  { name: '豆包', url: 'https://www.doubao.com/', icon: 'i-ph-chat-circle-dots-bold' },
+  { name: 'Kimi', url: 'https://kimi.moonshot.cn/', icon: 'i-ph-moon-stars-bold' },
+];
+
 // --- Prompt 模板 (占位符) ---
 
 const SINGLE_TEMPLATE = `
