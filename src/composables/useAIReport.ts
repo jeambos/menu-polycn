@@ -198,7 +198,6 @@ export function useAIReport() {
           if (a === 0 && b === 0) return;
 
           const optText = getOptionText(q, idx);
-          // 生成单行描述： "    项目：xxx | 我：xxx 对方：xxx"
           const line = `    项目：${optText} | 我：${ATTITUDE_MAP[a]} VS 对方：${ATTITUDE_MAP[b]}\n`;
 
           if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
@@ -212,16 +211,21 @@ export function useAIReport() {
           }
         });
 
-        // 只有当该题目下有内容时，才追加标题和内容
+        // --- ✅ 优化点：按类型聚合，避免标题重复 ---
         if (entries.length > 0) {
            const titleLine = `  - 场景：${q.title}\n`;
            
-           entries.forEach(e => {
-             if(e.type === 'critical') critical += (titleLine + e.text);
-             if(e.type === 'discuss') discuss += (titleLine + e.text);
-             if(e.type === 'resonance') resonance += (titleLine + e.text);
-             if(e.type === 'negotiate') negotiate += (titleLine + e.text);
-           });
+           // 分别筛选出各类型的条目
+           const cItems = entries.filter(e => e.type === 'critical');
+           const dItems = entries.filter(e => e.type === 'discuss');
+           const nItems = entries.filter(e => e.type === 'negotiate');
+           const rItems = entries.filter(e => e.type === 'resonance');
+
+           // 如果该类型下有条目，则：一次标题 + 所有条目内容
+           if (cItems.length > 0) critical += (titleLine + cItems.map(e => e.text).join(''));
+           if (dItems.length > 0) discuss += (titleLine + dItems.map(e => e.text).join(''));
+           if (nItems.length > 0) negotiate += (titleLine + nItems.map(e => e.text).join(''));
+           if (rItems.length > 0) resonance += (titleLine + rItems.map(e => e.text).join(''));
         }
       });
     });
@@ -230,8 +234,8 @@ export function useAIReport() {
 ### ⚠️ 核心冲突 (Critical Conflict)
 ${critical || "（无核心冲突）"}
 
-### 💬 待厘清 (To Discuss)
-${discuss || "（无待厘清项）"}
+### 💬 需要沟通 (To Discuss)
+${discuss || "（无沟通项）"}
 
 ### ⚖️ 协商让步 (Negotiate)
 ${negotiate || "（无协商项）"}
