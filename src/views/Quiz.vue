@@ -9,6 +9,8 @@ import BaseModal from '../components/BaseModal.vue'; // 引入通用弹窗
 import questionsData from '../data/questions.json';
 import type { Module, Question, Attitude } from '../types';
 
+
+
 const router = useRouter();
 const store = useConfigStore();
 const { copy, copied } = useClipboard();
@@ -313,14 +315,19 @@ function cheatFill() {
 
     <BaseModal 
       v-model="showHelpModal" 
-      title="" 
+      title="操作指南" 
       :show-close="true"
     >
-      <div class="rounded-xl overflow-hidden border border-base-content/5">
+      <div class="rounded-xl overflow-hidden border border-base-content/5 bg-base-200">
         <img 
           src="/guide.png" 
           alt="操作指南" 
-          class="w-full h-auto display-block"
+          class="w-full h-auto block dark:hidden theme-light-img"
+        />
+        <img 
+          src="/guide-dark.png" 
+          alt="操作指南" 
+          class="w-full h-auto hidden dark:block theme-dark-img"
         />
       </div>
 
@@ -339,4 +346,17 @@ function cheatFill() {
 .slide-fade-enter-from { transform: translateX(10px); opacity: 0; }
 .slide-fade-leave-to { transform: translateX(-10px); opacity: 0; }
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+
+/* 如果是基于 DaisyUI 的 data-theme 切换 */
+[data-theme='dark'] .theme-light-img {
+  display: none;
+}
+[data-theme='dark'] .theme-dark-img {
+  display: block;
+}
+
+/* 默认状态（日间） */
+.theme-dark-img {
+  display: none;
+}
 </style>
