@@ -41,6 +41,7 @@ declare module 'vue' {
     IPhCheckCircle: typeof import('~icons/ph/check-circle')['default']
     IPhCheckCircleBold: typeof import('~icons/ph/check-circle-bold')['default']
     IPhCheckCircleFill: typeof import('~icons/ph/check-circle-fill')['default']
+    IPhChecksBold: typeof import('~icons/ph/checks-bold')['default']
     IPhClipboardText: typeof import('~icons/ph/clipboard-text')['default']
     'IPhClipboardText-': typeof import('~icons/ph/clipboard-text-')['default']
     IPhClipboardTextBold: typeof import('~icons/ph/clipboard-text-bold')['default']

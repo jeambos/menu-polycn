@@ -38,6 +38,19 @@ interface ModuleGroup { id: string; name: string; items: ResultItem[]; }
 const allModules = (questionsData.modules as unknown) as Module[];
 const activeModuleIds = ref<string[]>([]);
 
+// 全选 / 重置逻辑
+const toggleAllFilters = () => {
+  // 注意：这里使用 availableModules 还是 allModules 取决于你 script 里定义的源数据变量名
+  // 根据你提供的模板，这里应该是 availableModules
+  if (activeModuleIds.value.length === availableModules.value.length) {
+    // 如果已全选 -> 重置为只保留核心模块 A
+    activeModuleIds.value = ['A'];
+  } else {
+    // 否则 -> 全选所有可用模块
+    activeModuleIds.value = availableModules.value.map(m => m.id);
+  }
+};
+
 // --- 结果数据状态 ---
 const displayAnswers = ref<Record<string, Attitude[]>>({});
 const resultAvatar = ref('🌏');
@@ -116,8 +129,16 @@ function processZoneData(answers: Record<string, Attitude[]>) {
       const states = answers[q.id];
       if (!states) return;
 
-      states.forEach((att, optIndex) => {
+      states.forEach((rawAtt, optIndex) => {
+
+        // --- 🛡️ 防御性数据清洗 ---
+        // 强制转为数字，若不在 0-4 范围内则归 0，防止非法数据导致渲染报错
+        let att = Number(rawAtt);
+        if (isNaN(att) || att < 0 || att > 4) att = 0;
+        
+        // 0 (未表态) 不参与结果展示
         if (att === 0) return;
+
         const opt = q.options[optIndex];
         const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
 
@@ -126,7 +147,7 @@ function processZoneData(answers: Record<string, Attitude[]>) {
           questionId: q.id, 
           title: q.title_short || q.title, 
           choice: choiceText,
-          attitude: att,
+          attitude: att as Attitude, // 断言类型
           moduleId: m.id,
           moduleName: cleanModuleName,
           originalQuestion: q, 
@@ -237,6 +258,11 @@ watch(() => route.query, () => {
   initPage();
 }, { deep: true });
 
+// 双击标题返回顶部
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 onMounted(() => {
   initPage();
 });
@@ -326,6 +352,9 @@ function handleClearData() {
           <span class="text-xs font-bold uppercase tracking-wider">显示模块 / Filter Modules</span>
         </div>
         <div class="flex flex-wrap gap-3 justify-center">
+
+          
+
           <button 
             v-for="mod in availableModules" 
             :key="mod.id"
@@ -340,6 +369,20 @@ function handleClearData() {
           >
             {{ mod.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '') }}
           </button>
+
+          <button 
+            @click="toggleAllFilters"
+            class="btn btn-sm h-9 px-4 rounded-full transition-all border shadow-sm gap-1.5"
+            :class="[
+              activeModuleIds.length === availableModules.length 
+                ? 'bg-base-content text-base-100 border-base-content hover:bg-base-content/80' 
+                : 'bg-base-100 text-base-content/60 border-base-content/10 hover:border-base-content/30 hover:bg-base-200'
+            ]"
+          >
+            <i-ph-checks-bold />
+            <span>全选</span>
+          </button>
+
         </div>
       </div>
 
@@ -392,35 +435,24 @@ function handleClearData() {
 
       <div class="space-y-10">
 
-        <div v-if="goldGroups.length > 0" class="animate-fade-in-up">
-          <div class="flex items-center gap-2 mb-4 px-1">
-            <i-ph-star-fill class="text-amber-500 text-xl" />
+        <div v-if="goldGroups.length > 0" class="animate-fade-in-up pb-8">
+          <div 
+            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-amber-500 cursor-pointer hover:bg-base-100 transition-colors"
+            @dblclick="scrollToTop"
+          >
+            <i-ph-star-fill class="text-xl drop-shadow-sm" />
             <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Must Haves / 核心需求</span>
           </div>
           
           <div class="flex flex-col gap-6">
-            <div 
-              v-for="group in goldGroups" 
-              :key="group.id" 
-              class="bg-base-100 border-l-4 border-amber-500 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
-            >
+            <div v-for="group in goldGroups" :key="group.id" class="bg-base-100 border-l-4 border-amber-500 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
               <h3 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest">{{ group.name }}</h3>
               <div class="flex flex-wrap gap-3">
                 <div v-for="item in group.items" :key="item.id">
-                  <OptionPopover 
-                    :question="item.originalQuestion" 
-                    :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]"
-                    :is-open="activePopoverId === item.id"
-                    @toggle="togglePopover(item.id)"
-                    @close="activePopoverId = null"
-                  >
+                  <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
                     <div class="badge h-auto py-2.5 px-4 gap-2 cursor-pointer hover:scale-105 transition-transform bg-gradient-to-br from-neutral to-black border border-white/10 shadow-sm rounded-lg">
-                      <span class="text-white/60 text-sm font-normal border-r border-white/10 pr-2 mr-0.5">
-                        {{ item.title }}
-                      </span>
-                      <span class="text-amber-400 font-bold text-sm flex items-center gap-1">
-                        {{ item.choice }}
-                      </span>
+                      <span class="text-white/60 text-sm font-normal border-r border-white/10 pr-2 mr-0.5">{{ item.title }}</span>
+                      <span class="text-amber-400 font-bold text-sm flex items-center gap-1">{{ item.choice }}</span>
                     </div>
                   </OptionPopover>
                 </div>
@@ -429,32 +461,23 @@ function handleClearData() {
           </div>
         </div>
 
-        <div v-if="redGroups.length > 0" class="animate-fade-in-up delay-100">
-          <div class="flex items-center gap-2 mb-4 px-1">
-            <i-ph-x-bold class="text-error text-xl" />
+        <div v-if="redGroups.length > 0" class="animate-fade-in-up delay-100 pb-8">
+          <div 
+            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-error cursor-pointer hover:bg-base-100 transition-colors"
+            @dblclick="scrollToTop"
+          >
+            <i-ph-x-bold class="text-xl drop-shadow-sm" />
             <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Deal Breakers / 硬边界</span>
           </div>
           
           <div class="flex flex-col gap-6">
-            <div 
-              v-for="group in redGroups" 
-              :key="group.id" 
-              class="bg-base-100 border-l-4 border-error rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
-            >
+             <div v-for="group in redGroups" :key="group.id" class="bg-base-100 border-l-4 border-error rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
               <h3 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest">{{ group.name }}</h3>
               <div class="flex flex-wrap gap-3">
                 <div v-for="item in group.items" :key="item.id">
-                  <OptionPopover 
-                    :question="item.originalQuestion" 
-                    :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]"
-                    :is-open="activePopoverId === item.id"
-                    @toggle="togglePopover(item.id)"
-                    @close="activePopoverId = null"
-                  >
+                  <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
                     <div class="badge badge-outline border-error/50 text-error h-auto py-2.5 px-4 gap-2 cursor-pointer hover:bg-error/5 transition-colors bg-base-100 rounded-lg">
-                      <span class="opacity-70 text-sm font-normal border-r border-error/20 pr-2 mr-0.5">
-                        {{ item.title }}
-                      </span>
+                      <span class="opacity-70 text-sm font-normal border-r border-error/20 pr-2 mr-0.5">{{ item.title }}</span>
                       <span class="font-bold text-sm">{{ item.choice }}</span>
                     </div>
                   </OptionPopover>
@@ -464,32 +487,23 @@ function handleClearData() {
           </div>
         </div>
 
-        <div v-if="yellowGroups.length > 0" class="animate-fade-in-up delay-200">
-          <div class="flex items-center gap-2 mb-4 px-1">
-            <i-ph-question-bold class="text-warning text-xl" />
+        <div v-if="yellowGroups.length > 0" class="animate-fade-in-up delay-200 pb-8">
+          <div 
+            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-warning cursor-pointer hover:bg-base-100 transition-colors"
+            @dblclick="scrollToTop"
+          >
+            <i-ph-question-bold class="text-xl drop-shadow-sm" />
             <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Soft Limits / 待商议</span>
           </div>
           
           <div class="flex flex-col gap-6">
-            <div 
-              v-for="group in yellowGroups" 
-              :key="group.id" 
-              class="bg-base-100 border-l-4 border-warning/50 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
-            >
+            <div v-for="group in yellowGroups" :key="group.id" class="bg-base-100 border-l-4 border-warning/50 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
               <h3 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest">{{ group.name }}</h3>
               <div class="flex flex-wrap gap-3">
                 <div v-for="item in group.items" :key="item.id">
-                  <OptionPopover 
-                    :question="item.originalQuestion" 
-                    :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]"
-                    :is-open="activePopoverId === item.id"
-                    @toggle="togglePopover(item.id)"
-                    @close="activePopoverId = null"
-                  >
+                  <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
                     <div class="badge border-none text-base-content/80 h-auto py-2.5 px-4 gap-2 bg-warning/20 cursor-pointer hover:bg-warning/30 transition-colors rounded-lg">
-                      <span class="opacity-50 text-sm font-normal border-r border-base-content/10 pr-2 mr-0.5">
-                        {{ item.title }}
-                      </span>
+                      <span class="opacity-50 text-sm font-normal border-r border-base-content/10 pr-2 mr-0.5">{{ item.title }}</span>
                       <span class="font-medium text-sm">{{ item.choice }}</span>
                     </div>
                   </OptionPopover>
@@ -499,26 +513,21 @@ function handleClearData() {
           </div>
         </div>
 
-        <div v-if="greenItems.length > 0" class="animate-fade-in-up delay-300">
-          <div class="flex items-center gap-2 mb-4 px-1">
-            <i-ph-check-bold class="text-success text-xl" />
+        <div v-if="greenItems.length > 0" class="animate-fade-in-up delay-300 pb-16">
+          <div 
+            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-success cursor-pointer hover:bg-base-100 transition-colors"
+            @dblclick="scrollToTop"
+          >
+            <i-ph-check-bold class="text-xl drop-shadow-sm" />
             <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Nice to Have / 可接受</span>
           </div>
           
           <div class="bg-base-100 border border-base-content/10 rounded-xl p-6 shadow-sm">
             <div class="flex flex-wrap gap-3">
               <div v-for="item in greenItems" :key="item.id">
-                <OptionPopover 
-                  :question="item.originalQuestion" 
-                  :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]"
-                  :is-open="activePopoverId === item.id"
-                  @toggle="togglePopover(item.id)"
-                  @close="activePopoverId = null"
-                >
+                <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
                   <div class="badge badge-ghost h-auto py-2 px-3 gap-2 text-base-content/60 bg-base-200 hover:bg-base-300 cursor-pointer rounded-lg">
-                    <span class="opacity-50 text-xs font-normal border-r border-base-content/10 pr-2 mr-0.5">
-                      {{ item.title }}
-                    </span>
+                    <span class="opacity-50 text-xs font-normal border-r border-base-content/10 pr-2 mr-0.5">{{ item.title }}</span>
                     <span class="text-sm">{{ item.choice }}</span>
                   </div>
                 </OptionPopover>
