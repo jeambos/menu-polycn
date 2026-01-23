@@ -1,3 +1,6 @@
+# DIY 关系配置单 v0.7
+### https://diy.polycn.org
+
 ## 关系配置单是什么？
 
 你好！
