@@ -87,29 +87,21 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
     const cleanModuleName = m.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '');
 
     m.questions.forEach(q => {
-      const myStates = myMap[q.id]; 
-      const partnerStates = partnerMap[q.id];
-      
-      if (!myStates || !partnerStates) return;
+      // 1. 获取状态数组，如果为空则给默认空数组，防止报错
+      const myStates = myMap[q.id] || []; 
+      const partnerStates = partnerMap[q.id] || [];
       
       q.options.forEach((opt, index) => {
-        // ⚠️ 强制转换为 Number，确保 0 (未表态) 能被正确处理
-        const a = Number(myStates[index] || 0) as Attitude;
-        const b = Number(partnerStates[index] || 0) as Attitude;
-        
-        // ❌ 删除旧逻辑：不再过滤 0
-        // if (a === 0 || b === 0) return;
+        // --- 🛡️ 防御性数据清洗 ---
+        let rawA = Number(myStates[index] || 0);
+        let rawB = Number(partnerStates[index] || 0);
 
-        // 如果两人都是 0，且该选项没人选，通常不需要展示（视具体需求而定）
-        // 但如果您的数据结构是稀疏的，0可能意味着“未选”。
-        // 这里假设只要有一方不是0，或者是某些特定情况，我们都要展示。
-        // 为了避免展示过多无效信息，如果双方都是0，我们仅当这是“显式跳过”时才展示。
-        // 但根据您的要求：“所有的0都是未表态，是5个态度之一”，我们全部纳入考量。
-        // 不过为了页面干净，如果两个都是0，通常意味着这个选项无关紧要，可以考虑过滤。
-        // 但既然您说“0是态度之一”，那我们先不过滤，看看效果。
-        // *修正*：通常如果两个人都没选这个选项（都是0），展示出来没有意义（满屏都是未选）。
-        // 我们可以只展示“至少有一方选了非0” 或者 “双方明确选了0(如果0代表某种显性态度)”的情况。
-        // 鉴于0通常是默认值，如果双方都是0，我们暂时忽略，避免列表爆炸。
+        // 2. 强制限制在 0-4 之间，防止越界数据 (如 7) 导致显示异常
+        // 同时断言为 Attitude 类型以通过 TS 检查
+        const a = ((rawA >= 0 && rawA <= 4) ? rawA : 0) as Attitude;
+        const b = ((rawB >= 0 && rawB <= 4) ? rawB : 0) as Attitude;
+
+        // 双方都未表态(0)，跳过
         if (a === 0 && b === 0) return; 
 
         const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
@@ -126,28 +118,17 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
           myOptionIndex: index, 
           partnerOptionIndex: index
         };
-
-        // --- 核心分类逻辑更新 ---
-
-        // 1. 待厘清 (Discuss): 
-        //    - 任意一方是 "?" (2)
-        //    - 或者：一方已表态(非0)，另一方未表态(0) -> 需要沟通
+        
+        // ... (下面的分类逻辑 if/else 保持不变) ...
+        // 为了方便，你可以只替换到这里，保留后面的 push 逻辑
+        // 或者保留原本的分类代码，它们不需要动
         if (a === 2 || b === 2 || (a === 0 && b !== 0) || (a !== 0 && b === 0)) {
            dList.push(item);
-        }
-        // 2. 核心冲突 (Critical): 金星(4) 撞 红线(1)
-        else if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
+        } else if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
            nList.push(item);
-        }
-        // 3. 默契共振 (Resonance): 
-        //    - 都是接受(3)或金星(4)
-        //    - 都是红线(1)
-        //    - *注*：双方都是0的情况已在上面过滤，如果不过滤，也应放这里
-        else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) {
+        } else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) {
            rList.push(item);
-        }
-        // 4. 协商让步 (Negotiate): 其他情况 (如 1 vs 3, 3 vs 4 等)
-        else {
+        } else {
            hList.push(item);
         }
       });
@@ -160,12 +141,23 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
   listNegotiate.value = hList;
 }
 
-// 筛选控制
-function toggleFilter(modId: string) {
-  if (selectedModuleIds.value.includes(modId)) {
-    if (selectedModuleIds.value.length > 1) selectedModuleIds.value = selectedModuleIds.value.filter(id => id !== modId);
-  } else selectedModuleIds.value.push(modId);
-}
+/// 切换模块显示状态
+const toggleFilter = (id: string) => {
+  // 🔒 核心逻辑修改：
+  // 如果点击的是 'A' (核心内核)，直接拦截返回，不做任何改变。
+  // 这样它就永远无法被取消，且视觉上保持选中状态。
+  if (id === 'A') return;
+
+  const idx = selectedModuleIds.value.indexOf(id);
+  if (idx > -1) {
+    // 允许取消选中（不需要再判断 length > 1，因为 A 永远在）
+    selectedModuleIds.value.splice(idx, 1);
+  } else {
+    // 选中
+    selectedModuleIds.value.push(id);
+  }
+};
+
 function toggleAllFilters() {
   selectedModuleIds.value.length === allModules.length ? selectedModuleIds.value = ['A'] : selectedModuleIds.value = allModules.map(m => m.id);
 }
@@ -259,7 +251,7 @@ onMounted(() => {
     <div class="flex flex-col">
 
       <div id="zone-critical" class="scroll-mt-32 pb-16">
-        <div v-if="groupsCritical.length > 0" class="animate-fade-in-up">
+        <div class="animate-fade-in-up">
           <div 
             class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-error cursor-pointer hover:bg-base-100 transition-colors"
             @dblclick="scrollToTop"
@@ -271,7 +263,7 @@ onMounted(() => {
             </div>
           </div>
           
-          <div class="flex flex-col gap-6">
+          <div v-if="groupsCritical.length > 0" class="flex flex-col gap-6">
             <div 
               v-for="group in groupsCritical" 
               :key="group.id" 
@@ -291,42 +283,42 @@ onMounted(() => {
                     @close="activePopoverId = null"
                   >
                     <div class="badge badge-lg h-auto py-2.5 px-4 gap-3 bg-error/5 border border-error/20 text-error-content cursor-pointer hover:bg-error/10 hover:scale-105 transition-all rounded-lg shadow-sm group">
-                      <span class="text-xs font-bold opacity-70 border-r border-error/20 pr-3 mr-1 group-hover:border-error/40 transition-colors">
-                        {{ item.title }}
-                      </span>
-                      
-                      <div class="flex items-center gap-2 text-sm font-bold">
-                        <div class="flex items-center gap-1" title="我方态度">
-                          <i-ph-star-fill v-if="item.myAttitude === 4" class="text-amber-400 drop-shadow-sm" />
-                          <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
-                          <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success" />
-                          <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
-                          <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
-                          <span class="text-xs">{{ myAvatar }}</span>
+                        <span class="text-xs font-bold opacity-70 border-r border-error/20 pr-3 mr-1 group-hover:border-error/40 transition-colors">{{ item.title }}</span>
+                        <div class="flex items-center gap-2 text-sm font-bold">
+                            <div class="flex items-center gap-1">
+                                <i-ph-star-fill v-if="item.myAttitude === 4" class="text-amber-400 drop-shadow-sm" />
+                                <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
+                                <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success" />
+                                <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
+                                <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
+                                <span class="text-xs">{{ myAvatar }}</span>
+                            </div>
+                            <i-ph-lightning-fill class="text-xs text-error opacity-40 mx-0.5 animate-pulse" />
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs">{{ partnerAvatar }}</span>
+                                <i-ph-star-fill v-if="item.partnerAttitude === 4" class="text-amber-400 drop-shadow-sm" />
+                                <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
+                                <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success" />
+                                <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
+                                <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
+                            </div>
                         </div>
-
-                        <i-ph-lightning-fill class="text-xs text-error opacity-40 mx-0.5 animate-pulse" />
-
-                        <div class="flex items-center gap-1" title="对方态度">
-                          <span class="text-xs">{{ partnerAvatar }}</span>
-                          <i-ph-star-fill v-if="item.partnerAttitude === 4" class="text-amber-400 drop-shadow-sm" />
-                          <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
-                          <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success" />
-                          <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
-                          <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
-                        </div>
-                      </div>
                     </div>
                   </OptionPopover>
                 </div>
               </div>
             </div>
           </div>
+
+          <div v-else class="text-center py-10 opacity-50">
+            <i-ph-confetti-bold class="text-4xl mb-2 mx-auto text-slate-300" />
+            <p class="text-sm">太棒了！此处无核心冲突</p>
+          </div>
         </div>
       </div>
 
       <div id="zone-resonance" class="scroll-mt-32 pb-16">
-        <div v-if="groupsResonance.length > 0" class="animate-fade-in-up">
+        <div class="animate-fade-in-up">
           <div 
             class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-success cursor-pointer hover:bg-base-100 transition-colors"
             @dblclick="scrollToTop"
@@ -338,64 +330,50 @@ onMounted(() => {
             </div>
           </div>
           
-          <div class="flex flex-col gap-6">
-            <div 
-              v-for="group in groupsResonance" 
-              :key="group.id" 
-              class="bg-base-100 border-l-4 border-success rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
-            >
-              <h4 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest text-success">{{ group.name }}</h4>
-              <div class="flex flex-wrap gap-3">
-                <div v-for="item in group.items" :key="item.id">
-                  <OptionPopover 
-                    :question="item.originalQuestion" 
-                    :selections="[
-                      { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
-                      { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
-                    ]"
-                    :is-open="activePopoverId === item.id"
-                    @toggle="togglePopover(item.id)"
-                    @close="activePopoverId = null"
-                  >
-                    <div class="badge badge-lg h-auto py-2 px-3 gap-3 bg-success/5 border border-success/20 text-base-content/80 cursor-pointer hover:bg-success/10 transition-colors rounded-lg group">
-                      <span class="text-xs opacity-60 border-r border-success/20 pr-2 mr-1">
-                        {{ item.title }}
-                      </span>
-                      
-                      <div class="flex items-center gap-2 text-sm font-bold">
-                        <div class="flex items-center gap-1">
-                          <span class="text-xs">{{ myAvatar }}</span>
-                          <i-ph-star-fill v-if="item.myAttitude === 4" class="text-amber-400" />
-                          <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success" />
-                          <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
-                          <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
-                          <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
-                        </div>
-
-                        <span class="text-success/40 text-xs font-normal">&</span>
-
-                        <div class="flex items-center gap-1">
-                          <span class="text-xs">{{ partnerAvatar }}</span>
-                          <i-ph-star-fill v-if="item.partnerAttitude === 4" class="text-amber-400" />
-                          <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success" />
-                          <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
-                          <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
-                          <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
-                        </div>
-                        
-                        <span class="ml-1 opacity-90">{{ item.choice }}</span>
-                      </div>
+          <div v-if="groupsResonance.length > 0" class="flex flex-col gap-6">
+             <div v-for="group in groupsResonance" :key="group.id" class="bg-base-100 border-l-4 border-success rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
+                <h4 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest text-success">{{ group.name }}</h4>
+                <div class="flex flex-wrap gap-3">
+                    <div v-for="item in group.items" :key="item.id">
+                        <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude }, { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
+                             <div class="badge badge-lg h-auto py-2 px-3 gap-3 bg-success/5 border border-success/20 text-base-content/80 cursor-pointer hover:bg-success/10 transition-colors rounded-lg group">
+                                <span class="text-xs opacity-60 border-r border-success/20 pr-2 mr-1">{{ item.title }}</span>
+                                <div class="flex items-center gap-2 text-sm font-bold">
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-xs">{{ myAvatar }}</span>
+                                        <i-ph-star-fill v-if="item.myAttitude === 4" class="text-amber-400" />
+                                        <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success" />
+                                        <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
+                                        <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
+                                        <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
+                                    </div>
+                                    <span class="text-success/40 text-xs font-normal">&</span>
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-xs">{{ partnerAvatar }}</span>
+                                        <i-ph-star-fill v-if="item.partnerAttitude === 4" class="text-amber-400" />
+                                        <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success" />
+                                        <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
+                                        <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
+                                        <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
+                                    </div>
+                                    <span class="ml-1 opacity-90">{{ item.choice }}</span>
+                                </div>
+                             </div>
+                        </OptionPopover>
                     </div>
-                  </OptionPopover>
                 </div>
-              </div>
-            </div>
+             </div>
+          </div>
+
+          <div v-else class="text-center py-10 opacity-50">
+            <i-ph-magnifying-glass-bold class="text-4xl mb-2 mx-auto text-slate-300" />
+            <p class="text-sm">暂未发现高度共振项</p>
           </div>
         </div>
       </div>
 
       <div id="zone-discuss" class="scroll-mt-32 pb-16">
-        <div v-if="groupsDiscuss.length > 0" class="animate-fade-in-up">
+        <div class="animate-fade-in-up">
           <div 
             class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-warning cursor-pointer hover:bg-base-100 transition-colors"
             @dblclick="scrollToTop"
@@ -407,64 +385,50 @@ onMounted(() => {
             </div>
           </div>
           
-          <div class="flex flex-col gap-6">
-            <div 
-              v-for="group in groupsDiscuss" 
-              :key="group.id" 
-              class="bg-base-100 border-l-4 border-warning rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
-            >
-              <h4 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest text-warning">{{ group.name }}</h4>
-              <div class="flex flex-wrap gap-3">
-                <div v-for="item in group.items" :key="item.id">
-                  <OptionPopover 
-                    :question="item.originalQuestion" 
-                    :selections="[
-                      { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
-                      { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
-                    ]"
-                    :is-open="activePopoverId === item.id"
-                    @toggle="togglePopover(item.id)"
-                    @close="activePopoverId = null"
-                  >
-                    <div class="badge badge-lg h-auto py-2 px-3 gap-3 bg-warning/5 border border-warning/20 text-base-content/80 cursor-pointer hover:bg-warning/10 transition-colors rounded-lg group">
-                      <span class="text-xs opacity-50 border-r border-warning/20 pr-2 mr-1 group-hover:border-warning/40 transition-colors">
-                        {{ item.title }}
-                      </span>
-                      
-                      <div class="flex items-center gap-2 text-sm font-bold">
-                        <div class="flex items-center gap-1">
-                          <span class="text-xs">{{ myAvatar }}</span>
-                          <i-ph-question-bold v-if="item.myAttitude === 2" class="text-warning" />
-                          <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success/70" />
-                          <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error/70" />
-                          <i-ph-star-fill v-else-if="item.myAttitude === 4" class="text-amber-400/80" />
-                          <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
-                        </div>
-
-                        <span class="text-warning/40 text-xs font-normal">?</span>
-
-                        <div class="flex items-center gap-1">
-                          <span class="text-xs">{{ partnerAvatar }}</span>
-                          <i-ph-question-bold v-if="item.partnerAttitude === 2" class="text-warning" />
-                          <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success/70" />
-                          <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error/70" />
-                          <i-ph-star-fill v-else-if="item.partnerAttitude === 4" class="text-amber-400/80" />
-                          <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
-                        </div>
-                        
-                        <span class="ml-1 opacity-90">{{ item.choice }}</span>
-                      </div>
+          <div v-if="groupsDiscuss.length > 0" class="flex flex-col gap-6">
+             <div v-for="group in groupsDiscuss" :key="group.id" class="bg-base-100 border-l-4 border-warning rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
+                <h4 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest text-warning">{{ group.name }}</h4>
+                <div class="flex flex-wrap gap-3">
+                    <div v-for="item in group.items" :key="item.id">
+                        <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude }, { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
+                             <div class="badge badge-lg h-auto py-2 px-3 gap-3 bg-warning/5 border border-warning/20 text-base-content/80 cursor-pointer hover:bg-warning/10 transition-colors rounded-lg group">
+                                <span class="text-xs opacity-50 border-r border-warning/20 pr-2 mr-1 group-hover:border-warning/40 transition-colors">{{ item.title }}</span>
+                                <div class="flex items-center gap-2 text-sm font-bold">
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-xs">{{ myAvatar }}</span>
+                                        <i-ph-question-bold v-if="item.myAttitude === 2" class="text-warning" />
+                                        <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success/70" />
+                                        <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error/70" />
+                                        <i-ph-star-fill v-else-if="item.myAttitude === 4" class="text-amber-400/80" />
+                                        <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
+                                    </div>
+                                    <span class="text-warning/40 text-xs font-normal">?</span>
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-xs">{{ partnerAvatar }}</span>
+                                        <i-ph-question-bold v-if="item.partnerAttitude === 2" class="text-warning" />
+                                        <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success/70" />
+                                        <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error/70" />
+                                        <i-ph-star-fill v-else-if="item.partnerAttitude === 4" class="text-amber-400/80" />
+                                        <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
+                                    </div>
+                                    <span class="ml-1 opacity-90">{{ item.choice }}</span>
+                                </div>
+                             </div>
+                        </OptionPopover>
                     </div>
-                  </OptionPopover>
                 </div>
-              </div>
-            </div>
+             </div>
+          </div>
+
+          <div v-else class="text-center py-10 opacity-50">
+            <i-ph-check-circle-bold class="text-4xl mb-2 mx-auto text-slate-300" />
+            <p class="text-sm">沟通顺畅，无待厘清项</p>
           </div>
         </div>
       </div>
 
       <div id="zone-negotiate" class="scroll-mt-32 pb-16">
-        <div v-if="groupsNegotiate.length > 0" class="animate-fade-in-up">
+        <div class="animate-fade-in-up">
           <div 
             class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-base-content/60 cursor-pointer hover:bg-base-100 transition-colors"
             @dblclick="scrollToTop"
@@ -476,58 +440,44 @@ onMounted(() => {
             </div>
           </div>
           
-          <div class="flex flex-col gap-6">
-            <div 
-              v-for="group in groupsNegotiate" 
-              :key="group.id" 
-              class="bg-base-100 border-l-4 border-base-content/20 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5"
-            >
-              <h4 class="text-xs font-bold opacity-30 uppercase mb-4 tracking-widest">{{ group.name }}</h4>
-              <div class="flex flex-wrap gap-3">
-                <div v-for="item in group.items" :key="item.id">
-                  <OptionPopover 
-                    :question="item.originalQuestion" 
-                    :selections="[
-                      { avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude },
-                      { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }
-                    ]"
-                    :is-open="activePopoverId === item.id"
-                    @toggle="togglePopover(item.id)"
-                    @close="activePopoverId = null"
-                  >
-                    <div class="badge badge-lg badge-ghost h-auto py-2 px-3 gap-3 bg-base-200/50 border border-base-content/10 text-base-content/60 cursor-pointer hover:bg-base-200 transition-colors rounded-lg group">
-                      <span class="text-xs opacity-50 border-r border-base-content/10 pr-2 mr-1 group-hover:border-base-content/20 transition-colors">
-                        {{ item.title }}
-                      </span>
-                      
-                      <div class="flex items-center gap-2 text-sm font-bold">
-                        <div class="flex items-center gap-1">
-                          <span class="text-xs">{{ myAvatar }}</span>
-                          <i-ph-check-bold v-if="item.myAttitude === 3" class="text-success" />
-                          <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
-                          <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
-                          <i-ph-star-fill v-else-if="item.myAttitude === 4" class="text-amber-400" />
-                          <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
-                        </div>
-
-                        <span class="opacity-30 text-xs font-normal">/</span>
-
-                        <div class="flex items-center gap-1">
-                          <span class="text-xs">{{ partnerAvatar }}</span>
-                          <i-ph-check-bold v-if="item.partnerAttitude === 3" class="text-success" />
-                          <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
-                          <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
-                          <i-ph-star-fill v-else-if="item.partnerAttitude === 4" class="text-amber-400" />
-                          <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
-                        </div>
-                        
-                        <span class="ml-1 opacity-90">{{ item.choice }}</span>
-                      </div>
+          <div v-if="groupsNegotiate.length > 0" class="flex flex-col gap-6">
+             <div v-for="group in groupsNegotiate" :key="group.id" class="bg-base-100 border-l-4 border-base-content/20 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
+                <h4 class="text-xs font-bold opacity-30 uppercase mb-4 tracking-widest">{{ group.name }}</h4>
+                <div class="flex flex-wrap gap-3">
+                    <div v-for="item in group.items" :key="item.id">
+                        <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: myAvatar, index: item.myOptionIndex, attitude: item.myAttitude }, { avatar: partnerAvatar, index: item.partnerOptionIndex, attitude: item.partnerAttitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
+                             <div class="badge badge-lg badge-ghost h-auto py-2 px-3 gap-3 bg-base-200/50 border border-base-content/10 text-base-content/60 cursor-pointer hover:bg-base-200 transition-colors rounded-lg group">
+                                <span class="text-xs opacity-50 border-r border-base-content/10 pr-2 mr-1 group-hover:border-base-content/20 transition-colors">{{ item.title }}</span>
+                                <div class="flex items-center gap-2 text-sm font-bold">
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-xs">{{ myAvatar }}</span>
+                                        <i-ph-check-bold v-if="item.myAttitude === 3" class="text-success" />
+                                        <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
+                                        <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
+                                        <i-ph-star-fill v-else-if="item.myAttitude === 4" class="text-amber-400" />
+                                        <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
+                                    </div>
+                                    <span class="opacity-30 text-xs font-normal">/</span>
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-xs">{{ partnerAvatar }}</span>
+                                        <i-ph-check-bold v-if="item.partnerAttitude === 3" class="text-success" />
+                                        <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
+                                        <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
+                                        <i-ph-star-fill v-else-if="item.partnerAttitude === 4" class="text-amber-400" />
+                                        <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
+                                    </div>
+                                    <span class="ml-1 opacity-90">{{ item.choice }}</span>
+                                </div>
+                             </div>
+                        </OptionPopover>
                     </div>
-                  </OptionPopover>
                 </div>
-              </div>
-            </div>
+             </div>
+          </div>
+
+          <div v-else class="text-center py-10 opacity-50">
+            <i-ph-check-circle-bold class="text-4xl mb-2 mx-auto text-slate-300" />
+            <p class="text-sm">无协商让步项</p>
           </div>
         </div>
       </div>
