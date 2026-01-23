@@ -256,12 +256,12 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="flex flex-col gap-10">
+    <div class="flex flex-col">
 
-      <div id="zone-critical" class="scroll-mt-32">
+      <div id="zone-critical" class="scroll-mt-32 pb-16">
         <div v-if="groupsCritical.length > 0" class="animate-fade-in-up">
           <div 
-            class="sticky top-0 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-error cursor-pointer hover:bg-base-100 transition-colors"
+            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-error cursor-pointer hover:bg-base-100 transition-colors"
             @dblclick="scrollToTop"
           >
             <i-ph-sword-bold class="text-2xl drop-shadow-sm" />
@@ -325,10 +325,10 @@ onMounted(() => {
         </div>
       </div>
 
-      <div id="zone-resonance" class="scroll-mt-32">
+      <div id="zone-resonance" class="scroll-mt-32 pb-16">
         <div v-if="groupsResonance.length > 0" class="animate-fade-in-up">
           <div 
-            class="sticky top-0 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-success cursor-pointer hover:bg-base-100 transition-colors"
+            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-success cursor-pointer hover:bg-base-100 transition-colors"
             @dblclick="scrollToTop"
           >
             <i-ph-handshake-bold class="text-2xl drop-shadow-sm" />
@@ -394,10 +394,10 @@ onMounted(() => {
         </div>
       </div>
 
-      <div id="zone-discuss" class="scroll-mt-32">
+      <div id="zone-discuss" class="scroll-mt-32 pb-16">
         <div v-if="groupsDiscuss.length > 0" class="animate-fade-in-up">
           <div 
-            class="sticky top-0 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-warning cursor-pointer hover:bg-base-100 transition-colors"
+            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-warning cursor-pointer hover:bg-base-100 transition-colors"
             @dblclick="scrollToTop"
           >
             <i-ph-chats-circle-bold class="text-2xl drop-shadow-sm" />
@@ -463,10 +463,10 @@ onMounted(() => {
         </div>
       </div>
 
-      <div id="zone-negotiate" class="scroll-mt-32">
+      <div id="zone-negotiate" class="scroll-mt-32 pb-16">
         <div v-if="groupsNegotiate.length > 0" class="animate-fade-in-up">
           <div 
-            class="sticky top-0 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-base-content/60 cursor-pointer hover:bg-base-100 transition-colors"
+            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-base-content/60 cursor-pointer hover:bg-base-100 transition-colors"
             @dblclick="scrollToTop"
           >
             <i-ph-arrows-left-right-bold class="text-2xl" />
@@ -535,12 +535,6 @@ onMounted(() => {
     </div>
 
     <div class="mt-16 text-center border-t border-base-content/5 pt-8">
-      <button @click="router.push('/')" class="btn btn-ghost btn-sm opacity-60 hover:opacity-100">
-        返回首页
-      </button>
-    </div>
-
-<div class="mt-16 text-center border-t border-base-content/5 pt-8">
       <button @click="router.push('/')" class="btn btn-ghost btn-sm opacity-60 hover:opacity-100">
         返回首页
       </button>
