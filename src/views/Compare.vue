@@ -170,6 +170,11 @@ function toggleAllFilters() {
   selectedModuleIds.value.length === allModules.length ? selectedModuleIds.value = ['A'] : selectedModuleIds.value = allModules.map(m => m.id);
 }
 
+// 双击标题返回顶部
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 onMounted(() => {
   const myCode = route.query.my as string;
   const partnerCode = route.query.partner as string;
@@ -195,7 +200,7 @@ onMounted(() => {
 <template>
   <div class="pb-32 pt-6 px-6 max-w-3xl mx-auto min-h-screen font-sans text-base">
     
-    <div class="sticky top-4 z-40 mb-8">
+    <div class="mb-8">
       <div class="bg-base-100/90 backdrop-blur-md shadow-sm border border-base-content/5 rounded-2xl p-3 flex flex-col gap-3">
         <div class="flex items-center justify-between px-1">
           <div class="flex items-center gap-2 opacity-60">
@@ -255,7 +260,10 @@ onMounted(() => {
 
       <div id="zone-critical" class="scroll-mt-32">
         <div v-if="groupsCritical.length > 0" class="animate-fade-in-up">
-          <div class="flex items-center gap-2 mb-4 px-1 text-error">
+          <div 
+            class="sticky top-0 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-error cursor-pointer hover:bg-base-100 transition-colors"
+            @dblclick="scrollToTop"
+          >
             <i-ph-sword-bold class="text-2xl drop-shadow-sm" />
             <div>
               <h3 class="text-lg font-bold uppercase tracking-wider leading-none">Critical Conflict</h3>
@@ -319,7 +327,10 @@ onMounted(() => {
 
       <div id="zone-resonance" class="scroll-mt-32">
         <div v-if="groupsResonance.length > 0" class="animate-fade-in-up">
-          <div class="flex items-center gap-2 mb-4 px-1 text-success">
+          <div 
+            class="sticky top-0 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-success cursor-pointer hover:bg-base-100 transition-colors"
+            @dblclick="scrollToTop"
+          >
             <i-ph-handshake-bold class="text-2xl drop-shadow-sm" />
             <div>
               <h3 class="text-lg font-bold uppercase tracking-wider leading-none">Resonance</h3>
@@ -385,7 +396,10 @@ onMounted(() => {
 
       <div id="zone-discuss" class="scroll-mt-32">
         <div v-if="groupsDiscuss.length > 0" class="animate-fade-in-up">
-          <div class="flex items-center gap-2 mb-4 px-1 text-warning">
+          <div 
+            class="sticky top-0 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-warning cursor-pointer hover:bg-base-100 transition-colors"
+            @dblclick="scrollToTop"
+          >
             <i-ph-chats-circle-bold class="text-2xl drop-shadow-sm" />
             <div>
               <h3 class="text-lg font-bold uppercase tracking-wider leading-none">To Discuss</h3>
@@ -451,7 +465,10 @@ onMounted(() => {
 
       <div id="zone-negotiate" class="scroll-mt-32">
         <div v-if="groupsNegotiate.length > 0" class="animate-fade-in-up">
-          <div class="flex items-center gap-2 mb-4 px-1 text-base-content/60">
+          <div 
+            class="sticky top-0 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-base-content/60 cursor-pointer hover:bg-base-100 transition-colors"
+            @dblclick="scrollToTop"
+          >
             <i-ph-arrows-left-right-bold class="text-2xl" />
             <div>
               <h3 class="text-lg font-bold uppercase tracking-wider leading-none">Negotiate</h3>
