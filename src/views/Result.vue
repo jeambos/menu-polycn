@@ -519,19 +519,19 @@ function handleClearData() {
             @dblclick="scrollToTop"
           >
             <i-ph-check-bold class="text-xl drop-shadow-sm" />
-            <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Nice to Have / 可接受</span>
+            <span class="text-base font-bold uppercase tracking-wider text-base-content/80">OK To Have/ 可接受</span>
           </div>
           
           <div class="bg-base-100 border border-base-content/10 rounded-xl p-6 shadow-sm">
             <div class="flex flex-wrap gap-3">
               <div v-for="item in greenItems" :key="item.id">
-                <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
-                  <div class="badge badge-ghost h-auto py-2 px-3 gap-2 text-base-content/60 bg-base-200 hover:bg-base-300 cursor-pointer rounded-lg">
-                    <span class="opacity-50 text-xs font-normal border-r border-base-content/10 pr-2 mr-0.5">{{ item.title }}</span>
-                    <span class="text-sm">{{ item.choice }}</span>
-                  </div>
-                </OptionPopover>
-              </div>
+  <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
+    <div class="badge badge-ghost h-auto py-2 px-3 gap-2 text-success bg-success/5 hover:bg-success/10 cursor-pointer rounded-lg border border-success/20">
+      <span class="opacity-90 text-sm font-normal border-r border-success/20 pr-2 mr-0.5">{{ item.title }}</span>
+      <span class="text-sm">{{ item.choice }}</span>
+    </div>
+  </OptionPopover>
+</div>
             </div>
           </div>
         </div>
