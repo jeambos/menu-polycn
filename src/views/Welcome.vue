@@ -272,7 +272,8 @@ function handleCompare() {
 
     <AIAnalysisModal 
       v-model="showAIModal" 
-      :code-a="fullCode" 
+      :code-a="singleCode" 
+      :code-b="partnerCode"
     />
 
 

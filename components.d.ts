@@ -81,6 +81,7 @@ declare module 'vue' {
     IPhRobotBold: typeof import('~icons/ph/robot-bold')['default']
     IPhShareFatBold: typeof import('~icons/ph/share-fat-bold')['default']
     IPhShareNetworkBold: typeof import('~icons/ph/share-network-bold')['default']
+    IPhSignOutBold: typeof import('~icons/ph/sign-out-bold')['default']
     IPhSparkleBold: typeof import('~icons/ph/sparkle-bold')['default']
     IPhSparkleFill: typeof import('~icons/ph/sparkle-fill')['default']
     IPhStar: typeof import('~icons/ph/star')['default']
