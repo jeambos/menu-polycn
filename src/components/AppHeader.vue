@@ -6,6 +6,8 @@ import { useConfigStore } from '../stores/useConfigStore';
 import { encode } from '../logic/codec';
 import BaseModal from './BaseModal.vue';
 
+import { useCloudArchive } from '../composables/useCloudArchive'; // 引入钩子
+const { openCloudArchive } = useCloudArchive();
 
 const router = useRouter();
 const route = useRoute();
@@ -293,6 +295,13 @@ function handleSaveAndFinish() {
             <a @click="handleClearCurrent" class="text-error">
               <i-ph-trash-bold class="text-base" />
               <span>清空当前数据</span>
+            </a>
+          </li>
+          <div class="divider my-1"></div>
+          <li>
+            <a @click="openCloudArchive()" >
+              <i-ph-cloud-bold class="text-base" />
+              <span>云端存档管理</span>
             </a>
           </li>
           <li>

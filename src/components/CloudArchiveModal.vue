@@ -47,13 +47,12 @@ const userStoragePath = computed(() => {
   return `/user_storage/${currentUser.value.objectId}`;
 });
 
+
 // --- 3. 提交逻辑 (Save Tab) ---
 async function handleSave() {
   if (!payloadCode.value) return;
 
   // A. 正则校验 (防止被篡改)
-  // 假设配置代码主要是 Emoji，或者您可以根据实际格式修改此正则
-  // 这里做一个宽松示例：不能为空，且不包含 script 等危险标签
   const code = payloadCode.value.trim();
   if (code.length < 2 || /<script/i.test(code)) {
     alert('数据格式校验失败，禁止提交非法内容。');
@@ -63,43 +62,71 @@ async function handleSave() {
   isSubmitting.value = true;
 
   try {
-    // B. 获取 Token
-    const token = localStorage.getItem('WALINE_TOKEN');
-    if (!token) throw new Error('未获取到登录凭证');
+    // 🔍 调试步骤 1: 获取 Token
+    let token = localStorage.getItem('WALINE_TOKEN');
+    
+    // 如果没有单独的 Token，尝试从 WALINE_USER 里面拿
+    if (!token) {
+      try {
+        const userStr = localStorage.getItem('WALINE_USER');
+        if (userStr) {
+          const userObj = JSON.parse(userStr);
+          token = userObj.token; // Waline 通常把 token 放在这里
+          console.log('从 WALINE_USER 中获取到 Token:', token ? '成功' : '失败');
+        }
+      } catch (e) {
+        console.warn('解析 WALINE_USER 失败', e);
+      }
+    }
 
-    // C. 构造内容 (添加云存档标签)
+    if (!token) {
+      throw new Error('登录凭证丢失，请尝试退出登录后重新登录');
+    }
+
+    // 🔍 调试步骤 2: 发送请求
+    console.log('正在向服务器提交...');
     const finalContent = `【☁️云存档】\n--------------\n${code}`;
-
-    // D. 调用 API (fetch 方式)
+    
     const response = await fetch(`${walineServerURL}api/comment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}` // 注意这里的格式
       },
       body: JSON.stringify({
-        path: userStoragePath.value,
+        url: userStoragePath.value,
         comment: finalContent,
         nick: currentUser.value.nick_name,
         mail: currentUser.value.email,
-        link: currentUser.value.link,
+        // link: currentUser.value.link,
         ua: navigator.userAgent,
       })
     });
 
+    // 🔍 调试步骤 3: 解析响应
     const resData = await response.json();
+    console.log('服务器响应:', resData);
 
+    // Waline 接口如果出错，errno 会大于 0
+    // 或者是 code != 200 (取决于版本，通常看 errno)
     if (resData.errno) {
-      throw new Error(resData.errmsg || '提交失败');
+      // 如果 errmsg 是对象，强制转字符串，防止 [object Object]
+      const errorMsg = typeof resData.errmsg === 'object' 
+        ? JSON.stringify(resData.errmsg) 
+        : (resData.errmsg || '未知错误');
+      throw new Error(errorMsg);
     }
 
     // E. 成功后处理
-    // 自动切到查看 Tab，清空暂存区，触发列表刷新
+    console.log('存档成功');
     activeTab.value = 'view';
     payloadCode.value = ''; 
-    // 注意：Waline 组件在 Key 变化时会重载，我们利用 activeTab 切换来间接刷新
-  } catch (err) {
-    alert(`存档失败: ${err instanceof Error ? err.message : '未知错误'}`);
+
+  } catch (err: any) {
+    console.error('提交过程出错:', err);
+    // 强制转为字符串显示，彻底解决 [object Object] 问题
+    const displayMsg = err instanceof Error ? err.message : JSON.stringify(err);
+    alert(`存档失败: ${displayMsg}`);
   } finally {
     isSubmitting.value = false;
   }
@@ -182,8 +209,15 @@ async function handleSave() {
           </div>
 
           <div class="alert bg-base-100 border border-base-content/10 text-xs mb-6">
-            <i-ph-info-bold class="text-primary"/>
-            <span>点击确认后，该配置将永久存储至您的个人名下。</span>
+            <ul class="list-disc list-inside opacity-80 mt-1 space-y-1 text-xs">
+
+            <h3 class="font-bold">使用前必读 (Disclaimer)</h3>
+          
+            <li>本功能基于留言板技术，数据<strong>明文存储</strong>。</li>
+            <li>管理员<strong>可以</strong>在后台看见您的存档。</li>
+            <li>云服务<strong>随时可能终止</strong>，依然建议使用本地记事本作为主备份。</li>
+          </ul>
+        
           </div>
 
           <button 

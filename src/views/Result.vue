@@ -11,6 +11,9 @@ import OptionPopover from '../components/OptionPopover.vue';
 import AIAnalysisModal from '../components/AIAnalysisModal.vue';
 const showAIModal = ref(false);
 
+import { useCloudArchive } from '../composables/useCloudArchive';
+const { openCloudArchive } = useCloudArchive();
+
 const route = useRoute();
 const router = useRouter();
 const store = useConfigStore();
@@ -407,11 +410,11 @@ function handleClearData() {
     {{ fullCode }}
   </div>
 
-  <div class="flex gap-3">
+  <div class="flex flex-col gap-3">
     
     <button 
       @click="copy(fullCode)" 
-      class="btn btn-md flex-1 btn-neutral gap-2 rounded-lg text-white shadow-sm"
+      class="btn btn-md w-full btn-neutral gap-2 rounded-lg text-white shadow-sm"
     >
       <i-ph-check-bold v-if="copied" />
       <i-ph-copy-bold v-else />
@@ -419,13 +422,25 @@ function handleClearData() {
       <span v-else>复制代码</span>
     </button>
 
-    <button 
-      @click="showAIModal = true" 
-      class="btn btn-md flex-1 btn-outline gap-2 rounded-lg border-base-content/10 hover:bg-base-content hover:text-base-100 hover:border-transparent transition-all group"
-    >
-      <i-ph-sparkle-bold class="text-xl group-hover:scale-110 transition-transform" />
-      <span>AI 分析</span>
-    </button>
+    <div class="flex gap-3">
+      
+      <button 
+        @click="openCloudArchive('save', fullCode)" 
+        class="btn btn-md flex-1 btn-outline gap-2 rounded-lg border-base-content/10 hover:bg-base-content hover:text-base-100 hover:border-transparent transition-all group"
+      >
+        <i-ph-floppy-disk-bold class="text-xl group-hover:scale-110 transition-transform" />
+        <span>存入云端</span>
+      </button>
+
+      <button 
+        @click="showAIModal = true" 
+        class="btn btn-md flex-1 btn-outline gap-2 rounded-lg border-base-content/10 hover:bg-base-content hover:text-base-100 hover:border-transparent transition-all group"
+      >
+        <i-ph-sparkle-bold class="text-xl group-hover:scale-110 transition-transform" />
+        <span>AI 分析</span>
+      </button>
+      
+    </div>
     
   </div>
 </div>
