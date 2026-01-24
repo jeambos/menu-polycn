@@ -67,6 +67,7 @@ declare module 'vue' {
     IPhLightbulbFill: typeof import('~icons/ph/lightbulb-fill')['default']
     IPhLightningFill: typeof import('~icons/ph/lightning-fill')['default']
     IPhListBold: typeof import('~icons/ph/list-bold')['default']
+    IPhLockKeyBold: typeof import('~icons/ph/lock-key-bold')['default']
     IPhLockKeyFill: typeof import('~icons/ph/lock-key-fill')['default']
     IPhMagnifyingGlassBold: typeof import('~icons/ph/magnifying-glass-bold')['default']
     IPhMoonBold: typeof import('~icons/ph/moon-bold')['default']
