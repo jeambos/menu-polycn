@@ -1,26 +1,26 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-// 引入 Waline 组件和样式
 import { Waline } from '@waline/client/component';
-import '@waline/client/dist/waline.css';
+// 忽略 TS 检查以引入样式别名
+// @ts-ignore
+import '@waline/client/style'; 
 
 import questionsData from '../data/questions.json';
 import BaseModal from '../components/BaseModal.vue';
-import type { Module } from '../types'; // 假设你有这个类型定义，如果没有可以用 any
+import type { Module } from '../types';
 
 const router = useRouter();
 
 // --- 1. 数据准备 ---
 const allModules = (questionsData.modules as unknown) as Module[];
 
-// --- 2. 筛选逻辑 (复用 Result/Compare 的逻辑) ---
+// --- 2. 筛选逻辑 ---
 const activeModuleIds = ref<string[]>(allModules.map(m => m.id));
 
 function toggleModuleFilter(moduleId: string) {
   const idx = activeModuleIds.value.indexOf(moduleId);
   if (idx > -1) {
-    // 允许全部取消，因为这里不是对比核心，只是查看列表
     activeModuleIds.value.splice(idx, 1);
   } else {
     activeModuleIds.value.push(moduleId);
@@ -35,71 +35,94 @@ function toggleAllFilters() {
   }
 }
 
-// 计算当前显示的模块
 const filteredModules = computed(() => {
   return allModules.filter(m => activeModuleIds.value.includes(m.id));
 });
 
-// --- 3. 弹窗与评论区逻辑 ---
+// --- 3. 弹窗与评论逻辑 ---
 const showModal = ref(false);
-const activeQuestion = ref<any>(null); // 当前选中的题目对象
+const activeQuestion = ref<any>(null);
+const walineServerURL = 'https://comments.polycn.org/';
 
-const walineServerURL = 'http://comments.polycn.org/';
-
-// 打开弹窗
-function openReview(question: any, moduleName: string) {
-  activeQuestion.value = {
-    ...question,
-    moduleName // 把模块名也带进去，方便展示上下文
-  };
-  showModal.value = true;
-}
-
-// 动态计算 Path：策略 B
-// 例如：/review/q_1 (加个 q_ 前缀避免纯数字 ID 可能的问题)
+// 计算当前评论区 Path (每题一个独立评论区)
 const currentWalinePath = computed(() => {
   if (!activeQuestion.value) return '/review/general';
   return `/review/q_${activeQuestion.value.id}`;
 });
 
-// 辅助交互：双击回顶
+/**
+ * 打开校对弹窗并自动填充引用文本
+ */
+async function openReview(question: any, moduleName: string, optionItem?: any) {
+  activeQuestion.value = {
+    ...question,
+    moduleName
+  };
+  showModal.value = true;
+
+  // 生成引用文本
+  let quoteText = '';
+  if (optionItem) {
+    // 针对选项
+    const shortText = typeof optionItem === 'string' ? optionItem : (optionItem.short || '无');
+    const longText = typeof optionItem === 'string' ? optionItem : (optionItem.long || '');
+    quoteText = `> 针对选项 [${shortText}]\n> 原文：${longText}\n建议修改为：`;
+  } else {
+    // 针对题目
+    quoteText = `> 针对题目 [${question.title}]\n建议修改为：`;
+  }
+
+  // 尝试自动填入输入框
+  await nextTick();
+  // 稍微延迟以确保 Waline 组件加载完毕
+  setTimeout(() => {
+    // 查找输入框 (注意：这是 Waline 内部的类名)
+    const textarea = document.querySelector('.wl-editor') as HTMLTextAreaElement;
+    if (textarea) {
+      if (!textarea.value.includes(quoteText)) {
+        textarea.value = quoteText + textarea.value;
+        textarea.focus();
+        // 移动光标到最后
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  }, 300);
+}
+
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 </script>
 
 <template>
-  <div class="pb-32 pt-10 px-6 max-w-3xl mx-auto min-h-screen font-sans text-base">
+  <div class="pb-40 pt-10 px-4 sm:px-6 max-w-3xl mx-auto min-h-screen font-sans text-base text-base-content">
     
     <div class="text-center mb-10">
-      <h2 class="text-3xl font-bold text-base-content tracking-tight mb-2">
+      <h2 class="text-3xl font-bold tracking-tight mb-3">
         文案众包校对
       </h2>
       <p class="text-sm text-base-content/40 uppercase tracking-widest font-medium">
         Community Copy Review
       </p>
-      <p class="text-xs text-base-content/60 mt-4 max-w-md mx-auto leading-relaxed">
-        如果你发现文案有歧义、错别字或表意不清，请点击对应题目提交建议。<br>
-        你的反馈将直接帮助我们完善这份蓝图。
+      <p class="text-sm text-base-content/60 mt-4 max-w-md mx-auto leading-relaxed">
+        点击任意行（题目或选项）即可提交修改建议。<br>
+        您的反馈将帮助我们完善内容。
       </p>
     </div>
 
     <div class="mb-10 sticky top-4 z-30">
-      <div class="flex items-center justify-center gap-2 mb-3 opacity-40">
-        <i-ph-funnel-bold />
-        <span class="text-xs font-bold uppercase tracking-wider">Filter Modules</span>
-      </div>
-      <div class="flex flex-wrap gap-3 justify-center bg-base-100/80 backdrop-blur-sm p-4 rounded-2xl border border-base-content/5 shadow-sm">
+      <div class="flex flex-wrap gap-3 justify-center bg-base-100/90 backdrop-blur-md p-4 rounded-2xl border border-base-content/5 shadow-sm">
         <button 
           @click="toggleAllFilters"
-          class="btn btn-sm h-9 px-4 rounded-full transition-all border shadow-sm gap-1.5"
+          class="btn btn-sm h-10 px-5 rounded-full transition-all border shadow-sm gap-2 text-sm font-medium"
           :class="[
             activeModuleIds.length === allModules.length 
               ? 'bg-base-content text-base-100 border-base-content hover:bg-base-content/80' 
               : 'bg-base-100 text-base-content/60 border-base-content/10 hover:border-base-content/30 hover:bg-base-200'
           ]"
         >
-          <i-ph-checks-bold />
+          <i-ph-checks-bold class="text-lg"/>
           <span>All</span>
         </button>
 
@@ -107,7 +130,7 @@ function scrollToTop() {
           v-for="mod in allModules" 
           :key="mod.id"
           @click="toggleModuleFilter(mod.id)"
-          class="btn btn-sm h-9 px-4 rounded-full transition-all border shadow-sm"
+          class="btn btn-sm h-10 px-5 rounded-full transition-all border shadow-sm text-sm"
           :class="[
             activeModuleIds.includes(mod.id) 
               ? 'bg-base-content text-base-100 border-base-content hover:bg-base-content/80' 
@@ -119,51 +142,87 @@ function scrollToTop() {
       </div>
     </div>
 
-    <div class="space-y-12">
+    <div class="space-y-16">
       <div 
         v-for="mod in filteredModules" 
         :key="mod.id" 
         class="animate-fade-in-up"
       >
         <div 
-          class="sticky top-44 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-6 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 cursor-pointer hover:bg-base-100 transition-colors text-base-content/80"
+          class="sticky top-28 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-6 -mx-4 px-6 border-b border-base-content/5 flex items-center gap-3 cursor-pointer hover:bg-base-100 transition-colors text-base-content/80"
           @dblclick="scrollToTop"
         >
-          <span class="font-mono text-xs opacity-40 border border-base-content/20 rounded px-1.5 py-0.5">
+          <span class="font-mono text-sm opacity-40 border border-base-content/20 rounded px-2 py-0.5">
             {{ mod.id }}
           </span>
-          <div>
-            <h3 class="text-lg font-bold uppercase tracking-wider leading-none">
-              {{ mod.name.replace(/^(模块\s*[A-J][：:]\s*)/, '') }}
-            </h3>
-          </div>
+          <h3 class="text-xl font-bold uppercase tracking-wider leading-none">
+            {{ mod.name.replace(/^(模块\s*[A-J][：:]\s*)/, '') }}
+          </h3>
         </div>
 
-        <div class="grid grid-cols-1 gap-4">
+        <div class="flex flex-col gap-8">
           <div 
             v-for="q in mod.questions" 
             :key="q.id"
-            @click="openReview(q, mod.name)"
-            class="group bg-base-100 border border-base-content/10 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
+            class="bg-base-100 border border-base-content/10 rounded-2xl overflow-hidden shadow-sm"
           >
-            <div class="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary">
-              <i-ph-pencil-simple-bold class="text-xl" />
+            <div 
+              @click="openReview(q, mod.name)"
+              class="p-5 bg-base-200/30 border-b border-base-content/5 flex items-start gap-4 cursor-pointer active:bg-base-200/60 transition-colors"
+            >
+              <div class="shrink-0 mt-0.5 text-primary">
+                 <i-ph-pencil-simple-bold class="text-xl" />
+              </div>
+
+              <div class="flex-1 flex flex-col gap-2">
+                <div class="flex items-baseline gap-2">
+                  <span class="font-mono text-sm text-base-content/40">#{{ q.id }}</span>
+                  <h4 class="text-lg font-bold text-base-content leading-snug">
+                    {{ q.title_long || q.title }}
+                  </h4>
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                  <span class="opacity-50">短标题预览:</span>
+                  <span class="badge badge-lg bg-base-content/5 border-base-content/10 text-base-content/70 h-auto py-1 px-3">
+                    {{ q.title_short || q.title }}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div class="pr-8">
-              <div class="flex items-center gap-2 mb-3">
-                <span class="text-xs font-mono opacity-30">#{{ q.id }}</span>
-                <h4 class="font-bold text-base-content/90">{{ q.title }}</h4>
-              </div>
-              
-              <div class="flex flex-wrap gap-2">
-                <span 
-                  v-for="(opt, idx) in q.options" 
-                  :key="idx"
-                  class="badge badge-sm badge-ghost bg-base-200/50 text-base-content/60 h-auto py-1.5 px-2.5 text-xs border-0"
-                >
-                  {{ typeof opt === 'string' ? opt : (opt.short || opt.long) }}
-                </span>
+            <div class="divide-y divide-base-content/5">
+              <div 
+                v-for="(opt, idx) in q.options" 
+                :key="idx"
+                @click="openReview(q, mod.name, opt)"
+                class="p-4 pl-5 flex items-start gap-4 cursor-pointer active:bg-base-content/[0.04] hover:bg-base-content/[0.02] transition-colors"
+              >
+                <div class="shrink-0 mt-1 text-primary/40">
+                  <i-ph-pencil-simple-bold class="text-lg" />
+                </div>
+
+                <div class="flex-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div class="flex flex-col gap-1.5">
+                    <div class="text-base font-medium text-base-content/90 leading-relaxed">
+                      {{ typeof opt === 'string' ? opt : (opt.long || opt.short) }}
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-base-content/50">
+                      <i-ph-arrow-elbow-down-right class="opacity-50" />
+                      <span>缩略为: {{ typeof opt === 'string' ? opt : (opt.short || '同上') }}</span>
+                    </div>
+                  </div>
+
+                  <div class="shrink-0 sm:self-center self-start mt-1 sm:mt-0">
+                    <div class="badge h-auto py-2.5 px-4 gap-2 bg-success/10 border border-success/20 rounded-lg whitespace-nowrap pointer-events-none">
+                      <span class="text-success/70 text-sm font-normal border-r border-success/20 pr-2 mr-0.5">
+                        {{ q.title_short || q.title }}
+                      </span>
+                      <span class="text-success font-bold text-sm">
+                        {{ typeof opt === 'string' ? opt : (opt.short || opt.long) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -171,8 +230,9 @@ function scrollToTop() {
       </div>
     </div>
 
-    <div class="mt-16 text-center border-t border-base-content/5 pt-8">
-      <button @click="router.push('/')" class="btn btn-ghost btn-sm opacity-60 hover:opacity-100">
+    <div class="mt-20 text-center border-t border-base-content/5 pt-10">
+      <button @click="router.push('/')" class="btn btn-ghost btn-md gap-2 text-base-content/60 hover:text-base-content">
+        <i-ph-arrow-left-bold />
         返回首页
       </button>
     </div>
@@ -183,36 +243,18 @@ function scrollToTop() {
       show-close
     >
       <div v-if="activeQuestion">
-        <div class="bg-base-200/50 p-4 rounded-xl border border-base-content/5 mb-6 text-sm">
-          <div class="flex items-center gap-2 text-xs opacity-50 mb-2 font-mono">
-            <span>Module {{ activeQuestion.moduleName }}</span>
-            <span>•</span>
+        <div class="bg-base-200/50 p-3 rounded-lg border border-base-content/5 mb-4">
+          <div class="flex items-center gap-2 text-sm opacity-50 font-mono">
+            <span class="badge badge-sm badge-ghost">Module {{ activeQuestion.moduleName }}</span>
             <span>ID: {{ activeQuestion.id }}</span>
-          </div>
-          
-          <div class="grid gap-2">
-            <div class="font-bold text-base-content/70 mb-1">选项列表：</div>
-            <div 
-              v-for="(opt, idx) in activeQuestion.options" 
-              :key="idx"
-              class="flex gap-2 items-start"
-            >
-              <span class="badge badge-xs mt-1 bg-base-content/10 text-base-content/50">{{ idx + 1 }}</span>
-              <div class="flex-1">
-                <span class="font-bold mr-2">{{ typeof opt === 'string' ? opt : (opt.short || '无短标题') }}</span>
-                <span v-if="typeof opt !== 'string' && opt.long" class="opacity-60 text-xs">
-                  ({{ opt.long }})
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
-        <div class="waline-container">
+        <div class="waline-custom-container">
           <Waline 
             :serverURL="walineServerURL" 
             :path="currentWalinePath"
-            placeholder="请在此提交您的修改建议或反馈..."
+            placeholder="请在此提交您的修改建议..."
             :dark="false" 
           />
         </div>
@@ -231,15 +273,55 @@ function scrollToTop() {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 针对 Waline 的微调，使其更贴合你的 UI */
-:deep(.wl-panel) {
-  border: 1px solid rgba(0,0,0,0.05);
-  border-radius: 1rem;
-  padding: 1rem;
-  background: white;
+/* --- Waline 样式深度定制 --- */
+
+/* 1. 隐藏多余的 Action 工具栏 (表情、图片等) */
+:deep(.wl-actions) {
+  display: none !important;
 }
+
+/* 2. 调整外层容器边距 */
+:deep(.wl-panel) {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+/* 3. 输入框定制：扩大高度，减小内边距 */
 :deep(.wl-editor) {
-  min-height: 5rem;
-  padding: 0.5rem;
+  min-height: 10rem !important; /* 扩大输入区域 */
+  padding: 0.75rem !important;   /* 减小 Padding */
+  margin-bottom: 0.75rem !important;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 0.75rem;
+  font-size: 1rem; /* 保证字号舒适 */
+  line-height: 1.6;
+  background: rgba(255,255,255,0.8);
+}
+:deep(.wl-editor:focus) {
+  background: white;
+  border-color: currentColor;
+}
+
+/* 4. 提交按钮区域微调 */
+:deep(.wl-footer) {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+:deep(.wl-btn) {
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+
+/* 5. 评论列表微调 */
+:deep(.wl-cards) {
+  margin-top: 1.5rem;
+}
+:deep(.wl-item) {
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed rgba(0,0,0,0.05);
 }
 </style>
