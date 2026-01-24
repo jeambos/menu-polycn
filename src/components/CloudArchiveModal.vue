@@ -103,7 +103,7 @@ async function handleSave() {
     }
 
     if (!token) {
-      throw new Error('登录凭证丢失，请尝试退出登录后重新登录');
+      throw new Error('是否尚未登录？请到云存档管理标签页进行登录，或退出登录后重新登录。');
     }
 
     // 🔍 调试步骤 2: 发送请求
@@ -315,7 +315,7 @@ async function handleSave() {
 }
 
 /* 🚫 新增：彻底隐藏评论输入框容器 (wl-comment) 和 顶部统计栏 (wl-meta-head) */
-:deep(.wl-comment),
+/* :deep(.wl-comment), */
 :deep(.wl-meta-head) {
   display: none !important;
 }
