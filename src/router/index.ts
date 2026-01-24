@@ -5,7 +5,7 @@ import Quiz from '../views/Quiz.vue'
 import Result from '../views/Result.vue'
 import Compare from '../views/Compare.vue'
 import Import from '../views/Import.vue'
-import Review from '../views/Result.vue'
+import Review from '../views/Review.vue'
 import Doc from '../views/Doc.vue'
 
 const router = createRouter({
