@@ -326,4 +326,22 @@ async function handleSave() {
   padding-top: 0 !important;
 }
 
+/* 1. 隐藏编辑器、预览区域、以及底部工具栏中的操作图标 */
+:deep(.wl-editor),
+:deep(.wl-preview),
+:deep(.wl-footer .wl-actions .wl-text-number) {
+  display: none !important;
+}
+
+/* 2. 处理主按钮 (Primary Button) */
+/* 使用 base-100 变量使其颜色与背景一致（亮白/暗黑），实现“隐身”效果，并禁止点击 */
+:deep(.primary.wl-btn) {
+  background-color: oklch(var(--b1)) !important;
+  color: oklch(var(--b1)) !important;
+  border-color: oklch(var(--b1)) !important;
+  pointer-events: none !important;
+  box-shadow: none !important;
+  cursor: default !important;
+}
+
 </style>
