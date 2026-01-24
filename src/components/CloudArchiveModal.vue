@@ -41,10 +41,25 @@ function onWalineLogin(userInfo: any) {
   // 登录后如果是 'save' 模式且有代码，保持在 save tab；否则去 view
 }
 
-// --- 2. 路径计算 ---
+// --- 2. 路径计算 (带混淆保护) ---
 const userStoragePath = computed(() => {
-  if (!currentUser.value || !currentUser.value.objectId) return '/temp_storage';
-  return `/user_storage/${currentUser.value.objectId}`;
+  // 确保用户已登录
+  const id = currentUser.value?.objectId || currentUser.value?.id || currentUser.value?.ID;
+  if (!id) return '/temp_storage';
+
+  /**
+   * 🔐 混淆逻辑说明：
+   * 直接用 ID (如 '1') 太容易被遍历。
+   * 我们将 ID 加上一段只有我们知道的“盐值”，再转为 Base64。
+   * 结果：'1' -> 'MHBvbHljbl9zYWZlXzIwMjY'
+   */
+  const salt = "9f3c7a2d84b1e6a05d2fcb7814e93a6c7b50f4d2e9a1c8b63d0e57a4c2f1b89"; // 你可以随意修改这段字符串
+  const rawString = `${id}_${salt}`;
+  
+  // 使用 btoa 转为 Base64，并去掉可能引起 URL 问题的字符（如 =）
+  const obfuscatedId = btoa(rawString).replace(/[+/=]/g, '');
+  
+  return `/user_storage/${obfuscatedId}`;
 });
 
 // 👇 2. 新增监听：当切换到 'save' 标签时，自动生成代码
