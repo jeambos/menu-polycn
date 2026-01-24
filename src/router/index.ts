@@ -5,6 +5,8 @@ import Quiz from '../views/Quiz.vue'
 import Result from '../views/Result.vue'
 import Compare from '../views/Compare.vue'
 import Import from '../views/Import.vue'
+import Review from '../views/review.vue'
+import Doc from '../views/Doc.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -42,12 +44,12 @@ const router = createRouter({
     {
       path: '/doc',
       name: 'doc',
-      component: () => import('../views/Doc.vue') // 路由懒加载写法
+      component: Doc
     },
     {
       path: '/review',
       name: 'review',
-      component: () => import('../views/Review.vue') // 路由懒加载写法
+      component: Review
     }
   ]
 })
