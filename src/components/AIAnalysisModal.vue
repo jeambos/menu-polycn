@@ -24,6 +24,14 @@ watch(() => props.modelValue, async (isOpen) => {
   }
 });
 
+// ✨ 新增：专门处理主按钮的复制
+function handleMainCopy() {
+  // 显式获取 ref 的值，确保传给 copy 的是纯字符串
+  if (promptResult.value) {
+    copy(promptResult.value);
+  }
+}
+
 function handleCopyAndLink(url: string) {
   copy(promptResult.value);
   setTimeout(() => {
@@ -69,7 +77,7 @@ function handleCopyAndLink(url: string) {
 
       <div v-if="!isLoading && !errorMsg">
         <button 
-          @click="copy(promptResult)" 
+          @click="handleMainCopy" 
           class="btn btn-neutral w-full shadow-md gap-2 rounded-xl"
         >
           <i-ph-check-bold v-if="copied" class="text-success text-lg" />
