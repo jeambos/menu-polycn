@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue';
+import { ref, watch, computed} from 'vue';
 import { Waline } from '@waline/client/component';
 // @ts-ignore
 import '@waline/client/style'; 
@@ -7,7 +7,7 @@ import BaseModal from './BaseModal.vue';
 import { useCloudArchive } from '../composables/useCloudArchive';
 
 // --- 全局状态 ---
-const { isModalOpen, activeTab, payloadCode, closeCloudArchive } = useCloudArchive();
+const { isModalOpen, activeTab, payloadCode, closeCloudArchive, tryGenerateCode } = useCloudArchive();
 
 // --- 本地状态 ---
 const walineServerURL = 'https://comments.polycn.org/';
@@ -45,6 +45,14 @@ function onWalineLogin(userInfo: any) {
 const userStoragePath = computed(() => {
   if (!currentUser.value || !currentUser.value.objectId) return '/temp_storage';
   return `/user_storage/${currentUser.value.objectId}`;
+});
+
+// 👇 2. 新增监听：当切换到 'save' 标签时，自动生成代码
+watch(activeTab, (newTab) => {
+  if (newTab === 'save') {
+    // 只要切过来，就强制刷新一次最新代码
+    tryGenerateCode(); 
+  }
 });
 
 
@@ -194,19 +202,14 @@ async function handleSave() {
         <div v-else>
           <div class="form-control mb-4">
             <div class="label">
-              <span class="label-text font-bold">待保存配置 (只读预览)</span>
+              <span class="label-text font-bold">当前可保存配置</span>
             </div>
             <textarea 
               class="textarea textarea-bordered h-32 font-mono text-xs leading-relaxed bg-base-200 text-base-content/70 cursor-not-allowed resize-none" 
               readonly
               :value="payloadCode"
             ></textarea>
-            <div class="label">
-              <span class="label-text-alt text-warning">
-                <i-ph-lock-key-fill class="inline align-text-bottom"/> 内容已锁定，禁止修改
-              </span>
             </div>
-          </div>
 
           <div class="alert bg-base-100 border border-base-content/10 text-xs mb-6">
             <ul class="list-disc list-inside opacity-80 mt-1 space-y-1 text-xs">
@@ -214,8 +217,8 @@ async function handleSave() {
             <h3 class="font-bold">使用前必读 (Disclaimer)</h3>
           
             <li>本功能基于留言板技术，数据<strong>明文存储</strong>。</li>
-            <li>管理员<strong>可以</strong>在后台看见您的存档。</li>
-            <li>云服务<strong>随时可能终止</strong>，依然建议使用本地记事本作为主备份。</li>
+            <li>管理员后台可见您的存档，<strong>切勿存储敏感信息</strong>。</li>
+            <li>服务可能随时终止，请务必使用本地记事本作为主备份。</li>
           </ul>
         
           </div>
@@ -295,4 +298,17 @@ async function handleSave() {
   color: currentColor;
   margin-top: 0.5rem;
 }
+
+/* 🚫 新增：彻底隐藏评论输入框容器 (wl-comment) 和 顶部统计栏 (wl-meta-head) */
+:deep(.wl-comment),
+:deep(.wl-meta-head) {
+  display: none !important;
+}
+
+/* 确保列表紧贴顶部，没有多余间隙 */
+:deep(.wl-cards) {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
 </style>
