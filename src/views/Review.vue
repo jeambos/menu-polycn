@@ -69,7 +69,7 @@ async function openReview(question: any, moduleName: string, optionItem?: any) {
     quoteText = `> 针对选项 [${shortText}]\n> 原文：${longText}\n建议修改为：`;
   } else {
     // 针对题目
-    quoteText = `> 针对题目 [${question.title}]\n建议修改为：`;
+    quoteText = `> 针对场景名 [${question.title}]\n建议修改为：`;
   }
 
   // 尝试自动填入输入框
@@ -100,14 +100,14 @@ function scrollToTop() {
     
     <div class="text-center mb-10">
       <h2 class="text-3xl font-bold tracking-tight mb-3">
-        文案众包校对
+        请帮我们改善文案！
       </h2>
       <p class="text-sm text-base-content/40 uppercase tracking-widest font-medium">
-        Community Copy Review
+        Community Review
       </p>
       <p class="text-sm text-base-content/60 mt-4 max-w-md mx-auto leading-relaxed">
-        点击任意行（题目或选项）即可提交修改建议。<br>
-        您的反馈将帮助我们完善内容。
+        点击任意行（场景或子项）即可提交修改建议。<br>
+        您的反馈将帮助我们完善内容！
       </p>
     </div>
 
