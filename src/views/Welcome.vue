@@ -7,6 +7,9 @@ import { decode } from '../logic/codec';
 import type { Attitude } from '../types'; // ✅ 引入类型
 import RubiksCube from '../components/RubiksCube.vue';
 
+import AIAnalysisModal from '../components/AIAnalysisModal.vue';
+const showAIModal = ref(false);
+
 const router = useRouter();
 const store = useConfigStore();
 const { text, isSupported } = useClipboard();
@@ -193,7 +196,7 @@ function handleCompare() {
       </button>
 
       <div class="grid grid-cols-2 gap-3">
-        <button @click="$emit('open-ai')" class="h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
+        <button @click="showAIModal = true"  class="h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
           <i-ph-sparkle-bold class="text-lg" />
           AI分析报告
         </button>
@@ -264,6 +267,12 @@ function handleCompare() {
         CC BY-NC-SA 4.0 · PolyCN
       </p>
     </div>
+
+    <AIAnalysisModal 
+      v-model="showAIModal" 
+      :code-a="fullCode" 
+    />
+
 
   
 </template>
