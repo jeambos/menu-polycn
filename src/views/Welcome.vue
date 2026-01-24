@@ -22,6 +22,8 @@ const partnerCode = ref('');
 const errorMsg = ref('');
 const isShaking = ref(false);
 
+
+
 // --- 逻辑 ---
 function triggerError(msg: string) {
   errorMsg.value = msg;
