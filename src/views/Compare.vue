@@ -302,6 +302,7 @@ onMounted(() => {
                                 <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
                                 <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
                             </div>
+                            <span class="ml-1 opacity-90">{{ item.choice }}</span>
                         </div>
                     </div>
                   </OptionPopover>
