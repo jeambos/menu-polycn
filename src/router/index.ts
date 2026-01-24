@@ -43,6 +43,11 @@ const router = createRouter({
       path: '/doc',
       name: 'doc',
       component: () => import('../views/Doc.vue') // 路由懒加载写法
+    },
+    {
+      path: '/review',
+      name: 'review',
+      component: () => import('../views/Review.vue') // 路由懒加载写法
     }
   ]
 })

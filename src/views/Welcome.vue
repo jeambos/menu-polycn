@@ -237,7 +237,19 @@ function handleCompare() {
     <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
       <i-ph-read-cv-logo-bold class="text-lg" />
     </div>
-    <span class="border-b border-transparent group-hover:border-black pb-0.5">帮助 / 关于</span>
+    <span class="border-b border-transparent group-hover:border-base-content pb-0.5">帮助 / 关于</span>
+  </div>
+</div>
+
+<div class="w-full flex justify-center">
+  <div 
+    @click="router.push('/review')"
+    class="mt-6 inline-flex items-center justify-center gap-2 text-sm font-bold text-primary hover:text-primary cursor-pointer transition-all duration-300 group"
+  >
+    <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+      <i-ph-hand-heart-duotone class="text-lg" />
+    </div>
+    <span class="border-b border-transparent group-hover:border-primary pb-0.5">文案纠错！</span>
   </div>
 </div>
 

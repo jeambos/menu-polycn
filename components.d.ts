@@ -54,6 +54,7 @@ declare module 'vue' {
     IPhFlagCheckeredBold: typeof import('~icons/ph/flag-checkered-bold')['default']
     IPhFloppyDiskBold: typeof import('~icons/ph/floppy-disk-bold')['default']
     IPhFunnelBold: typeof import('~icons/ph/funnel-bold')['default']
+    IPhHandHeartDuotone: typeof import('~icons/ph/hand-heart-duotone')['default']
     IPhHandshakeBold: typeof import('~icons/ph/handshake-bold')['default']
     IPhHardDrivesBold: typeof import('~icons/ph/hard-drives-bold')['default']
     IPhHouseLineBold: typeof import('~icons/ph/house-line-bold')['default']

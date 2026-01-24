@@ -221,6 +221,20 @@ function handleCompare() {
       </div>
     </div>
 
+
+<div class="w-full flex justify-center">
+  <div 
+    @click="router.push('/review')"
+    class="mt-6 inline-flex items-center justify-center gap-2 text-sm font-bold text-primary hover:text-primary cursor-pointer transition-all duration-300 group"
+  >
+    <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+      <i-ph-hand-heart-duotone class="text-lg" />
+    </div>
+    <span class="border-b border-transparent group-hover:border-primary pb-0.5">文案纠错！</span>
+  </div>
+</div>
+
+
     <div class="py-8 text-center mt-16">
       <p class="text-xs text-slate-400 font-mono font-medium tracking-widest uppercase">
         CC BY-NC-SA 4.0 · PolyCN
