@@ -100,22 +100,37 @@ function scrollToTop() {
     
     <div class="text-center mb-10">
       <h2 class="text-3xl font-bold tracking-tight mb-3">
-        请帮我们改善文案！
+        请帮助我们改善文案！
       </h2>
       <p class="text-sm text-base-content/40 uppercase tracking-widest font-medium">
-        Community Review
+        当前文案版本：V5.6 最后修改日期：2026-01-20
       </p>
-      <p class="text-sm text-base-content/60 mt-4 max-w-md mx-auto leading-relaxed">
-        点击任意行（场景或子项）即可提交修改建议。<br>
-        您的反馈将帮助我们完善内容！
-      </p>
-    </div>
 
-    <div class="mb-10 sticky top-4 z-30">
+      <div class="mt-8 max-w-md mx-auto">
+        <div class="bg-primary/5 border border-primary/20 rounded-xl p-4 flex gap-4 text-left shadow-sm hover:shadow-md transition-shadow cursor-default">
+          <div class="shrink-0 bg-primary/10 text-primary w-10 h-10 rounded-lg flex items-center justify-center">
+            <i-ph-lightbulb-fill class="text-xl" />
+          </div>
+          
+          <div class="flex-1 py-0.5">
+            <h3 class="font-bold text-base-content/90 text-sm mb-1">
+              如何提交建议？
+            </h3>
+            <p class="text-sm sm:text-sm text-base-content/70 leading-relaxed">
+              直接点击列表中的 <span class="font-bold text-primary bg-primary/10 px-1 rounded">任意行</span>（场景或子项），即可唤起评论区（无需登录）。
+            </p>
+
+          </div>
+        </div>
+      </div>
+      </div>
+
+    <div class="mb-10 top-4 z-30">
+      
       <div class="flex flex-wrap gap-3 justify-center bg-base-100/90 backdrop-blur-md p-4 rounded-2xl border border-base-content/5 shadow-sm">
         <button 
           @click="toggleAllFilters"
-          class="btn btn-sm h-10 px-5 rounded-full transition-all border shadow-sm gap-2 text-sm font-medium"
+          class="btn btn-sm h-8 px-5 rounded-full transition-all border shadow-sm gap-2 text-sm font-medium"
           :class="[
             activeModuleIds.length === allModules.length 
               ? 'bg-base-content text-base-100 border-base-content hover:bg-base-content/80' 
@@ -130,7 +145,7 @@ function scrollToTop() {
           v-for="mod in allModules" 
           :key="mod.id"
           @click="toggleModuleFilter(mod.id)"
-          class="btn btn-sm h-10 px-5 rounded-full transition-all border shadow-sm text-sm"
+          class="btn btn-sm h-8 px-5 rounded-full transition-all border shadow-sm text-sm font-medium"
           :class="[
             activeModuleIds.includes(mod.id) 
               ? 'bg-base-content text-base-100 border-base-content hover:bg-base-content/80' 
@@ -149,13 +164,13 @@ function scrollToTop() {
         class="animate-fade-in-up"
       >
         <div 
-          class="sticky top-28 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-6 -mx-4 px-6 border-b border-base-content/5 flex items-center gap-3 cursor-pointer hover:bg-base-100 transition-colors text-base-content/80"
+          class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-2 mb-6 -mx-4 px-6 border-b border-base-content/5 flex items-center gap-3 cursor-pointer hover:bg-base-100 transition-colors text-base-content/80"
           @dblclick="scrollToTop"
         >
           <span class="font-mono text-sm opacity-40 border border-base-content/20 rounded px-2 py-0.5">
             {{ mod.id }}
           </span>
-          <h3 class="text-xl font-bold uppercase tracking-wider leading-none">
+          <h3 class="text-lg font-bold uppercase tracking-wider leading-none">
             {{ mod.name.replace(/^(模块\s*[A-J][：:]\s*)/, '') }}
           </h3>
         </div>
@@ -208,7 +223,7 @@ function scrollToTop() {
                     </div>
                     <div class="flex items-center gap-2 text-sm text-base-content/50">
                       <i-ph-arrow-elbow-down-right class="opacity-50" />
-                      <span>缩略为: {{ typeof opt === 'string' ? opt : (opt.short || '同上') }}</span>
+                      <span>短名: {{ typeof opt === 'string' ? opt : (opt.short || '同上') }}</span>
                     </div>
                   </div>
 
@@ -230,14 +245,36 @@ function scrollToTop() {
       </div>
     </div>
 
-    <div class="mt-20 text-center border-t border-base-content/5 pt-10">
-      <button @click="router.push('/')" class="btn btn-ghost btn-md gap-2 text-base-content/60 hover:text-base-content">
-        <i-ph-arrow-left-bold />
-        返回首页
-      </button>
+    <div class="text-center mb-10">
+    <p class="text-sm text-base-content/80 mt-4 max-w-md mx-auto font-bold leading-relaxed">
+        您可以通过顶部标签开关，选择要展示的标签页。
+      </p>
+      </div>
+  
+
+    <div class="mt-20 flex flex-col items-center gap-4 border-t border-base-content/5 pt-10">
+      <div class="flex flex-wrap justify-center gap-4">
+        <button 
+          @click="router.push('/')" 
+          class="btn btn-ghost btn-md gap-2 text-base-content font-bold hover:text-primary transition-colors"
+        >
+          <i-ph-arrow-left-bold class="text-lg" />
+          <span>返回首页</span>
+        </button>
+
+        <a 
+          href="https://comments.polycn.org/ui" 
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-ghost btn-md gap-2 text-base-content/40 hover:text-primary transition-colors font-bold"
+        >
+          <i-ph-wrench-bold class="text-lg" />
+          <span>管理后台</span>
+        </a>
+      </div>
     </div>
 
-    <BaseModal 
+     <BaseModal 
       v-model="showModal" 
       :title="activeQuestion ? `校对：${activeQuestion.title}` : '文案校对'"
       show-close
