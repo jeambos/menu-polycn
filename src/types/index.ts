@@ -1,6 +1,6 @@
 // src/types/index.ts
 
-export type Attitude = 0 | 1 | 2 | 3 | 4;
+export type Attitude = 0 | 1 | 2 | 3 | 4 | 5;
 
 // ✅ 新增：选项的结构（长文案 + 短标签）
 export interface OptionItem {
