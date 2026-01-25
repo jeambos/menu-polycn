@@ -9,7 +9,7 @@
   >
     <i-ph-cube-duotone class="text-4xl text-primary group-hover:opacity-100 transition-opacity" />
     <sup class="text-[14px] font-bold tracking-normal opacity-40 px-1 py-0.5 border border-black/10 rounded ml-1 bg-slate-50 uppercase leading-none dark:text-white/80 dark:border-white/10 dark:bg-slate-800 ">
-    v0.72 
+    v0.8.1
   </sup>
     
     <div class="text-center">

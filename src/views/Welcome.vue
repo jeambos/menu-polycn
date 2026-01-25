@@ -137,7 +137,7 @@ function handleCompare() {
           <h1 class="text-4xl font-black tracking-tighter text-base-content flex items-center justify-center gap-1">
   关系配置单
   <sup class="text-[12px] font-bold tracking-normal opacity-30 px-1 py-0.5 border border-black/10 rounded ml-1 bg-slate-50 uppercase leading-none">
-    v0.72 
+    v0.8.1 
   </sup>
 </h1>
           <p class="text-slate-500 font-medium text-base tracking-wide">
