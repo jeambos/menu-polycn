@@ -6,16 +6,18 @@ import { useConfigStore } from '../stores/useConfigStore';
 import { decode } from '../logic/codec';
 import type { Attitude } from '../types'; // ✅ 引入类型
 import DocArticle from '../components/DocArticle.vue';
+import AIAnalysisModal from '../components/AIAnalysisModal.vue';
 
 const router = useRouter();
 const store = useConfigStore();
 const { text, isSupported } = useClipboard();
+const showAIModal = ref(false);
 
 // --- 状态 ---
 const activeTab = ref<'single' | 'dual'>('single');
-const singleCode = ref('');
-const myCode = ref('');
-const partnerCode = ref('');
+// ✅ 修改：统一变量名，实现单人/双人数据互通
+const codeA = ref(''); // 对应：单人代码 / 我的代码
+const codeB = ref(''); // 对应：对方代码
 const errorMsg = ref('');
 const isShaking = ref(false);
 
@@ -40,9 +42,9 @@ async function handlePaste(target: 'single' | 'my' | 'partner') {
   if (!content && isSupported.value) content = text.value;
 
   if (content) {
-    if (target === 'single') singleCode.value = content;
-    if (target === 'my') myCode.value = content;
-    if (target === 'partner') partnerCode.value = content;
+    // ✅ 修改：统一粘贴逻辑
+    if (target === 'single' || target === 'my') codeA.value = content;
+    if (target === 'partner') codeB.value = content;
   } else {
     triggerError('无法读取剪贴板');
   }
@@ -53,9 +55,10 @@ function goSystem() {
 }
 
 function handleSingleView() {
-  if (!isValid(singleCode.value)) return triggerError('请输入代码');
+  // ✅ 修改：使用 codeA
+  if (!isValid(codeA.value)) return triggerError('请输入代码');
   
-  const data = decode(singleCode.value);
+  const data = decode(codeA.value);
   if (data) {
     // ✅ 修复：强制类型断言
     store.answers = data.answers as Record<string, Attitude[]>;
@@ -67,9 +70,10 @@ function handleSingleView() {
 }
 
 function handleSingleContinue() {
-  if (!isValid(singleCode.value)) return triggerError('请输入代码');
+  // ✅ 修改：使用 codeA
+  if (!isValid(codeA.value)) return triggerError('请输入代码');
   
-  const data = decode(singleCode.value);
+  const data = decode(codeA.value);
   if (data) {
     store.targetAvatar = data.avatar;
     
@@ -91,20 +95,21 @@ function handleSingleContinue() {
 }
 
 function handleCompare() {
-  const hasMy = isValid(myCode.value);
-  const hasPartner = isValid(partnerCode.value);
+  // ✅ 修改：使用 codeA 和 codeB
+  const hasMy = isValid(codeA.value);
+  const hasPartner = isValid(codeB.value);
 
   if (hasMy && hasPartner) {
     // 两个都有：进入双人对比
     router.push({
       path: '/compare',
-      query: { my: myCode.value, partner: partnerCode.value }
+      query: { my: codeA.value, partner: codeB.value }
     });
   } else if (hasMy || hasPartner) {
     // 只有一个：进入单人结果页
     router.push({
       path: '/result',
-      query: { code: hasMy ? myCode.value : partnerCode.value }
+      query: { code: hasMy ? codeA.value : codeB.value }
     });
   } else {
     // 都没有
@@ -164,7 +169,7 @@ function handleCompare() {
   <div v-if="activeTab === 'single'" class="space-y-4 animate-fade">
     <div class="relative">
       <input 
-        v-model="singleCode" 
+        v-model="codeA" 
         type="text" 
         placeholder="粘贴结果代码...（一串Emoji）" 
         class="w-full h-14 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300"
@@ -181,7 +186,7 @@ function handleCompare() {
       </button>
 
       <div class="grid grid-cols-2 gap-3">
-        <button @click="$emit('open-ai')" class="h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
+        <button @click="showAIModal = true" class="h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
           <i-ph-sparkle-bold class="text-lg" />
           AI分析报告
         </button>
@@ -194,11 +199,11 @@ function handleCompare() {
 
   <div v-if="activeTab === 'dual'" class="space-y-4 animate-fade">
     <div class="relative">
-      <input v-model="myCode" placeholder="你的结果代码..." class="w-full h-14 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
+      <input v-model="codeA" placeholder="你的结果代码..." class="w-full h-14 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
       <button @click="handlePaste('my')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><i-ph-clipboard-text class="text-xl"/></button>
     </div>
     <div class="relative">
-      <input v-model="partnerCode" placeholder="另一位的代码..." class="w-full h-14 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
+      <input v-model="codeB" placeholder="另一位的代码..." class="w-full h-14 bg-base-100 border border-slate-200 rounded-xl px-4 text-base font-mono focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-slate-300" />
       <button @click="handlePaste('partner')" class="absolute right-2 top-2 p-2 text-slate-300 hover:text-base-content"><i-ph-clipboard-text class="text-xl"/></button>
     </div>
     
@@ -207,7 +212,7 @@ function handleCompare() {
         对比结果
       </button>
       
-      <button @click="$emit('open-ai')" class="w-full h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
+      <button @click="showAIModal = true" class="w-full h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
         <i-ph-sparkle-bold class="text-lg" />
         AI分析报告
       </button>
