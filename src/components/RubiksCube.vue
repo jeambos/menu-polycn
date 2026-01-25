@@ -12,36 +12,74 @@ const colors = {
 };
 
 // --- 状态管理 ---
-// 仅控制三层 (上中下) 的水平旋转
 const layerRotations = ref([0, 0, 0]); 
-let layerInterval: number | null = null;
+const isManual = ref(false); // 是否处于手动模式
+const isPressed = ref(false); // 是否处于按压状态
 
-// --- 动画逻辑 ---
+let layerInterval: number | null = null; // 自动巡航定时器
+let cooldownTimer: number | null = null; // 手动冷却定时器
+
+// --- 旋转逻辑 ---
 function rotateLayer() {
-  // 随机选择一层 (0, 1, 2)
   const layerIndex = Math.floor(Math.random() * 3);
-  // 随机顺时针或逆时针
   const direction = Math.random() > 0.5 ? 90 : -90;
   
-  // ✅ 修复：先判断该索引处的值是否存在，再进行累加
   if (layerRotations.value[layerIndex] !== undefined) {
     layerRotations.value[layerIndex] += direction;
   }
 }
 
-onMounted(() => {
-  // 每 2.5 秒转动一次内部，慢一点显得优雅
+// --- 模式控制 ---
+// 1. 启动自动巡航 (慢速、优雅)
+function startAutoCruise() {
+  isManual.value = false; // 恢复慢速动画
+  if (layerInterval) clearInterval(layerInterval);
+  
+  // 每 2.5 秒转动一次
   layerInterval = window.setInterval(rotateLayer, 2500);
-  setTimeout(rotateLayer, 500);
+}
+
+// 2. 用户交互 (手动模式)
+function handleInteract() {
+  // A. 视觉反馈：按下缩放
+  isPressed.value = true;
+  setTimeout(() => isPressed.value = false, 150);
+
+  // B. 状态切换：进入手动模式
+  isManual.value = true; // 切换动画速度为快
+  if (layerInterval) clearInterval(layerInterval); // 停止自动转动
+  if (cooldownTimer) clearTimeout(cooldownTimer);  // 清除之前的冷却
+
+  // C. 执行动作：立即转动
+  rotateLayer();
+
+  // D. 冷却归位：1.5秒后无操作则恢复自动
+  cooldownTimer = window.setTimeout(() => {
+    startAutoCruise();
+  }, 1500);
+}
+
+onMounted(() => {
+  startAutoCruise();
 });
 
 onUnmounted(() => {
   if (layerInterval) clearInterval(layerInterval);
+  if (cooldownTimer) clearTimeout(cooldownTimer);
 });
 </script>
 
 <template>
-  <div class="cube-scene">
+  <div 
+    class="cube-scene"
+    @click="handleInteract"
+    @mousedown="handleInteract"
+    :style="{
+      cursor: 'pointer',
+      transition: 'transform 0.1s ease-out',
+      transform: isPressed ? 'scale(0.95)' : 'scale(1)'
+    }"
+  >
     <div class="cube-wrapper">
       
       <div 
@@ -49,10 +87,10 @@ onUnmounted(() => {
         :key="index"
         class="cube-layer"
         :style="{ 
-          // 36px 是单层高度 + 间隙
           transform: `translateY(${(index - 1) * 36}px) rotateY(${angle}deg)`,
-          // 关键修复：给中间层更低的 z-index，防止透视 Bug
-          zIndex: index === 1 ? 1 : 2 
+          zIndex: index === 1 ? 1 : 2,
+          // 关键修改：手动模式下 0.2s 快速响应，自动模式下 0.6s 慢速优雅
+          transitionDuration: isManual ? '0.2s' : '0.6s'
         }"
       >
         <div class="face front" :style="{ '--c': colors.F }">
