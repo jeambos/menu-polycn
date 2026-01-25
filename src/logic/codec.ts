@@ -133,7 +133,17 @@ function toBits(num: number, length: number = BITS_PER_VAL): string {
 }
 
 /**
- * 编码：头像 + 压缩后的 Emoji 数据流
+ * ✅ 新增辅助函数：计算校验和 (Checksum)
+ * 算法：将所有 10-bit 数据块的值求和，对字典长度取模，得到校验位的 Emoji 索引
+ */
+function calculateChecksum(indices: number[]): number {
+  if (indices.length === 0) return 0;
+  const sum = indices.reduce((acc, val) => acc + val, 0);
+  return sum % EMOJI_MAP.length;
+}
+
+/**
+ * 编码：头像 + 压缩后的 Emoji 数据流 + 校验位 Emoji
  */
 export function encode(answers: Record<string, number[]>, avatar: string = '🌏'): string {
   
@@ -144,14 +154,15 @@ export function encode(answers: Record<string, number[]>, avatar: string = '🌏
       const userStates = answers[q.id] || [];
       q.options.forEach((_, optIndex) => {
         let state = userStates[optIndex] || 0;
-        if (state > 4) state = 0; 
+        // 🔄 修改：为了支持 6 种状态 (0-5)，这里将上限调整为 5
+        // 3 bit 可以支持到 7 (0-7)，所以这里的修改是安全的
+        if (state > 5) state = 0; 
         flatData.push(state);
       });
     });
   });
 
-  // ✅ 新增步骤：寻找“有效数据的边界”
-  // 从后往前找，找到第一个非0的块的位置
+  // 寻找“有效数据的边界” (截断优化)
   let lastActiveBlockIndex = -1;
   for (let i = 0; i < flatData.length; i += BLOCK_SIZE) {
     const chunk = flatData.slice(i, i + BLOCK_SIZE);
@@ -160,13 +171,11 @@ export function encode(answers: Record<string, number[]>, avatar: string = '🌏
     }
   }
 
-  // 如果全是0，直接返回头像
+  // 如果全是0，直接返回头像 (这里我们不加校验位，视为空数据的特殊情况)
   if (lastActiveBlockIndex === -1) return avatar;
 
-  // 第二步：分块位图压缩 (只处理到 lastActiveBlockIndex 为止)
+  // 第二步：分块位图压缩
   let bitStream = "";
-  
-  // 注意循环条件：包含 lastActiveBlockIndex 所在的块
   for (let i = 0; i <= lastActiveBlockIndex; i += BLOCK_SIZE) {
     const chunk = flatData.slice(i, i + BLOCK_SIZE);
     const isAllZero = chunk.every(val => val === 0);
@@ -181,7 +190,7 @@ export function encode(answers: Record<string, number[]>, avatar: string = '🌏
     }
   }
 
-  // 第三步：BitStream 转 Emoji
+  // 第三步：BitStream 转 Emoji + 计算校验位
   // 补齐 10 bit
   const remainder = bitStream.length % 10;
   if (remainder !== 0) {
@@ -189,48 +198,101 @@ export function encode(answers: Record<string, number[]>, avatar: string = '🌏
   }
 
   let result = "";
+  const indices: number[] = []; // 用于存储转换后的索引，以便计算校验和
+
   for (let i = 0; i < bitStream.length; i += 10) {
     const chunkStr = bitStream.substring(i, i + 10);
     const val = parseInt(chunkStr, 2);
+    
+    // 记录索引用于校验
+    indices.push(val);
+    
     result += (EMOJI_MAP[val] !== undefined) ? EMOJI_MAP[val] : EMOJI_MAP[0];
   }
 
-  return avatar + result;
+  // ✅ 新增：计算并追加校验位
+  const checksumIndex = calculateChecksum(indices);
+  const checksumEmoji = EMOJI_MAP[checksumIndex];
+
+  return avatar + result + checksumEmoji;
 }
 
 /**
- * 解码：提取头像 + 还原答案字典
+ * 解码：提取头像 + 校验数据 + 还原答案字典
  */
 export function decode(code: string): { answers: Record<string, number[]>, avatar: string } {
-  const chars = Array.from(code);
+  // ✅ 新增第一步：输入清洗 (Sanitization)
+  // 移除所有空格、换行符、以及 Emoji 变体选择符-16 (\uFE0F，通常由微信等APP自动添加)
+  // 这样可以防止查字典返回 undefined
+  const cleanCode = code.replace(/[\s\n\r\uFE0F]/g, '');
+
+  if (!cleanCode) {
+    throw new Error("无效的代码：内容为空");
+  }
+
+  const chars = Array.from(cleanCode);
   
   // 1. 提取头像
   let avatar = '🌏'; 
-  let dataChars = chars;
+  let dataAndChecksumChars: string[] = [];
 
   const firstChar = chars[0];
   if (firstChar && AVATAR_SET.has(firstChar)) {
     avatar = firstChar;
-    dataChars = chars.slice(1); 
+    // 如果有头像，剩下的就是 数据+校验
+    dataAndChecksumChars = chars.slice(1); 
+  } else {
+    // 如果没头像，假设全是 数据+校验
+    dataAndChecksumChars = chars;
   }
 
-  // 2. Emoji 转 BitStream
+  // 边界检查：如果没有数据部分（或者长度不够包含校验位），直接返回空结果或报错
+  if (dataAndChecksumChars.length < 1) {
+      // 视为空数据，返回默认值
+      return { answers: {}, avatar };
+  }
+
+  // ✅ 新增第二步：分离 数据体 和 校验位
+  const providedChecksumEmoji = dataAndChecksumChars[dataAndChecksumChars.length - 1]; // 最后一位
+  const dataEmojis = dataAndChecksumChars.slice(0, -1); // 中间部分
+
+  // 2. Emoji 转 索引数组 + 校验
+  const indices: number[] = [];
   let bitStream = "";
-  for (const char of dataChars) {
+
+  for (const char of dataEmojis) {
     const val = EMOJI_TO_INDEX.get(char);
-    if (val !== undefined) {
-      bitStream += toBits(val, 10); 
+    if (val === undefined) {
+      // 如果清洗后依然有无法识别的字符，说明代码已损坏
+      throw new Error(`解析失败：包含无法识别的字符 "${char}"`);
     }
+    indices.push(val);
+    bitStream += toBits(val, 10); 
   }
 
-  // 3. 解压 BitStream 到扁平数组
+  // ✅ 新增第三步：执行校验
+  if (!providedChecksumEmoji) {
+    throw new Error("校验失败：代码格式不完整，找不到校验位");
+}
+  const expectedChecksumIndex = EMOJI_TO_INDEX.get(providedChecksumEmoji);
+  if (expectedChecksumIndex === undefined) {
+      throw new Error("校验失败：校验位字符无效");
+  }
+
+  const calculatedChecksumIndex = calculateChecksum(indices);
+  
+  if (calculatedChecksumIndex !== expectedChecksumIndex) {
+    // 这是最关键的拦截：如果计算结果和最后一位对不上，说明数据被篡改或截断
+    throw new Error("数据校验失败：代码可能不完整或已被修改，请重新复制。");
+  }
+
+  // 3. 解压 BitStream 到扁平数组 (逻辑保持不变)
   const flatData: number[] = [];
   let ptr = 0;
   
   let totalOptionsCount = 0;
   questionsData.modules.forEach(m => m.questions.forEach(q => totalOptionsCount += q.options.length));
 
-  // ✅ 逻辑修改：只要流里还有数据，就继续读；读完了就停止。
   while (ptr < bitStream.length && flatData.length < totalOptionsCount) {
     const header = bitStream[ptr];
     ptr++; 
@@ -254,12 +316,12 @@ export function decode(code: string): { answers: Record<string, number[]>, avata
     }
   }
 
-  // ✅ 新增步骤：自动补齐剩余的 0 (因为我们刚才截断了尾部)
+  // 自动补齐剩余的 0
   while (flatData.length < totalOptionsCount) {
     flatData.push(0);
   }
 
-  // 4. 扁平数组 映射回 对象结构
+  // 4. 扁平数组 映射回 对象结构 (逻辑保持不变)
   const result: Record<string, number[]> = {};
   let dataPtr = 0;
 
