@@ -3,12 +3,12 @@ import { ref, onMounted, onUnmounted } from 'vue';
 
 // 方案 D：多汁果味 (同色系渐变)
 const colors = {
-  F: '#FDBA74', // 杏色 (Orange-300) - 柔和过渡
-  B: '#FFFBEB', // 象牙白 (Amber-50) - 极亮顶光
-  R: '#C2410C', // 血橙 (Orange-700) - 深处
-  L: '#FCD34D', // 柠檬黄 (Amber-300) - 亮部
-  U: '#FB923C', // 甜橙 (Orange-400) - 主面鲜亮
-  D: '#9A3412', // 焦糖褐 (Orange-900) - 阴影
+  F: '#FDBA74', // 杏色 (Orange-300)
+  B: '#FFFBEB', // 象牙白 (Amber-50)
+  R: '#C2410C', // 血橙 (Orange-700)
+  L: '#FCD34D', // 柠檬黄 (Amber-300)
+  U: '#FB923C', // 甜橙 (Orange-400)
+  D: '#9A3412', // 焦糖褐 (Orange-900)
 };
 
 // --- 状态管理 ---
@@ -32,7 +32,7 @@ function rotateLayer() {
 // --- 模式控制 ---
 // 1. 启动自动巡航 (慢速、优雅)
 function startAutoCruise() {
-  isManual.value = false; // 恢复慢速动画
+  isManual.value = false; // 恢复慢速动画，并恢复整体翻滚
   if (layerInterval) clearInterval(layerInterval);
   
   // 每 2.5 秒转动一次
@@ -46,17 +46,17 @@ function handleInteract() {
   setTimeout(() => isPressed.value = false, 150);
 
   // B. 状态切换：进入手动模式
-  isManual.value = true; // 切换动画速度为快
-  if (layerInterval) clearInterval(layerInterval); // 停止自动转动
+  isManual.value = true; // ⛔️ 这会让 CSS 动画暂停
+  if (layerInterval) clearInterval(layerInterval); // 停止自动层转动
   if (cooldownTimer) clearTimeout(cooldownTimer);  // 清除之前的冷却
 
   // C. 执行动作：立即转动
   rotateLayer();
 
-  // D. 冷却归位：1.5秒后无操作则恢复自动
+  // D. 冷却归位：0.75秒后无操作则恢复自动
   cooldownTimer = window.setTimeout(() => {
     startAutoCruise();
-  }, 1500);
+  }, 750);
 }
 
 onMounted(() => {
@@ -80,7 +80,10 @@ onUnmounted(() => {
       transform: isPressed ? 'scale(0.95)' : 'scale(1)'
     }"
   >
-    <div class="cube-wrapper">
+    <div 
+      class="cube-wrapper"
+      :style="{ animationPlayState: isManual ? 'paused' : 'running' }"  
+    >
       
       <div 
         v-for="(angle, index) in layerRotations" 
@@ -89,7 +92,7 @@ onUnmounted(() => {
         :style="{ 
           transform: `translateY(${(index - 1) * 36}px) rotateY(${angle}deg)`,
           zIndex: index === 1 ? 1 : 2,
-          // 关键修改：手动模式下 0.2s 快速响应，自动模式下 0.6s 慢速优雅
+          // 手动模式下 0.2s 快速响应，自动模式下 0.6s 慢速优雅
           transitionDuration: isManual ? '0.2s' : '0.6s'
         }"
       >
@@ -128,18 +131,17 @@ onUnmounted(() => {
 
 <style scoped>
 /* --- 配置参数 --- */
-/* 魔方整体大小由此控制 */
 :root {
-  --cube-size: 100px; /* 单个面的宽度 */
-  --layer-h: 34px;    /* 单层高度 */
-  --gap: 2px;         /* 贴纸间隙 */
+  --cube-size: 100px; 
+  --layer-h: 34px;    
+  --gap: 2px;         
 }
 
 /* --- 场景容器 --- */
 .cube-scene {
-  width: 140px;  /* 容器宽度 */
-  height: 140px; /* 容器高度 */
-  perspective: 1000px; /* 透视深度 */
+  width: 140px;  
+  height: 140px; 
+  perspective: 1000px; 
   margin-bottom: 100px;
 }
 
@@ -148,11 +150,13 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  /* 这里的动画让魔方整体在空间中缓慢翻滚 */
+  /* auto-tumble 动画现在会响应 animationPlayState 
+    被暂停时，魔方会停在当前的空中角度
+  */
   animation: auto-tumble 12s infinite linear;
 }
 
-/* 优雅的整体翻滚动画：绕X轴和Y轴同时旋转 */
+/* 整体翻滚动画 */
 @keyframes auto-tumble {
   0% { transform: rotateX(-20deg) rotateY(0deg); }
   25% { transform: rotateX(-35deg) rotateY(90deg); }
@@ -166,8 +170,8 @@ onUnmounted(() => {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 100px; /* 宽度加大 */
-  height: 34px; /* 高度加大 */
+  width: 100px; 
+  height: 34px; 
   margin-left: -50px;
   margin-top: -17px;
   transform-style: preserve-3d;
@@ -179,9 +183,9 @@ onUnmounted(() => {
   position: absolute;
   display: grid;
   gap: 3px;
-  background: #18181b; /* Zinc-900 黑色基底 */
+  background: #18181b; 
   border: 1px solid #18181b;
-  backface-visibility: hidden; /* 关键：防止背面闪烁 */
+  backface-visibility: hidden; 
 }
 
 /* 侧面布局 */
@@ -201,7 +205,7 @@ onUnmounted(() => {
   padding: 2px;
 }
 
-/* 内部盖板 (纯黑) */
+/* 内部盖板 */
 .face.inner-cap {
   width: 100px;
   height: 100px;
@@ -209,7 +213,7 @@ onUnmounted(() => {
   padding: 0;
 }
 
-/* --- 面的 3D 位置变换 (基于宽100px -> 半径50px) --- */
+/* --- 面的 3D 位置变换 --- */
 .front  { transform: translateZ(50px); }
 .back   { transform: rotateY(180deg) translateZ(50px); }
 .right  { transform: rotateY(90deg) translateZ(50px); }
@@ -217,7 +221,6 @@ onUnmounted(() => {
 .top    { transform: rotateX(90deg) translateZ(50px); }
 .bottom { transform: rotateX(-90deg) translateZ(50px); }
 
-/* 内部盖板位置 (稍微向内收一点点 16px，避免接触) */
 .top-cap    { transform: rotateX(90deg) translateZ(16px); }
 .bottom-cap { transform: rotateX(-90deg) translateZ(16px); }
 
@@ -226,8 +229,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   background-color: var(--c);
-  border-radius: 4px; /* 更圆润一点 */
-  /* 内发光增加质感 */
+  border-radius: 4px; 
   box-shadow: inset 0 0 6px rgba(0,0,0,0.1); 
 }
 </style>
