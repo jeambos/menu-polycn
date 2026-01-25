@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 
-// --- 低饱和度莫兰迪配色 ---
+// --- UI Echo 配色 (品牌回响) ---
 const colors = {
-  F: '#E5989B', // Muted Pink
-  B: '#F4A261', // Muted Orange
-  R: '#8ECAE6', // Muted Blue
-  L: '#84A98C', // Sage Green
-  U: '#F4F1DE', // Cream
-  D: '#495057', // Charcoal
+  F: '#F97316', // Vibrant Orange (呼应主按钮 - 视觉重心)
+  B: '#FB7185', // Soft Red (旋转时的暖色点缀)
+  R: '#1E293B', // Deep Navy (呼应深色按钮 - 强对比)
+  L: '#2DD4BF', // Teal (青色 - 橙色的互补色，增加灵气)
+  U: '#F8FAFC', // Cloud White (呼应背景/顶光 - 透气感)
+  D: '#64748B', // Neutral Gray (稳住底部)
 };
 
 // --- 状态管理 ---
