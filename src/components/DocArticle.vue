@@ -86,8 +86,8 @@
     <ul class="list-disc pl-5 space-y-1">
       <li><strong class="text-primary/75 dark:text-orange-300">按态度分区</strong>，您可以清楚地看到自己或者他人（可以读取任何人的代码）的核心需求和硬性边界等</li>
       <li>我们为您提供一条<strong class="text-primary/75 dark:text-orange-300">Emoji代码</strong>，可以发送给任何人查看，也可以自己保存。</li>
-      <li><strong class="text-primary/75 dark:text-orange-300">数据安全提示</strong>：我们是一个静态站，<strong class="text-primary/75 dark:text-orange-300">不存储您的任何结果</strong>。请妥善保存您的结果代码。</li>
-      <li>请注意：这条Emoji代码<strong class="text-primary/75 dark:text-orange-300">无容错机制</strong>，请确定您保存的代码无误，如误删了其中内容，或者粘贴不完整，系统将显示错误的结果。</li>
+      <li><strong class="text-primary/75 dark:text-orange-300">数据安全提示</strong>：我们是一个静态站，不存储您的任何结果。请妥善保存您的结果代码。<strong class="text-primary/75 dark:text-orange-300">【新】由于要协作进行文案纠正，因此做了一个留言板。现在使用留言板功能做了一个简陋的云存档，您可以使用，但是此功能随时可能关闭，请注意备份您的存档。</strong>。</li>
+      <li>请注意：这条Emoji代码<strong class="text-primary/75 dark:text-orange-300">在微信消息中可能会被微信污染</strong>，请确定您保存或传播的代码无误，否则系统将报错，或者显示错误的结果。</li>
     </ul>
 
     <h4 class="text-primary/80 text-lg font-bold mt-6 mb-2">右上角菜单</h4>
@@ -98,6 +98,7 @@
       <li>查看 / 删除浏览器缓存中的问卷信息</li>
       <li>备份数据</li>
       <li>清空数据</li>
+      <li>管理云存档（beta）</li>
       <li>返回首页</li>
     </ul>
 
