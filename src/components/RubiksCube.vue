@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 
-// --- UI Echo 配色 (品牌回响) ---
+// 方案 D：多汁果味 (同色系渐变)
 const colors = {
-  F: '#F97316', // Vibrant Orange (呼应主按钮 - 视觉重心)
-  B: '#FB7185', // Soft Red (旋转时的暖色点缀)
-  R: '#1E293B', // Deep Navy (呼应深色按钮 - 强对比)
-  L: '#2DD4BF', // Teal (青色 - 橙色的互补色，增加灵气)
-  U: '#F8FAFC', // Cloud White (呼应背景/顶光 - 透气感)
-  D: '#64748B', // Neutral Gray (稳住底部)
+  F: '#FDBA74', // 杏色 (Orange-300) - 柔和过渡
+  B: '#FFFBEB', // 象牙白 (Amber-50) - 极亮顶光
+  R: '#C2410C', // 血橙 (Orange-700) - 深处
+  L: '#FCD34D', // 柠檬黄 (Amber-300) - 亮部
+  U: '#FB923C', // 甜橙 (Orange-400) - 主面鲜亮
+  D: '#9A3412', // 焦糖褐 (Orange-900) - 阴影
 };
 
 // --- 状态管理 ---
