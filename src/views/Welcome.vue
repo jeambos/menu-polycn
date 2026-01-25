@@ -277,7 +277,7 @@ function handleCompare() {
 
     <div class="py-8 text-center">
       <p class="text-xs text-slate-400 font-mono font-medium tracking-widest uppercase">
-        CC BY-NC-SA 4.0 · PolyCN
+        <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans" target="_blank" class="text-slate-400 hover:text-base-content">CC BY-NC-SA 4.0</a> · <a href="https://polycn.org" target="_blank" class="text-slate-400 hover:text-base-content">PolyCN</a>
       </p>
     </div>
 
