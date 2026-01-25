@@ -62,7 +62,8 @@ const resultAvatar = ref('🌏');
 const redGroups = ref<ModuleGroup[]>([]);    
 const goldGroups = ref<ModuleGroup[]>([]);   
 const yellowGroups = ref<ModuleGroup[]>([]); 
-const greenItems = ref<ResultItem[]>([]);    
+const greenItems = ref<ResultItem[]>([]);  
+const blackGroups = ref<ModuleGroup[]>([]); // ✅ 新增：黑色分组
 
 // 界面控制
 const showClearModal = ref(false);
@@ -120,9 +121,9 @@ function groupItemsByModule(items: ResultItem[]): ModuleGroup[] {
 }
 
 function processZoneData(answers: Record<string, Attitude[]>) {
-  const rList: ResultItem[] = [], gCoreList: ResultItem[] = [], yList: ResultItem[] = [], greenList: ResultItem[] = [];
+  // ✅ 修改：初始化增加 blackList
+  const rList: ResultItem[] = [], gCoreList: ResultItem[] = [], yList: ResultItem[] = [], greenList: ResultItem[] = [], blackList: ResultItem[] = [];
   
-  // 关键修复：只处理 activeModuleIds 中包含的模块
   const targetModules = allModules.filter(m => activeModuleIds.value.includes(m.id));
 
   targetModules.forEach(m => {
@@ -135,9 +136,9 @@ function processZoneData(answers: Record<string, Attitude[]>) {
       states.forEach((rawAtt, optIndex) => {
 
         // --- 🛡️ 防御性数据清洗 ---
-        // 强制转为数字，若不在 0-4 范围内则归 0，防止非法数据导致渲染报错
+        // ✅ 修改：范围扩大到 0-5 (适配新逻辑)
         let att = Number(rawAtt);
-        if (isNaN(att) || att < 0 || att > 4) att = 0;
+        if (isNaN(att) || att < 0 || att > 5) att = 0;
         
         // 0 (未表态) 不参与结果展示
         if (att === 0) return;
@@ -150,15 +151,17 @@ function processZoneData(answers: Record<string, Attitude[]>) {
           questionId: q.id, 
           title: q.title_short || q.title, 
           choice: choiceText,
-          attitude: att as Attitude, // 断言类型
+          attitude: att as Attitude, 
           moduleId: m.id,
           moduleName: cleanModuleName,
           originalQuestion: q, 
           optionIndex: optIndex 
         };
 
+        // ✅ 修改：分流逻辑
         if (att === 1) rList.push(item);
         else if (att === 4) gCoreList.push(item);
+        else if (att === 5) blackList.push(item); // ✅ 新增：不喜欢 (Soft No)
         else if (att === 2) yList.push(item);
         else if (att === 3) greenList.push(item);
       });
@@ -169,6 +172,7 @@ function processZoneData(answers: Record<string, Attitude[]>) {
   goldGroups.value = groupItemsByModule(gCoreList);
   yellowGroups.value = groupItemsByModule(yList);
   greenItems.value = greenList;
+  blackGroups.value = groupItemsByModule(blackList); // ✅ 新增：赋值
 }
 
 // --- 数据加载与路由处理 ---
@@ -502,23 +506,49 @@ function handleClearData() {
           </div>
         </div>
 
-        <div v-if="yellowGroups.length > 0" class="animate-fade-in-up delay-200 pb-8">
+        <div v-if="blackGroups.length > 0" class="animate-fade-in-up delay-100 pb-8">
           <div 
-            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-warning cursor-pointer hover:bg-base-100 transition-colors"
+            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-base-content/70 cursor-pointer hover:bg-base-100 transition-colors"
             @dblclick="scrollToTop"
           >
-            <i-ph-question-bold class="text-xl drop-shadow-sm" />
-            <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Soft Limits / 待商议</span>
+            <i-ph-thumbs-down-bold class="text-xl drop-shadow-sm" />
+            <span class="text-base font-bold uppercase tracking-wider text-base-content/80">Dislikes / 不喜欢</span>
           </div>
           
           <div class="flex flex-col gap-6">
-            <div v-for="group in yellowGroups" :key="group.id" class="bg-base-100 border-l-4 border-warning/50 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
+             <div v-for="group in blackGroups" :key="group.id" class="bg-base-100 border-l-4 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
               <h3 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest">{{ group.name }}</h3>
               <div class="flex flex-wrap gap-3">
                 <div v-for="item in group.items" :key="item.id">
                   <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
-                    <div class="badge border-none text-base-content/80 h-auto py-2.5 px-4 gap-2 bg-warning/20 cursor-pointer hover:bg-warning/30 transition-colors rounded-lg">
+                    <div class="badge badge-outline border-base-content/20 text-base-content/70 h-auto py-2.5 px-4 gap-2 cursor-pointer hover:bg-base-content/5 transition-colors bg-base-100 rounded-lg">
                       <span class="opacity-50 text-sm font-normal border-r border-base-content/10 pr-2 mr-0.5">{{ item.title }}</span>
+                      <span class="font-bold text-sm">{{ item.choice }}</span>
+                    </div>
+                  </OptionPopover>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="yellowGroups.length > 0" class="animate-fade-in-up delay-200 pb-8">
+          <div 
+            class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-slate-500 cursor-pointer hover:bg-base-100 transition-colors"
+            @dblclick="scrollToTop"
+          >
+            <i-ph-question-bold class="text-xl drop-shadow-sm" />
+            <span class="text-base font-bold uppercase tracking-wider text-base-content/80">To Discuss / 待商议</span>
+          </div>
+          
+          <div class="flex flex-col gap-6">
+            <div v-for="group in yellowGroups" :key="group.id" class="bg-base-100 border-l-4 border-slate-200 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
+              <h3 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest">{{ group.name }}</h3>
+              <div class="flex flex-wrap gap-3">
+                <div v-for="item in group.items" :key="item.id">
+                  <OptionPopover :question="item.originalQuestion" :selections="[{ avatar: resultAvatar, index: item.optionIndex, attitude: item.attitude }]" :is-open="activePopoverId === item.id" @toggle="togglePopover(item.id)" @close="activePopoverId = null">
+                    <div class="badge border-none text-slate-600 h-auto py-2.5 px-4 gap-2 bg-slate-100 cursor-pointer hover:bg-slate-200 transition-colors rounded-lg">
+                      <span class="opacity-50 text-sm font-normal border-r border-slate-300 pr-2 mr-0.5">{{ item.title }}</span>
                       <span class="font-medium text-sm">{{ item.choice }}</span>
                     </div>
                   </OptionPopover>

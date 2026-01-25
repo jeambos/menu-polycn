@@ -36,6 +36,7 @@ const listResonance = ref<CompareItem[]>([]);
 const listCritical = ref<CompareItem[]>([]);  
 const listDiscuss = ref<CompareItem[]>([]);   
 const listNegotiate = ref<CompareItem[]>([]); 
+const listError = ref<CompareItem[]>([]); // ✅ 新增：异常数据列表
 
 const myAvatar = ref('😎');
 const partnerAvatar = ref('😎');
@@ -47,7 +48,7 @@ function togglePopover(id: string) {
 }
 
 const hasData = computed(() => {
-  return listResonance.value.length + listCritical.value.length + listDiscuss.value.length + listNegotiate.value.length > 0;
+  return listResonance.value.length + listCritical.value.length + listDiscuss.value.length + listNegotiate.value.length + listError.value.length> 0;
 });
 
 // 分组与筛选逻辑
@@ -65,6 +66,7 @@ const groupsResonance = computed(() => groupAndFilter(listResonance.value));
 const groupsCritical = computed(() => groupAndFilter(listCritical.value));
 const groupsDiscuss = computed(() => groupAndFilter(listDiscuss.value));
 const groupsNegotiate = computed(() => groupAndFilter(listNegotiate.value));
+const groupsError = computed(() => groupAndFilter(listError.value)); // ✅ 新增：异常分组计算
 
 // 滚动定位
 function scrollToZone(elementId: string) {
@@ -80,29 +82,22 @@ function scrollToZone(elementId: string) {
 }
 
 // 核心比对逻辑
+// 核心比对逻辑 (✅ 已更新适配 5 态 & 异常捕获)
 function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, Attitude[]>) {
-  const nList: CompareItem[] = [], hList: CompareItem[] = [], rList: CompareItem[] = [], dList: CompareItem[] = [];
+  // eList 用于存放异常数据
+  const nList: CompareItem[] = [], hList: CompareItem[] = [], rList: CompareItem[] = [], dList: CompareItem[] = [], eList: CompareItem[] = [];
   
   allModules.forEach(m => {
     const cleanModuleName = m.name.replace(/^(模块\s*[A-J][：:]\s*)/, '').replace(/📦 |⚛️ /g, '');
 
     m.questions.forEach(q => {
-      // 1. 获取状态数组，如果为空则给默认空数组，防止报错
       const myStates = myMap[q.id] || []; 
       const partnerStates = partnerMap[q.id] || [];
       
       q.options.forEach((opt, index) => {
-        // --- 🛡️ 防御性数据清洗 ---
-        let rawA = Number(myStates[index] || 0);
-        let rawB = Number(partnerStates[index] || 0);
-
-        // 2. 强制限制在 0-4 之间，防止越界数据 (如 7) 导致显示异常
-        // 同时断言为 Attitude 类型以通过 TS 检查
-        const a = ((rawA >= 0 && rawA <= 4) ? rawA : 0) as Attitude;
-        const b = ((rawB >= 0 && rawB <= 4) ? rawB : 0) as Attitude;
-
-        // 双方都未表态(0)，跳过
-        if (a === 0 && b === 0) return; 
+        // 1. 获取原始数值
+        let rawA = Number(myStates[index] !== undefined ? myStates[index] : 0);
+        let rawB = Number(partnerStates[index] !== undefined ? partnerStates[index] : 0);
 
         const choiceText = typeof opt === 'string' ? opt : (opt?.short || '未知选项');
 
@@ -112,23 +107,45 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
           choice: choiceText,             
           moduleId: m.id, 
           moduleName: cleanModuleName,
-          myAttitude: a, 
-          partnerAttitude: b,
+          myAttitude: rawA as Attitude, 
+          partnerAttitude: rawB as Attitude,
           originalQuestion: q, 
           myOptionIndex: index, 
           partnerOptionIndex: index
         };
-        
-        // ... (下面的分类逻辑 if/else 保持不变) ...
-        // 为了方便，你可以只替换到这里，保留后面的 push 逻辑
-        // 或者保留原本的分类代码，它们不需要动
-        if (a === 2 || b === 2 || (a === 0 && b !== 0) || (a !== 0 && b === 0)) {
+
+        // 2. 异常检测：如果不在 0-5 范围内，归入错误组
+        if (isNaN(rawA) || rawA < 0 || rawA > 5 || isNaN(rawB) || rawB < 0 || rawB > 5) {
+          eList.push(item);
+          return;
+        }
+
+        const a = rawA as Attitude;
+        const b = rawB as Attitude;
+
+        // 双方都未表态(0)，跳过
+        if (a === 0 && b === 0) return; 
+
+        // --- 3. 新版分类矩阵 ---
+
+        // A. 需要沟通 (Discuss)
+        // 定义：一方是 2(待商议) 或 0(未表态)
+        if (a === 2 || b === 2 || a === 0 || b === 0) {
            dList.push(item);
-        } else if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
+        } 
+        // B. 核心冲突 (Critical)
+        // 定义：严格限定为 4(Core) vs 1(No) 的死局
+        else if ((a === 4 && b === 1) || (a === 1 && b === 4)) {
            nList.push(item);
-        } else if ((a >= 3 && b >= 3) || (a === 1 && b === 1)) {
+        } 
+        // C. 默契共振 (Resonance)
+        // 定义：双正向 (>=3) 或 双负向 (1或5)
+        else if ((a >= 3 && b >= 3) || ((a === 1 || a === 5) && (b === 1 || b === 5))) {
            rList.push(item);
-        } else {
+        } 
+        // D. 协商让步 (Negotiate)
+        // 定义：其余所有情况 (包括 4vs5, 3vs1, 3vs5 等)
+        else {
            hList.push(item);
         }
       });
@@ -139,6 +156,7 @@ function analyze(myMap: Record<string, Attitude[]>, partnerMap: Record<string, A
   listCritical.value = nList;
   listDiscuss.value = dList;
   listNegotiate.value = hList;
+  listError.value = eList; // ✅ 赋值错误列表
 }
 
 /// 切换模块显示状态
@@ -250,6 +268,34 @@ onMounted(() => {
 
     <div class="flex flex-col">
 
+      <div v-if="groupsError.length > 0" id="zone-error" class="scroll-mt-32 pb-8">
+        <div class="animate-fade-in-up">
+          <div class="sticky top-16 z-20 bg-base-100/95 backdrop-blur-md py-4 mb-4 -mx-6 px-7 border-b border-base-content/5 flex items-center gap-2 text-error cursor-pointer hover:bg-base-100 transition-colors">
+            <i-ph-exclamation-mark-fill class="text-2xl drop-shadow-sm" />
+            <div>
+              <h3 class="text-lg font-bold uppercase tracking-wider leading-none">Data Error</h3>
+              <p class="text-xs opacity-60 font-bold mt-1">数据异常 / 版本不兼容</p>
+            </div>
+          </div>
+          
+          <div class="flex flex-col gap-6">
+            <div v-for="group in groupsError" :key="group.id" class="bg-base-100 border-l-4 border-error/50 rounded-xl shadow-sm p-6 border-y border-r">
+              <h4 class="text-xs font-bold opacity-40 uppercase mb-4 tracking-widest text-error">{{ group.name }}</h4>
+              <div class="flex flex-wrap gap-3">
+                <div v-for="item in group.items" :key="item.id">
+                  <div class="badge badge-lg h-auto py-2 px-3 gap-3 bg-error/10 border border-error/20 text-error cursor-not-allowed rounded-lg">
+                    <span class="text-xs opacity-70 border-r border-error/20 pr-2 mr-1">{{ item.title }}</span>
+                    <span class="font-mono text-xs font-bold">
+                       Err: {{ item.myAttitude }}/{{ item.partnerAttitude }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="zone-critical" class="scroll-mt-32 pb-16">
         <div class="animate-fade-in-up">
           <div 
@@ -288,17 +334,16 @@ onMounted(() => {
                             <div class="flex items-center gap-1">
                                 <i-ph-star-fill v-if="item.myAttitude === 4" class="text-amber-400 drop-shadow-sm" />
                                 <i-ph-x-bold v-else-if="item.myAttitude === 1" class="text-error" />
-                                <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success" />
+                                <i-ph-thumbs-down-bold v-else-if="item.myAttitude === 5" class="text-base-content/60" /> <i-ph-check-bold v-else-if="item.myAttitude === 3" class="text-success" />
                                 <i-ph-question-bold v-else-if="item.myAttitude === 2" class="text-warning" />
                                 <span v-else-if="item.myAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
-                                <span class="text-xs">{{ myAvatar }}</span>
                             </div>
                             <i-ph-lightning-fill class="text-xs text-error opacity-40 mx-0.5 animate-pulse" />
                             <div class="flex items-center gap-1">
                                 <span class="text-xs">{{ partnerAvatar }}</span>
                                 <i-ph-star-fill v-if="item.partnerAttitude === 4" class="text-amber-400 drop-shadow-sm" />
                                 <i-ph-x-bold v-else-if="item.partnerAttitude === 1" class="text-error" />
-                                <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success" />
+                                <i-ph-thumbs-down-bold v-else-if="item.partnerAttitude === 5" class="text-base-content/60" /> <i-ph-check-bold v-else-if="item.partnerAttitude === 3" class="text-success" />
                                 <i-ph-question-bold v-else-if="item.partnerAttitude === 2" class="text-warning" />
                                 <span v-else-if="item.partnerAttitude === 0" class="w-1.5 h-1.5 rounded-full bg-current opacity-40"></span>
                             </div>
@@ -442,7 +487,7 @@ onMounted(() => {
           </div>
           
           <div v-if="groupsNegotiate.length > 0" class="flex flex-col gap-6">
-             <div v-for="group in groupsNegotiate" :key="group.id" class="bg-base-100 border-l-4 border-base-content/20 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
+             <div v-for="group in groupsNegotiate" :key="group.id" class="bg-base-100 border-l-4 rounded-xl shadow-sm p-6 border-y border-r border-base-content/5">
                 <h4 class="text-xs font-bold opacity-30 uppercase mb-4 tracking-widest">{{ group.name }}</h4>
                 <div class="flex flex-wrap gap-3">
                     <div v-for="item in group.items" :key="item.id">
