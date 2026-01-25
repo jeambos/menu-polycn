@@ -5,15 +5,21 @@ import { useClipboard } from '@vueuse/core';
 import { useConfigStore } from '../stores/useConfigStore';
 import { decode } from '../logic/codec';
 import type { Attitude } from '../types'; // ✅ 引入类型
-import DocArticle from '../components/DocArticle.vue';
+import RubiksCube from '../components/RubiksCube.vue';
+import BaseModal from '../components/BaseModal.vue';
 import AIAnalysisModal from '../components/AIAnalysisModal.vue';
+
+// --- 状态 ---
+const showOverwriteWarning = ref(false); // ✅ 控制覆盖警告弹窗
+const pendingImportData = ref<any>(null); // ✅ 暂存待导入的数据
+const pendingImportAction = ref<'view' | 'continue'>('view'); // ✅ 记录用户意图
+
+const showAIModal = ref(false);
 
 const router = useRouter();
 const store = useConfigStore();
 const { text, isSupported } = useClipboard();
-const showAIModal = ref(false);
 
-// --- 状态 ---
 const activeTab = ref<'single' | 'dual'>('single');
 // ✅ 修改：统一变量名，实现单人/双人数据互通
 const codeA = ref(''); // 对应：单人代码 / 我的代码
@@ -54,45 +60,51 @@ function goSystem() {
   router.push('/setup'); 
 }
 
-function handleSingleView() {
-  // ✅ 修改：使用 codeA
+// ✅ 重构：统一的导入尝试函数 (核心逻辑)
+function attemptImport(action: 'view' | 'continue') {
+  // 使用 codeA 进行单人操作
   if (!isValid(codeA.value)) return triggerError('请输入代码');
-  
-  const data = decode(codeA.value);
-  if (data) {
-    // ✅ 修复：强制类型断言
-    store.answers = data.answers as Record<string, Attitude[]>;
-    store.targetAvatar = data.avatar;
-    router.push('/result');
-  } else {
+
+  try {
+    const data = decode(codeA.value);
+
+    // 检查冲突：如果本地已有该头像的存档
+    if (store.profiles[data.avatar]) {
+      pendingImportData.value = data;
+      pendingImportAction.value = action; // 👈 记住用户的意图(是查看还是继续)
+      showOverwriteWarning.value = true;  // 👈 触发弹窗
+    } else {
+      // 无冲突，直接执行
+      executeImport(data, action);
+    }
+  } catch (e) {
     triggerError('代码无效');
   }
 }
 
-function handleSingleContinue() {
-  // ✅ 修改：使用 codeA
-  if (!isValid(codeA.value)) return triggerError('请输入代码');
-  
-  const data = decode(codeA.value);
-  if (data) {
-    store.targetAvatar = data.avatar;
-    
-    // ✅ 修复：强制类型断言
-    const typedAnswers = data.answers as Record<string, Attitude[]>;
-    
-    store.answers = typedAnswers;
-    
-    if (!store.profiles[data.avatar]) {
-      store.profiles[data.avatar] = {};
-    }
-    // ✅ 修复：这里也使用断言后的数据
+// ✅ 重构：执行导入 (被弹窗确认或直接调用)
+function executeImport(data: any, action: 'view' | 'continue') {
+  store.targetAvatar = data.avatar;
+  const typedAnswers = data.answers as Record<string, Attitude[]>;
+  store.answers = typedAnswers;
+
+  if (action === 'continue') {
+    // 如果是“继续答题”，强制写入存档并去设置页
     store.profiles[data.avatar] = typedAnswers;
-    
     router.push('/setup');
   } else {
-    triggerError('代码无效');
+    // 如果是“查看结果”，只更新当前 answers，去结果页
+    router.push('/result');
   }
+  
+  // 清理状态
+  showOverwriteWarning.value = false;
+  pendingImportData.value = null;
 }
+
+// ✅ 绑定按钮事件到新的逻辑
+const handleSingleView = () => attemptImport('view');
+const handleSingleContinue = () => attemptImport('continue');
 
 function handleCompare() {
   // ✅ 修改：使用 codeA 和 codeB
@@ -116,7 +128,6 @@ function handleCompare() {
     triggerError('需填入代码');
   }
 }
-
 </script>
 
 <template>
@@ -141,13 +152,13 @@ function handleCompare() {
   <i-ph-arrow-right-bold class="text-2xl group-hover:translate-x-1 transition-transform" />
 </button>
 
-        <div class="relative flex items-center py-2 max-w-sm mx-auto ">
+        <div class="relative flex items-center py-2">
           <div class="flex-grow border-t border-slate-100"></div>
           <span class="flex-shrink-0 mx-4 text-xs font-bold text-slate-300 uppercase tracking-widest">Import</span>
           <div class="flex-grow border-t border-slate-100"></div>
         </div>
 
-        <div class="w-full max-w-sm mx-auto ">
+        <div class="w-full">
           <div class="grid grid-cols-2 p-1.5 bg-base-200 rounded-2xl mb-6 border border-base-content/5">
   <button 
     class="py-3 text-base font-bold rounded-xl transition-all duration-200"
@@ -165,9 +176,9 @@ function handleCompare() {
   </button>
 </div>
 
-          <div class="relative min-h-[160px]">
-  <div v-if="activeTab === 'single'" class="space-y-4 animate-fade">
-    <div class="relative">
+  <div class="relative min-h-[160px]">
+         <div v-if="activeTab === 'single'" class="space-y-4 animate-fade">
+               <div class="relative">
       <input 
         v-model="codeA" 
         type="text" 
@@ -186,7 +197,7 @@ function handleCompare() {
       </button>
 
       <div class="grid grid-cols-2 gap-3">
-        <button @click="showAIModal = true" class="h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
+        <button @click="showAIModal = true"  class="h-12 flex items-center justify-center gap-2 rounded-xl border border-slate-200 text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-base-content hover:border-slate-300 transition-all">
           <i-ph-sparkle-bold class="text-lg" />
           AI分析报告
         </button>
@@ -246,6 +257,55 @@ function handleCompare() {
       </p>
     </div>
 
+<AIAnalysisModal 
+      v-model="showAIModal" 
+      :code-a="codeA" 
+      :code-b="activeTab === 'single' ? '' : codeB"
+    />
+
+
+<BaseModal 
+    v-model="showOverwriteWarning" 
+    title="存档冲突提示"
+  >
+    <div class="space-y-4">
+      <div class="flex items-start gap-4 p-4 bg-warning/10 rounded-2xl text-warning-content border border-warning/20">
+        <i-ph-warning-circle-bold class="text-2xl shrink-0 mt-0.5" />
+        <div class="text-sm text-left">
+          <p class="font-bold mb-1">检测到相同头像的存档</p>
+          <p class="opacity-90">
+            您的本地记录中已经存在头像为 
+            <span class="font-bold text-lg mx-1">{{ pendingImportData?.avatar }}</span> 
+            的档案。
+          </p>
+        </div>
+      </div>
+      <p class="text-sm text-base-content/70 text-left">
+        <span v-if="pendingImportAction === 'continue'">
+          继续操作将用新代码<span class="font-bold text-error">覆盖</span>您的原有存档。
+        </span>
+        <span v-else>
+          查看结果将<span class="font-bold text-error">替换</span>您当前正在编辑的该头像数据。
+        </span>
+        如果您希望保留原数据，请先取消。
+      </p>
+    </div>
+
+    <template #actions>
+      <button 
+        @click="showOverwriteWarning = false" 
+        class="btn btn-ghost text-base-content/60"
+      >
+        我再想想
+      </button>
+      <button 
+        @click="executeImport(pendingImportData, pendingImportAction)" 
+        class="btn btn-error text-white shadow-lg shadow-error/30"
+      >
+        确认覆盖并{{ pendingImportAction === 'continue' ? '继续' : '查看' }}
+      </button>
+    </template>
+  </BaseModal>
 
 </template>
 
