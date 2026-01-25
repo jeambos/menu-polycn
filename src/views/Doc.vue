@@ -5,7 +5,6 @@ import { useClipboard } from '@vueuse/core';
 import { useConfigStore } from '../stores/useConfigStore';
 import { decode } from '../logic/codec';
 import type { Attitude } from '../types'; // ✅ 引入类型
-import RubiksCube from '../components/RubiksCube.vue';
 import BaseModal from '../components/BaseModal.vue';
 import AIAnalysisModal from '../components/AIAnalysisModal.vue';
 
