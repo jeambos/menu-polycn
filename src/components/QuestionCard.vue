@@ -28,9 +28,9 @@ function getLocalAnswer(idx: number): Attitude {
 
 <template>
   <div v-if="question" class="card bg-base-100 border border-base-content/10 rounded-[2rem] overflow-visible">
-    <div class="card-body p-6">
+    <div class="card-body p-2">
       
-      <h2 class="card-title text-2xl font-bold mb-3 text-base-content">
+      <h2 class="card-title text-xl font-bold mb-3 text-base-content px-2">
         {{ question.title }}
       </h2>
       

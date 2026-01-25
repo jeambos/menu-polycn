@@ -174,7 +174,7 @@ function cheatFill() {
       <progress class="progress progress-primary w-full h-1" :value="progress" max="100"></progress>
     </div>
 
-    <div class="flex-1 flex flex-col items-center relative min-h-[400px] w-full max-w-2xl mx-auto px-4">
+    <div class="flex-1 flex flex-col items-center relative min-h-[400px] w-full max-w-2xl mx-auto px-0">
       <Transition name="slide-fade" mode="out-in">
         
         <div v-if="currentQuestion && currentQuestion.id" :key="currentQuestion.id" class="w-full">
