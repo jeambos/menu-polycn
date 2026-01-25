@@ -221,69 +221,78 @@ export function encode(answers: Record<string, number[]>, avatar: string = '🌏
  * 解码：提取头像 + 校验数据 + 还原答案字典
  */
 export function decode(code: string): { answers: Record<string, number[]>, avatar: string } {
-  // ✅ 新增第一步：输入清洗 (Sanitization)
-  // 移除所有空格、换行符、以及 Emoji 变体选择符-16 (\uFE0F，通常由微信等APP自动添加)
-  // 这样可以防止查字典返回 undefined
+  // 1. 清洗 (保持不变)
   const cleanCode = code.replace(/[\s\n\r\uFE0F]/g, '');
-
-  if (!cleanCode) {
-    throw new Error("无效的代码：内容为空");
-  }
+  if (!cleanCode) throw new Error("无效的代码：内容为空");
 
   const chars = Array.from(cleanCode);
   
-  // 1. 提取头像
+  // 2. 提取头像 (保持不变)
   let avatar = '🌏'; 
   let dataAndChecksumChars: string[] = [];
 
   const firstChar = chars[0];
   if (firstChar && AVATAR_SET.has(firstChar)) {
     avatar = firstChar;
-    // 如果有头像，剩下的就是 数据+校验
     dataAndChecksumChars = chars.slice(1); 
   } else {
-    // 如果没头像，假设全是 数据+校验
     dataAndChecksumChars = chars;
   }
 
-  // 边界检查：如果没有数据部分（或者长度不够包含校验位），直接返回空结果或报错
   if (dataAndChecksumChars.length < 1) {
-      // 视为空数据，返回默认值
       return { answers: {}, avatar };
   }
 
-  // ✅ 新增第二步：分离 数据体 和 校验位
-  const providedChecksumEmoji = dataAndChecksumChars[dataAndChecksumChars.length - 1]; // 最后一位
-  const dataEmojis = dataAndChecksumChars.slice(0, -1); // 中间部分
+  // --- 分离 数据体 和 潜在的校验位 ---
+  const providedChecksumEmoji = dataAndChecksumChars[dataAndChecksumChars.length - 1]; // 可能是校验位，也可能是旧数据的最后一位
+  const dataEmojis = dataAndChecksumChars.slice(0, -1); // 可能是剩余数据
 
-  // 2. Emoji 转 索引数组 + 校验
+  // 3. 转换索引 (保持不变)
   const indices: number[] = [];
-  let bitStream = "";
-
+  
+  // 先解析前面的部分
   for (const char of dataEmojis) {
     const val = EMOJI_TO_INDEX.get(char);
-    if (val === undefined) {
-      // 如果清洗后依然有无法识别的字符，说明代码已损坏
-      throw new Error(`解析失败：包含无法识别的字符 "${char}"`);
-    }
+    if (val === undefined) throw new Error(`解析失败：包含无法识别的字符 "${char}"`);
     indices.push(val);
-    bitStream += toBits(val, 10); 
   }
 
-  // ✅ 新增第三步：执行校验
-  if (!providedChecksumEmoji) {
-    throw new Error("校验失败：代码格式不完整，找不到校验位");
-}
-  const expectedChecksumIndex = EMOJI_TO_INDEX.get(providedChecksumEmoji);
-  if (expectedChecksumIndex === undefined) {
-      throw new Error("校验失败：校验位字符无效");
-  }
+  // 获取最后一位的数值
+  if (!providedChecksumEmoji) throw new Error("代码格式不完整");
+  const lastCharVal = EMOJI_TO_INDEX.get(providedChecksumEmoji);
+  if (lastCharVal === undefined) throw new Error(`解析失败：包含无法识别的字符 "${providedChecksumEmoji}"`);
 
+
+  // --- ✅ 核心修改：兼容旧代码的校验逻辑 ---
+  
+  // 计算前面数据的校验值
   const calculatedChecksumIndex = calculateChecksum(indices);
   
-  if (calculatedChecksumIndex !== expectedChecksumIndex) {
-    // 这是最关键的拦截：如果计算结果和最后一位对不上，说明数据被篡改或截断
-    throw new Error("数据校验失败：代码可能不完整或已被修改，请重新复制。");
+  // 比对：计算出的值 vs 最后一位的值
+  if (calculatedChecksumIndex === lastCharVal) {
+    // A. 校验成功！
+    // 说明这是新版代码 (V2)，indices 就是完整的数据，lastCharVal 是校验位（已消耗）
+    // 什么都不用做，继续往下走
+  } else {
+    // B. 校验失败！
+    // 可能性 1：代码被篡改了。
+    // 可能性 2：这是一个旧版代码 (V1)，旧代码没有校验位，所以最后一位其实是数据，不是校验位。
+    
+    console.warn("校验位不匹配，尝试作为旧版代码解析...");
+
+    // 兼容策略：将最后一位当作普通数据，放回数组中
+    indices.push(lastCharVal);
+    
+    // 注意：这样做的代价是，如果真的是“被篡改的新代码”，也会被强行解析，
+    // 但解析出来的数据末尾会有乱码。为了兼容旧代码，这个风险是必须承担的。
+  }
+
+
+  // 4. 重建 BitStream (逻辑微调)
+  // 此时 indices 已经包含了所有需要还原的数据（如果是新代码，就不含校验位；如果是旧代码，就包含最后一位）
+  let bitStream = "";
+  for (const val of indices) {
+    bitStream += toBits(val, 10);
   }
 
   // 3. 解压 BitStream 到扁平数组 (逻辑保持不变)
