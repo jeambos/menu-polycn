@@ -428,8 +428,8 @@ function handleClearData() {
         @click="openCloudArchive('save', fullCode)" 
         class="btn btn-md flex-1 btn-outline gap-2 rounded-lg border-base-content/10 hover:bg-base-content hover:text-base-100 hover:border-transparent transition-all group"
       >
-        <i-ph-floppy-disk-bold class="text-xl group-hover:scale-110 transition-transform" />
-        <span>存入云端</span>
+        <i-ph-cloud-bold class="text-xl group-hover:scale-110 transition-transform" />
+        <span>存入云端 (beta)</span>
       </button>
 
       <button 

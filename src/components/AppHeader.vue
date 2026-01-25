@@ -301,7 +301,7 @@ function handleSaveAndFinish() {
           <li>
             <a @click="openCloudArchive()" >
               <i-ph-cloud-bold class="text-base" />
-              <span>云端存档管理</span>
+              <span>云端存档 (beta) 管理</span>
             </a>
           </li>
           <li>

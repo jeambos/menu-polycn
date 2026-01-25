@@ -327,7 +327,7 @@ onMounted(() => {
             <i-ph-handshake-bold class="text-2xl drop-shadow-sm" />
             <div>
               <h3 class="text-lg font-bold uppercase tracking-wider leading-none">Resonance</h3>
-              <p class="text-xs opacity-60 font-bold mt-1">默契共振 / 双方高度一致</p>
+              <p class="text-xs opacity-60 font-bold mt-1">高度同频</p>
             </div>
           </div>
           
@@ -368,7 +368,7 @@ onMounted(() => {
 
           <div v-else class="text-center py-10 opacity-50">
             <i-ph-magnifying-glass-bold class="text-4xl mb-2 mx-auto text-slate-300" />
-            <p class="text-sm">暂未发现高度共振项</p>
+            <p class="text-sm">暂未发现高度同频项</p>
           </div>
         </div>
       </div>
@@ -382,7 +382,7 @@ onMounted(() => {
             <i-ph-chats-circle-bold class="text-2xl drop-shadow-sm" />
             <div>
               <h3 class="text-lg font-bold uppercase tracking-wider leading-none">To Discuss</h3>
-              <p class="text-xs opacity-60 font-bold mt-1">待厘清 / 需要进一步沟通</p>
+              <p class="text-xs opacity-60 font-bold mt-1">需要沟通</p>
             </div>
           </div>
           
@@ -423,7 +423,7 @@ onMounted(() => {
 
           <div v-else class="text-center py-10 opacity-50">
             <i-ph-check-circle-bold class="text-4xl mb-2 mx-auto text-slate-300" />
-            <p class="text-sm">沟通顺畅，无待厘清项</p>
+            <p class="text-sm">无需要沟通项</p>
           </div>
         </div>
       </div>
@@ -437,7 +437,7 @@ onMounted(() => {
             <i-ph-arrows-left-right-bold class="text-2xl" />
             <div>
               <h3 class="text-lg font-bold uppercase tracking-wider leading-none">Negotiate</h3>
-              <p class="text-xs opacity-60 font-bold mt-1">协商让步 / 寻找中间地带</p>
+              <p class="text-xs opacity-60 font-bold mt-1">协商让步</p>
             </div>
           </div>
           

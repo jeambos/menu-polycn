@@ -167,11 +167,11 @@ async function handleSave() {
       <div class="alert alert-warning shadow-sm mb-6 text-left text-sm items-start">
         <i-ph-warning-circle-bold class="text-xl shrink-0 mt-0.5" />
         <div>
-          <h3 class="font-bold">使用前必读 (Disclaimer)</h3>
+          <h3 class="font-bold">使用前必读</h3>
           <ul class="list-disc list-inside opacity-80 mt-1 space-y-1 text-xs">
             <li>本功能基于留言板技术，数据<strong>明文存储</strong>。</li>
-            <li>管理员后台可见您的存档，<strong>切勿存储敏感信息</strong>。</li>
-            <li>服务可能随时终止，请务必使用本地记事本作为主备份。</li>
+            <li>管理员<strong>后台可见</strong>您的存档。</li>
+            <li>云端服务随时可能终止，请在您本地留一份备份。</li>
           </ul>
         </div>
       </div>
@@ -232,8 +232,8 @@ async function handleSave() {
             <h3 class="font-bold">使用前必读 (Disclaimer)</h3>
           
             <li>本功能基于留言板技术，数据<strong>明文存储</strong>。</li>
-            <li>管理员后台可见您的存档，<strong>切勿存储敏感信息</strong>。</li>
-            <li>服务可能随时终止，请务必使用本地记事本作为主备份。</li>
+            <li>管理员<strong>后台可见</strong>您的存档。</li>
+            <li>云端服务随时可能终止，请在您本地留一份备份。</li>
           </ul>
         
           </div>
