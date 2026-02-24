@@ -1,4 +1,4 @@
-# DIY 关系配置单 v0.72
+# DIY 关系配置单 v0.86
 ### https://diy.polycn.org
 
 ## 关系配置单是什么？
